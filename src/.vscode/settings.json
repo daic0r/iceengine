@@ -1,0 +1,19 @@
+{
+    "files.associations": {
+        "initializer_list": "cpp",
+        "bit": "cpp",
+        "*.tcc": "cpp",
+        "bitset": "cpp",
+        "random": "cpp",
+        "valarray": "cpp",
+        "*.def": "cpp",
+        "tuple": "cpp",
+        "mutex": "cpp",
+        "ranges": "cpp",
+        "streambuf": "cpp",
+        "typeindex": "cpp",
+        "span": "cpp",
+        "type_traits": "cpp",
+        "array": "cpp"
+    }
+}

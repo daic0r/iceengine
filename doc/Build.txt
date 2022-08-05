@@ -1,0 +1,7 @@
+* XCode Include search path:
+
+Must put the search path for the external dependencies first in the list, i.e. the path where glm is for example. If not, this will lead to undefined symbol for methods exported from IceEngine that use glm types as parameters.
+
+* SDL2 and SDL_image headers:
+
+In Windows directory because on MacOS we use the framework, which also contains the headers

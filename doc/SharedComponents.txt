@@ -1,0 +1,9 @@
+* SharedComponents
+
+An entity with a SharedComponent<T> doesn't own a component of type T themselves, but links to that owned by another entity. Using the entity manager's getSharedComponentOr a reference to the corresponding T can be retrieved, regardless of whether the entity has a T or a SharedComponent<T>.
+
+The entity referenced by the SharedComponent<T> will be identified via its Tag component and via its ID; when the shared component is first accessed, the entity with the specified TagComponent will be searched and the entity ID variable in the shared component will be set accordingly.
+
+The entity that owns the actual T will have a LinkedEntitiesComponent, in which the entities that reference this entity will be linked. The addComponent overload for SharedComponent<T>s will assure this component is attached to the reference entity and if necessary attach it. Furthermore, it'll add the referencing entity to the LinkedEntitiesComponent of the reference entity.
+
+The LinkedEntitiesComponent will be initialized at runtime and will not be saved.
