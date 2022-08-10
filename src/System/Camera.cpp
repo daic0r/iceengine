@@ -14,6 +14,7 @@
 #include <System/Tools.h>
 #include <System/Math.h>
 #include <System/SystemServices.h>
+#include <glm/mat4x4.hpp>
 
 namespace Ice {
 
@@ -89,6 +90,16 @@ void Camera::zoom(float factor) noexcept {
 
 glm::mat4 Camera::matrix() const noexcept {
     return glm::lookAt(position(), lookAt(), up());
+}
+
+Camera Camera::getTransformedCopy(const glm::mat4& m) const noexcept {
+    Camera ret{ *this };
+    
+    ret.m_position = m * glm::vec4{ m_position, 1.0f };
+    ret.m_up = m * glm::vec4{ m_up, 0.0f };
+    ret.m_dir = m * glm::vec4{ m_dir, 0.0f };
+
+    return ret;
 }
 
 void Camera::setPitch(float pitch) noexcept {

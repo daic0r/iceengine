@@ -33,6 +33,7 @@ public:
     bool update(float fDeltaTime) override;
 	// Frustum for which camera? For later -> for now just one frustum for the first camera
 	const Frustum& frustum(Entity e = INVALID_ENTITY_ID) const noexcept { return m_frustum; }
+	Frustum transformedFrustum(const glm::mat4& m, Entity e = INVALID_ENTITY_ID) const noexcept;
 	int executionOrder() const noexcept override { return 0; }
 };
 

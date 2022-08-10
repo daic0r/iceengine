@@ -96,4 +96,11 @@ bool CameraControllerSystem::update(float fDeltaTime) {
     return true;
 }
 
+Frustum CameraControllerSystem::transformedFrustum(const glm::mat4& m, Entity e) const noexcept{
+    Entity camEnt = *entities(entityManager.currentScene()).begin();
+    auto &comp = entityManager.getComponent<CameraComponent>(camEnt);
+    const auto& camera = comp.m_camera;
+	return Frustum{ camera.getTransformedCopy(m), m_pGraphicsSystem->distNearPlane(), m_pGraphicsSystem->distFarPlane(), glm::radians(m_pGraphicsSystem->fov()), m_pGraphicsSystem->aspectRatio() };
+}
+
 }

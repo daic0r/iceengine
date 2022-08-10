@@ -69,6 +69,7 @@ public:
     auto direction() const noexcept { return m_dir; }
     
     glm::mat4 matrix() const noexcept;
+    Camera getTransformedCopy(const glm::mat4&) const noexcept;
     
     void moveForward(float) noexcept;
     void moveSideways(float) noexcept;

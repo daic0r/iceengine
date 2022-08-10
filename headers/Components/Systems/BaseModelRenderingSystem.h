@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Entities/EntityManager.h>
+#include <System/SystemServices.h>
 #include <Components/TransformComponent.h>
 #include <Components/ModelReferenceComponent.h>
 #include <Components/MeshComponent.h>
@@ -9,6 +10,7 @@
 #include <Renderer/RenderEnvironment.h>
 #include <System/Model.h>
 #include <System/ModelInstance.h>
+#include <Interfaces/IGraphicsSystem.h>
 
 namespace Ice {
 
@@ -25,6 +27,7 @@ protected:
 	CameraControllerSystem* m_pCameraControllerSystem{ nullptr };
 	IModelRenderer* m_pRenderer{ nullptr };
 	IModelRenderer* m_pShadowRenderer{ nullptr };
+	IGraphicsSystem* m_pGraphicsSystem{};
 
 	virtual ModelStructType makeModelStruct(Entity) const = 0;
 	virtual bool isEntityEligibleForRendering(Entity e) const = 0;
@@ -32,6 +35,7 @@ protected:
 	
 	void onSystemsInitialized() noexcept {
 		m_pCameraControllerSystem = entityManager.getSystem<CameraControllerSystem, true>();
+		m_pGraphicsSystem = systemServices.getGraphicsSystem();
 //		m_pShadowRenderer = systemServices.getShadowMapRenderer();
 	}
 
@@ -83,11 +87,11 @@ protected:
 			const auto& refComp = entityManager.getComponent<ModelReferenceComponent>(e);
 			const auto& meshComp = entityManager.getComponent<MeshComponent>(refComp.m_entity);
 			// Frustum culling before anything elee
-			auto minWorld = meshComp.extents().minPoint;
-			auto maxWorld = meshComp.extents().maxPoint;
-			minWorld = transf.m_transform * glm::vec4{ minWorld, 1.0f };
-			maxWorld = transf.m_transform * glm::vec4{ maxWorld, 1.0f };
-			const Frustum& frustum = m_pCameraControllerSystem->frustum();
+			const auto minWorld = meshComp.extents().minPoint;
+			const auto maxWorld = meshComp.extents().maxPoint;
+			//minWorld = transf.m_transform * glm::vec4{ minWorld, 1.0f };
+			//maxWorld = transf.m_transform * glm::vec4{ maxWorld, 1.0f };
+			const auto frustum = m_pCameraControllerSystem->transformedFrustum(glm::inverse(transf.m_transform));
 			if (frustum.checkMinMaxBounds(minWorld, maxWorld, false) || frustum.checkMinMaxBounds(minWorld, maxWorld, true)) {
 				m_sFrustumEnts.insert(e);
 			}
