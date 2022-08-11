@@ -21,7 +21,7 @@ namespace Ice
         };
         std::vector<node> m_vNodes{};
 
-        static node* _subdivide(std::vector<glm::vec3>, int nAxis);
+        node* _subdivide(std::vector<glm::vec3>, int nAxis);
     public:
         KdTree() = default;
         KdTree(const std::vector<float>& vPoints);

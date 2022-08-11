@@ -113,7 +113,7 @@ System/BaseTexture.cpp
 System/Path.cpp
 System/File.cpp
 System/Math.cpp
-#System/KdTree.cpp
+System/KdTree.cpp
 GUI/Button.cpp
 GUI/ImageView.cpp
 GUI/ScrollWidget.cpp
@@ -188,7 +188,8 @@ target_compile_options(${PROJECT_NAME} PRIVATE -O0 -g -fPIC -Wno-non-template-fr
 target_compile_definitions(${PROJECT_NAME} PRIVATE RENDERER_OPEN_GL)
 #target_link_options(${PROJECT_NAME} PRIVATE -pg)
 #target_link_directories(${PROJECT_NAME} PRIVATE ../external/linux PRIVATE /usr/local/lib PRIVATE /usr/lib)
-target_include_directories(${PROJECT_NAME} PUBLIC ../headers PUBLIC ../external/inc PUBLIC ../external/inc/SDL2) # PUBLIC . PUBLIC ${CMAKE_SYSTEM_INCLUDE_PATH})
+target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ../external/inc PUBLIC ../external/inc/SDL2) # PUBLIC . PUBLIC ${CMAKE_SYSTEM_INCLUDE_PATH})
+target_include_directories(${PROJECT_NAME} PUBLIC ../headers) # PUBLIC . PUBLIC ${CMAKE_SYSTEM_INCLUDE_PATH})
 target_link_libraries(${PROJECT_NAME} SDL2 GLEW crossguid SDL2_image uuid dl pthread)
 
 install(TARGETS ${PROJECT_NAME}
