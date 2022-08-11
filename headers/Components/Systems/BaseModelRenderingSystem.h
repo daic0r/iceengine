@@ -11,6 +11,7 @@
 #include <System/Model.h>
 #include <System/ModelInstance.h>
 #include <Interfaces/IGraphicsSystem.h>
+#include <Interfaces/IModelRenderer.h>
 
 namespace Ice {
 

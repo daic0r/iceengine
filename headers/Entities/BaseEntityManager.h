@@ -9,6 +9,7 @@
 #include <future>
 #include <Entities/BaseComponentSystem.h>
 #include <variant>
+#include <algorithm>
 
 namespace Ice {
 
