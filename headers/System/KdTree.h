@@ -4,6 +4,7 @@
 #include <vector>
 #include <memory>
 #include <glm/vec3.hpp>
+#include <variant>
 
 namespace Ice
 {
@@ -14,22 +15,27 @@ namespace Ice
             Y,
             Z
         };
-        struct node {
+        struct leaf_node;
+        struct branch_node;
+        using node_t = std::variant<branch_node, leaf_node>;
+        struct branch_node {
             glm::vec3 m_point;
             splitting_axis m_axis;
-            node* m_pLeft{}, *m_pRight{};
+            node_t* m_pLeft{}, *m_pRight{};
         };
-        std::vector<node> m_vNodes{};
+        struct leaf_node {
+            std::vector<T> m_vObjects;
+        };
+        std::vector<node_t> m_vNodes{};
 
-        node* _subdivide(std::vector<glm::vec3>, int nAxis);
+        node_t* _subdivide(std::vector<glm::vec3>, int nAxis, int nLevel = 0);
     public:
         KdTree() = default;
         KdTree(const std::vector<float>& vPoints);
-        void print(node* pNode = nullptr);
+        void print(node_t* pNode = nullptr);
 
     private:
-        node* m_pRoot{};
-        std::vector<float> m_vPoints;
+        node_t* m_pRoot{};
     };
 } // namespace Ice
 
