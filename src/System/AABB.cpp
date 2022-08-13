@@ -14,8 +14,27 @@
 #include <functional>
 #include <glm/vec2.hpp>
 #include <System/Ray.h>
+#include <execution>
 
 namespace Ice {
+
+std::array<glm::vec3, 8> AABB::cornerVertices(const glm::mat4& transform) const noexcept {
+    auto ret = std::array<glm::vec3, 8>{ 
+        m_minVertex,
+        glm::vec3{ m_minVertex.x, m_maxVertex.y, m_minVertex.z },
+        glm::vec3{ m_minVertex.x, m_minVertex.y, m_maxVertex.z },
+        glm::vec3{ m_minVertex.x, m_maxVertex.y, m_maxVertex.z },
+
+        m_maxVertex,
+        glm::vec3{ m_maxVertex.x, m_minVertex.y, m_maxVertex.z },
+        glm::vec3{ m_maxVertex.x, m_maxVertex.y, m_minVertex.z },
+        glm::vec3{ m_maxVertex.x, m_minVertex.y, m_minVertex.z },
+    };
+    std::transform(std::execution::par_unseq, ret.begin(), ret.end(), ret.begin(), [&transform](const glm::vec3& p) {
+        return glm::vec3{ transform * glm::vec4{ p, 1.0f } };
+    });
+    return ret;
+}
 
 bool AABB::intersects(const AABB &other) const noexcept {
     

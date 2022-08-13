@@ -11,6 +11,7 @@
 
 #include <glm/vec3.hpp>
 #include <System/Extents.h>
+#include <glm/mat4x4.hpp>
 
 namespace Ice {
 
@@ -25,8 +26,16 @@ public:
     
     AABB(const glm::vec3& minVert, const glm::vec3& maxVert) : m_minVertex{ minVert }, m_maxVertex{ maxVert } {}
     AABB(const Extents3& ext) : AABB{ ext.minPoint, ext.maxPoint } {}
+    
+    auto& minVertex() noexcept { return m_minVertex; }
+    const auto& minVertex() const noexcept { return m_minVertex; }
+
+    auto& maxVertex() noexcept { return m_maxVertex; }
+    const auto& maxVertex() const noexcept { return m_maxVertex; }
+
     bool intersects(const AABB& other) const noexcept;
     bool intersects(const Ray& r, float* fpDistance = nullptr) const noexcept;
+    std::array<glm::vec3, 8> cornerVertices(const glm::mat4& transform = glm::mat4{ 1.0f }) const noexcept;
 };
 
 }
