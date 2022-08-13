@@ -185,7 +185,7 @@ if (NOT pthread)
 endif()
 
 target_compile_options(${PROJECT_NAME} PRIVATE -O0 -g -fPIC -Wno-non-template-friend)
-target_compile_definitions(${PROJECT_NAME} PRIVATE RENDERER_OPEN_GL)
+target_compile_definitions(${PROJECT_NAME} PRIVATE RENDERER_OPEN_GL _DEBUG _LOG)
 #target_link_options(${PROJECT_NAME} PRIVATE -pg)
 #target_link_directories(${PROJECT_NAME} PRIVATE ../external/linux PRIVATE /usr/local/lib PRIVATE /usr/lib)
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ../external/inc PUBLIC ../external/inc/SDL2) # PUBLIC . PUBLIC ${CMAKE_SYSTEM_INCLUDE_PATH})
