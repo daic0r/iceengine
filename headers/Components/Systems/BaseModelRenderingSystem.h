@@ -12,6 +12,9 @@
 #include <System/ModelInstance.h>
 #include <Interfaces/IGraphicsSystem.h>
 #include <Interfaces/IModelRenderer.h>
+#include <System/KdTree.h>
+#include <algorithm>
+#include <ranges>
 
 namespace Ice {
 
@@ -29,6 +32,8 @@ protected:
 	IModelRenderer* m_pRenderer{ nullptr };
 	IModelRenderer* m_pShadowRenderer{ nullptr };
 	IGraphicsSystem* m_pGraphicsSystem{};
+	KdTree<Entity> m_kdTree{};
+	bool m_bConstruction{ true };
 
 	virtual ModelStructType makeModelStruct(Entity) const = 0;
 	virtual bool isEntityEligibleForRendering(Entity e) const = 0;
@@ -43,19 +48,23 @@ protected:
 	void onEntityAdded(Entity e) noexcept {
 		auto& ref = entityManager.getComponent<ModelReferenceComponent>(e);
 		auto& mesh = entityManager.getComponent<MeshComponent>(ref.m_entity);
-		 
+		auto& transf = entityManager.getSharedComponentOr<TransformComponent>(e);
+
 		ModelStructType* pModel{ nullptr };
 		auto modelIter = m_mModels.find(&mesh);
 		if (modelIter == m_mModels.end()) {
 			bool bSucc;
 			std::tie(modelIter, bSucc) = m_mModels.emplace(&mesh, makeModelStruct(e));
 			auto instanceIter = m_mInstanceBuffer.emplace(e, ModelInstanceType{}).first;
+			instanceIter->second.pTransform = &transf; 
 			auto [insertIter, succ] = m_mInstances.emplace(&modelIter->second, std::vector<ModelInstance*>{});
 		}
 		pModel = std::addressof(modelIter->second);
 		auto instanceIter = m_mInstanceBuffer.find(e);
 		if (instanceIter == m_mInstanceBuffer.end()) {
 			instanceIter = m_mInstanceBuffer.emplace(e, ModelInstanceType{}).first;
+			instanceIter->second.pTransform = &transf; 
+			m_mInstances.at(&modelIter->second).push_back(&instanceIter->second);
 		}
 		//m_pRenderer->registerModel(pModel);
 		//m_pCameraControllerSystem = entityManager.getSystem<CameraControllerSystem, true>();
@@ -130,7 +139,33 @@ protected:
 
 public:
 	const std::set<Entity>& entitiesInFrustum() const noexcept { return m_sFrustumEnts; }
+	bool inConstruction() const noexcept { return m_bConstruction; }
+	void setInConstruction(bool b) noexcept { m_bConstruction = b; }
+	void finishConstruction() {
+		std::vector<float> vVertices;
+		for (const auto& [pModel, vInst] : m_mInstances) {
+			AABB boxLocal{ pModel->pMesh->extents() };
 
+			for (auto pModelInstance : vInst) {
+				AABB boxWorld{};
+				const auto corners = boxLocal.cornerVertices(pModelInstance->pTransform->m_transform);
+				for (const auto& corner : corners) {
+					for (int i = 0; i < 3; ++i) {
+						if (corner[i] < boxWorld.minVertex()[i]) boxWorld.minVertex()[i] = corner[i];
+						if (corner[i] > boxWorld.maxVertex()[i]) boxWorld.maxVertex()[i] = corner[i];
+					}
+				}
+				const auto worldCorners = boxWorld.cornerVertices();
+				for (const auto& corner : worldCorners) {
+					vVertices.push_back(corner[0]);
+					vVertices.push_back(corner[1]);
+					vVertices.push_back(corner[2]);
+				}
+			}
+		}
+		m_kdTree.construct(vVertices);
+		setInConstruction(false);
+	}
 };
 
 }

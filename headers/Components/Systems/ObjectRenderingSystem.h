@@ -26,7 +26,7 @@ struct Model;
 struct ModelInstance;
 class CameraControllerSystem;
 
-class ObjectRenderingSystem : 
+class ObjectRenderingSystem final : 
 	public EntityComponentSystem<ModelInstanceTagComponent, ModelReferenceComponent, TransformComponent>,
 	public BaseModelRenderingSystem<Model, ModelInstance> {
 

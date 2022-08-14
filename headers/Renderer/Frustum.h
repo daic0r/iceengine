@@ -18,6 +18,7 @@
 namespace Ice {
 
 class Camera;
+class AABB;
 
 class Frustum {
 	friend class ShadowFrustum;
@@ -52,7 +53,6 @@ class Frustum {
 public:
 	Frustum() = default;
 	Frustum(const Camera& cam, float fDistNear, float fDistFar, float fovV, float fAspectRatio);
-	~Frustum();
 
 	const glm::vec3& position() const noexcept { return m_position; }
 	const glm::vec3& direction() const noexcept { return m_direction; }
@@ -64,7 +64,7 @@ public:
 	bool checkMinMaxBounds(const glm::vec3& posMin, const glm::vec3& posMax, bool bCheckMin) const noexcept;
 	glm::mat4 getShadowProjection(const glm::mat4& sunViewMatrix, float fOffsetAtTheBack) const noexcept;
 	glm::vec3 getCenter() const noexcept;
-
+	bool intersects(const AABB&) const noexcept;
 };
 
 }

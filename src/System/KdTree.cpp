@@ -105,6 +105,11 @@ namespace Ice
     
     template<typename T>
     KdTree<T>::KdTree(const std::vector<float>& vPoints) {
+        construct(vPoints);
+    } 
+
+    template<typename T>
+    void KdTree<T>::construct(const std::vector<float>& vPoints) {
         //m_vPoints = vPoints;
 
         std::vector<glm::vec3> vPoint3;
@@ -117,7 +122,7 @@ namespace Ice
 #ifdef _LOG
         std::cout << "Size of container: " << m_vNodes.size() << "\n";
 #endif
-    } 
+     }
 
     template<typename T>
     void KdTree<T>::print(typename KdTree<T>::node_t* pNode) {

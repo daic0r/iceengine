@@ -24,6 +24,11 @@ class AABB {
     
 public:
     
+    AABB() :
+                m_minVertex{ std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max() },
+                m_maxVertex{ -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max() }
+    {}
+
     AABB(const glm::vec3& minVert, const glm::vec3& maxVert) : m_minVertex{ minVert }, m_maxVertex{ maxVert } {}
     AABB(const Extents3& ext) : AABB{ ext.minPoint, ext.maxPoint } {}
     

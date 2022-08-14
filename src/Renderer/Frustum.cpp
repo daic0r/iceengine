@@ -12,6 +12,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 #include <System/Tools.h>
+#include <System/AABB.h>
 
 namespace Ice {
 
@@ -63,7 +64,9 @@ Frustum::Frustum(const Camera& cam, float fDistNear, float fDistFar, float fovV,
 
 }
 
-Frustum::~Frustum() {
+
+bool Frustum::intersects(const AABB& box) const noexcept {
+    return checkMinMaxBounds(box.minVertex(), box.maxVertex(), false) || checkMinMaxBounds(box.minVertex(), box.maxVertex(), true);
 }
 
 /*!
@@ -95,19 +98,19 @@ const glm::vec3& Frustum::planeNormal(FaceDirection dir) const {
 */
 bool Frustum::checkMinMaxBounds(const glm::vec3& posMin, const glm::vec3& posMax, bool bCheckMin) const noexcept
 {
-    std::vector<FaceDirection> vDirs;
+    std::array<FaceDirection, 3> vDirs;
 
     if (bCheckMin) {
-        vDirs.emplace_back(eFront);
-        vDirs.emplace_back(eRight);
-        vDirs.emplace_back(eTop);
+        vDirs[0] = eFront;
+        vDirs[1] = eRight;
+        vDirs[2] = eTop;
     } else {
-        vDirs.emplace_back(eBack);
-        vDirs.emplace_back(eLeft);
-        vDirs.emplace_back(eBottom);
+        vDirs[0] = eBack;
+        vDirs[1] = eLeft;
+        vDirs[2] = eBottom;
     }
+    auto bounds = bCheckMin ? posMax : posMin;
     for (auto dir : vDirs) {
-        auto bounds = bCheckMin ? posMax : posMin;
         const auto& normal = planeNormal(dir);
         
         // explanation: for the max bounds check for example, the box begins to be on the visible side of the plane
