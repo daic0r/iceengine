@@ -64,11 +64,6 @@ Frustum::Frustum(const Camera& cam, float fDistNear, float fDistFar, float fovV,
 
 }
 
-
-bool Frustum::intersects(const AABB& box) const noexcept {
-    return checkMinMaxBounds(box.minVertex(), box.maxVertex(), false) || checkMinMaxBounds(box.minVertex(), box.maxVertex(), true);
-}
-
 /*!
 * \brief
 * [Frustum::dist]
@@ -86,6 +81,10 @@ const glm::vec3& Frustum::planeNormal(FaceDirection dir) const {
     return m_planes.at(dir).m_normal;
 }
 
+FrustumAABBIntersectionType Frustum::intersects(const AABB& box, bool bCheckContainedCompletely) const noexcept {
+    return intersects(box.minVertex(), box.maxVertex(), bCheckContainedCompletely);
+}
+
 /*!
 * \brief
 * [Tools::checkMinBounds]
@@ -96,21 +95,21 @@ const glm::vec3& Frustum::planeNormal(FaceDirection dir) const {
 * \date 2020/08/31
 * [8/31/2020 matthias.gruen]
 */
-bool Frustum::checkMinMaxBounds(const glm::vec3& posMin, const glm::vec3& posMax, bool bCheckMin) const noexcept
+FrustumAABBIntersectionType Frustum::intersects(const glm::vec3& posMin, const glm::vec3& posMax, bool bCheckContainedCompletely) const noexcept
 {
-    std::array<FaceDirection, 3> vDirs;
+    std::array<FaceDirection, 6> vDirs;
 
-    if (bCheckMin) {
-        vDirs[0] = eFront;
-        vDirs[1] = eRight;
-        vDirs[2] = eTop;
-    } else {
-        vDirs[0] = eBack;
-        vDirs[1] = eLeft;
-        vDirs[2] = eBottom;
-    }
-    auto bounds = bCheckMin ? posMax : posMin;
+    FrustumAABBIntersectionType ret{ FrustumAABBIntersectionType::NO_INTERSECTION };
+
+    vDirs[0] = eFront;
+    vDirs[1] = eRight;
+    vDirs[2] = eTop;
+    vDirs[3] = eBack;
+    vDirs[4] = eLeft;
+    vDirs[5] = eBottom;
     for (auto dir : vDirs) {
+        auto pVertex = posMin;
+        auto nVertex = posMax;
         const auto& normal = planeNormal(dir);
         
         // explanation: for the max bounds check for example, the box begins to be on the visible side of the plane
@@ -119,15 +118,30 @@ bool Frustum::checkMinMaxBounds(const glm::vec3& posMin, const glm::vec3& posMax
         // to be visible. for the min bounds check, the min point is closer to the right plane, so we're using the min point here.
         // once the min point is to the left of the right plane, the box begins to be visible. this is done for each dimension.
         for (int i = 0; i < 3; ++i) {
-            if (normal[i] >= 0.0f)
-                bounds[i] = bCheckMin ? posMin[i] : posMax[i];
+            if (normal[i] >= 0.0f) { // determine p-vertex (vertex that is further along the normal's direction)
+                pVertex[i] = posMax[i];
+                if (bCheckContainedCompletely) {
+                    nVertex[i] = posMin[i];
+                }
+            }
         }
-        const float fDist = dist(dir, bounds);
+        float fDist = dist(dir, pVertex);
         if (fDist < 0.0f)
-            return false;
+            return FrustumAABBIntersectionType::NO_INTERSECTION;
+        if (bCheckContainedCompletely) {
+            fDist = dist(dir, nVertex);
+            if (fDist < 0.0f)
+                ret = FrustumAABBIntersectionType::PARTIAL;
+        } 
+    }
+    if (ret != FrustumAABBIntersectionType::PARTIAL) {
+        if (bCheckContainedCompletely)
+            ret = FrustumAABBIntersectionType::CONTAINED;
+        else // if we didn't check for "completely contained", we can only guarantee "partial"
+            ret = FrustumAABBIntersectionType::PARTIAL;
     }
 
-    return true;
+    return ret;
 }
 
 glm::mat4 Frustum::getShadowProjection(const glm::mat4& sunViewMatrix, float fOffsetAtTheBack) const noexcept {

@@ -6,6 +6,7 @@
 #include <iostream>
 #include <System/Math.h>
 #include <Utils/TemplateHelpers.h>
+#include <Renderer/Frustum.h>
 
 namespace Ice
 {
@@ -152,6 +153,55 @@ namespace Ice
                 std::cout << "Leaf node: " << node.m_vObjects.size() << " elements\n";
             }
         }, *pNode);
+    }
+
+    template<typename T>
+    std::vector<T> KdTree<T>::getVisibleObjects(Frustum* pFrustum, 
+        AABB box, 
+        node_t* pCurNode
+    ) const {
+        std::vector<T> vRet{};
+        if (pCurNode == nullptr)
+            pCurNode = m_pRoot;
+        std::visit(visitor{ 
+            [&box,&vRet,pFrustum,this](const branch_node& branch) {
+                const auto nAxis = static_cast<int>(branch.m_axis);
+                if (!pFrustum) {
+                    if (branch.m_pLeft) {
+                        auto vTemp = getVisibleObjects(pFrustum, box, branch.m_pLeft);
+                        std::move(vTemp.begin(), vTemp.end(), std::back_inserter(vRet));
+                    }
+                    if (branch.m_pRight) {
+                        auto vTemp = getVisibleObjects(pFrustum, box, branch.m_pRight);
+                        std::move(vTemp.begin(), vTemp.end(), std::back_inserter(vRet));
+                    }
+                } else {
+                    if (branch.m_pLeft) {
+                        AABB boxLeft = box;
+                        boxLeft.maxVertex()[nAxis] = branch.m_point[nAxis];
+                        if (const auto intersectRes = pFrustum->intersects(boxLeft, true); intersectRes != FrustumAABBIntersectionType::NO_INTERSECTION) {
+                            auto pPassFrustum = intersectRes == FrustumAABBIntersectionType::CONTAINED ? nullptr : pFrustum;
+                            auto vTemp = getVisibleObjects(pPassFrustum, boxLeft, branch.m_pLeft);
+                            std::move(vTemp.begin(), vTemp.end(), std::back_inserter(vRet));
+                        }
+                    }
+                    if (branch.m_pRight) {
+                        AABB boxRight = box;
+                        boxRight.minVertex()[nAxis] = branch.m_point[nAxis];
+                        if (const auto intersectRes = pFrustum->intersects(boxRight, true); intersectRes != FrustumAABBIntersectionType::NO_INTERSECTION) {
+                            auto pPassFrustum = intersectRes == FrustumAABBIntersectionType::CONTAINED ? nullptr : pFrustum;
+                            auto vTemp = getVisibleObjects(pPassFrustum, boxRight, branch.m_pRight);
+                            std::move(vTemp.begin(), vTemp.end(), std::back_inserter(vRet));
+                        }
+                    }
+                }
+            },
+            [&vRet](const leaf_node& branch) {
+                vRet.insert(vRet.end(), branch.m_vObjects.begin(), branch.m_vObjects.end());
+            }
+        }, *pCurNode);
+
+        return vRet;
     }
 
     template class KdTree<Entity>;

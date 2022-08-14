@@ -20,6 +20,12 @@ namespace Ice {
 class Camera;
 class AABB;
 
+enum class FrustumAABBIntersectionType {
+	NO_INTERSECTION,
+	PARTIAL,
+	CONTAINED
+};
+
 class Frustum {
 	friend class ShadowFrustum;
 
@@ -61,10 +67,10 @@ public:
 
 	float dist(FaceDirection, const glm::vec3&) const;
 	const glm::vec3& planeNormal(FaceDirection) const;
-	bool checkMinMaxBounds(const glm::vec3& posMin, const glm::vec3& posMax, bool bCheckMin) const noexcept;
 	glm::mat4 getShadowProjection(const glm::mat4& sunViewMatrix, float fOffsetAtTheBack) const noexcept;
 	glm::vec3 getCenter() const noexcept;
-	bool intersects(const AABB&) const noexcept;
+	FrustumAABBIntersectionType intersects(const glm::vec3& posMin, const glm::vec3& posMax, bool bCheckContainedCompletely) const noexcept;
+	FrustumAABBIntersectionType intersects(const AABB&, bool bCheckContainedCompletely) const noexcept;
 };
 
 }

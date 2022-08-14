@@ -12,6 +12,8 @@
 
 namespace Ice
 {
+    class Frustum;
+
     enum class TreeBranch {
         NONE,
         LEFT,
@@ -55,6 +57,13 @@ namespace Ice
         KdTree(const std::vector<float>& vPoints);
         void construct(const std::vector<float>& vPoints);
         void print(node_t* pNode = nullptr);
+        std::vector<T> getVisibleObjects(Frustum*, 
+            AABB box = AABB{ 
+                glm::vec3{ -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max() },
+                glm::vec3{ std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max() }
+            },
+            node_t* pCurNode = nullptr
+        ) const;
 
         template<typename Visitor> requires (BranchTraversingVisitor<Visitor> && LeafVisitor<Visitor, T>)
         void traverse(Visitor&& v) const {
