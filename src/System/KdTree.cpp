@@ -156,7 +156,7 @@ namespace Ice
     }
 
     template<typename T>
-    std::vector<T> KdTree<T>::getVisibleObjects(Frustum* pFrustum, 
+    std::vector<T> KdTree<T>::getVisibleObjects(const Frustum* pFrustum, 
         AABB box, 
         node_t* pCurNode
     ) const {

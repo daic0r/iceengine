@@ -57,13 +57,30 @@ namespace Ice
         KdTree(const std::vector<float>& vPoints);
         void construct(const std::vector<float>& vPoints);
         void print(node_t* pNode = nullptr);
-        std::vector<T> getVisibleObjects(Frustum*, 
+        std::vector<T> getVisibleObjects(const Frustum*, 
             AABB box = AABB{ 
                 glm::vec3{ -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max() },
                 glm::vec3{ std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max() }
             },
             node_t* pCurNode = nullptr
         ) const;
+
+        template<typename U = T>
+        void emplace(const glm::vec3& p, U&& u) {
+            auto pCurNode = m_pRoot;
+            while (pCurNode) {
+                std::visit(visitor{ 
+                    [&p,&pCurNode](const branch_node& branch) {
+                        const auto nAxis = static_cast<int>(branch.m_axis);
+                        pCurNode = p[nAxis] <= branch.m_point[nAxis] ? branch.m_pLeft : branch.m_pRight;
+                    },
+                    [obj=std::forward<U>(u),&pCurNode](leaf_node& branch) {
+                        branch.m_vObjects.emplace_back(std::forward<U>(obj));
+                        pCurNode = nullptr;
+                    }
+                }, *pCurNode);
+            }
+         }
 
         template<typename Visitor> requires (BranchTraversingVisitor<Visitor> && LeafVisitor<Visitor, T>)
         void traverse(Visitor&& v) const {

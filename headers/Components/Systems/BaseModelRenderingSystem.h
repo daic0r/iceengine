@@ -89,6 +89,10 @@ protected:
 
 	bool update(float fDeltaTime, const std::set<Entity>& ents) noexcept {
 		m_sFrustumEnts.clear();
+		const auto& frustum = m_pCameraControllerSystem->frustum();
+		auto vEnts = m_kdTree.getVisibleObjects(&frustum);
+		std::move(vEnts.begin(), vEnts.end(), std::inserter( m_sFrustumEnts, m_sFrustumEnts.end()));
+		/*
 		for (auto e : ents) {
 			if (!isEntityEligibleForFrustumCulling(e))
 				continue;
@@ -102,10 +106,11 @@ protected:
 			//minWorld = transf.m_transform * glm::vec4{ minWorld, 1.0f };
 			//maxWorld = transf.m_transform * glm::vec4{ maxWorld, 1.0f };
 			const auto frustum = m_pCameraControllerSystem->transformedFrustum(glm::inverse(transf.m_transform));
-			if (frustum.checkMinMaxBounds(minWorld, maxWorld, false) || frustum.checkMinMaxBounds(minWorld, maxWorld, true)) {
+			//if (frustum.checkMinMaxBounds(minWorld, maxWorld, false) || frustum.checkMinMaxBounds(minWorld, maxWorld, true)) {
 				m_sFrustumEnts.insert(e);
-			}
+			//}
 		}
+		*/
 
 		return true;
 	}
@@ -164,7 +169,9 @@ public:
 			}
 		}
 		m_kdTree.construct(vVertices);
-		setInConstruction(false);
+		for (const auto& [ent, inst] : m_mInstanceBuffer) {
+			m_kdTree.emplace(glm::vec3{ inst.pTransform->m_transform * glm::vec4{ 0.0f, 0.0f, 0.0f, 1.0f } }, ent);
+		}
 	}
 };
 
