@@ -24,23 +24,30 @@ class AABB {
     
 public:
     
-    AABB() :
+    constexpr AABB() :
                 m_minVertex{ std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max() },
                 m_maxVertex{ -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max() }
     {}
 
-    AABB(const glm::vec3& minVert, const glm::vec3& maxVert) : m_minVertex{ minVert }, m_maxVertex{ maxVert } {}
+    constexpr AABB(const glm::vec3& minVert, const glm::vec3& maxVert) : m_minVertex{ minVert }, m_maxVertex{ maxVert } {}
     AABB(const Extents3& ext) : AABB{ ext.minPoint, ext.maxPoint } {}
     
-    auto& minVertex() noexcept { return m_minVertex; }
-    const auto& minVertex() const noexcept { return m_minVertex; }
+    constexpr auto& minVertex() noexcept { return m_minVertex; }
+    constexpr const auto& minVertex() const noexcept { return m_minVertex; }
 
-    auto& maxVertex() noexcept { return m_maxVertex; }
-    const auto& maxVertex() const noexcept { return m_maxVertex; }
+    constexpr auto& maxVertex() noexcept { return m_maxVertex; }
+    constexpr const auto& maxVertex() const noexcept { return m_maxVertex; }
 
     bool intersects(const AABB& other) const noexcept;
     bool intersects(const Ray& r, float* fpDistance = nullptr) const noexcept;
     std::array<glm::vec3, 8> cornerVertices(const glm::mat4& transform = glm::mat4{ 1.0f }) const noexcept;
+
+    constexpr static AABB unboundedBox() { 
+        return AABB{ 
+                glm::vec3{ -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max() },
+                glm::vec3{ std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max() }
+            }; 
+    }
 };
 
 }

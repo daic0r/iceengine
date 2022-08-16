@@ -50,22 +50,15 @@ namespace Ice
         struct leaf_node {
             std::unordered_set<T> m_vObjects;
         };
-        std::vector<node_t> m_vNodes{};
 
         node_t* _subdivide(std::vector<glm::vec3>, int nAxis, int nLevel = 0);
+        std::unordered_set<T> getVisibleObjects_impl(const Frustum*, AABB box, node_t* pCurNode = nullptr) const;
+
     public:
         KdTree() = default;
         KdTree(const std::vector<float>& vPoints);
         void construct(const std::vector<float>& vPoints);
         void print(node_t* pNode = nullptr);
-        std::unordered_set<T> getVisibleObjects(const Frustum*, 
-            AABB box = AABB{ 
-                glm::vec3{ -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max() },
-                glm::vec3{ std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max() }
-            },
-            node_t* pCurNode = nullptr
-        ) const;
-
         template<typename U = T>
         void emplace(const glm::vec3& p, U&& u) {
             auto pCurNode = m_pRoot;
@@ -84,6 +77,7 @@ namespace Ice
             }
          }
 
+        std::unordered_set<T> getVisibleObjects(const Frustum*) const;
 /*
         template<typename Visitor> requires (BranchTraversingVisitor<Visitor> && LeafVisitor<Visitor, T>)
         void traverse(Visitor&& v) const {
@@ -126,6 +120,8 @@ namespace Ice
 */
     private:
         node_t* m_pRoot{};
+        std::vector<node_t> m_vNodes{};
+        AABB m_outerBox{};
     };
 } // namespace Ice
 

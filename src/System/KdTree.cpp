@@ -66,6 +66,11 @@ namespace Ice
         auto pRet = &m_vNodes.back();
         auto& node = std::get<branch_node>(*pRet);
 
+        if (node.m_point[nAxis] > m_outerBox.maxVertex()[nAxis])
+            m_outerBox.maxVertex()[nAxis] = node.m_point[nAxis];
+        if (node.m_point[nAxis] < m_outerBox.minVertex()[nAxis])
+            m_outerBox.minVertex()[nAxis] = node.m_point[nAxis];
+
         vPoint3.erase(median);
         median = getMedian(vPoint3);
         
@@ -154,7 +159,12 @@ namespace Ice
     }
 
     template<typename T>
-    std::unordered_set<T> KdTree<T>::getVisibleObjects(const Frustum* pFrustum, 
+    std::unordered_set<T> KdTree<T>::getVisibleObjects(const Frustum* pFrustum) const {
+        return getVisibleObjects_impl(pFrustum, m_outerBox, nullptr);
+    }
+
+    template<typename T>
+    std::unordered_set<T> KdTree<T>::getVisibleObjects_impl(const Frustum* pFrustum, 
         AABB box, 
         node_t* pCurNode
     ) const {
@@ -166,11 +176,11 @@ namespace Ice
                 const auto nAxis = static_cast<int>(branch.m_axis);
                 if (!pFrustum) {
                     if (branch.m_pLeft) {
-                        auto vTemp = getVisibleObjects(pFrustum, box, branch.m_pLeft);
+                        auto vTemp = getVisibleObjects_impl(pFrustum, box, branch.m_pLeft);
                         std::move(vTemp.begin(), vTemp.end(), std::inserter(vRet, vRet.end()));
                     }
                     if (branch.m_pRight) {
-                        auto vTemp = getVisibleObjects(pFrustum, box, branch.m_pRight);
+                        auto vTemp = getVisibleObjects_impl(pFrustum, box, branch.m_pRight);
                         std::move(vTemp.begin(), vTemp.end(), std::inserter(vRet, vRet.end()));
                     }
                 } else {
@@ -179,7 +189,7 @@ namespace Ice
                         boxLeft.maxVertex()[nAxis] = branch.m_point[nAxis];
                         if (const auto intersectRes = pFrustum->intersects(boxLeft, true); intersectRes != FrustumAABBIntersectionType::NO_INTERSECTION) {
                             auto pPassFrustum = intersectRes == FrustumAABBIntersectionType::CONTAINED ? nullptr : pFrustum;
-                            auto vTemp = getVisibleObjects(pPassFrustum, boxLeft, branch.m_pLeft);
+                            auto vTemp = getVisibleObjects_impl(pPassFrustum, boxLeft, branch.m_pLeft);
                             std::move(vTemp.begin(), vTemp.end(), std::inserter(vRet, vRet.end()));
                         }
                     }
@@ -188,7 +198,7 @@ namespace Ice
                         boxRight.minVertex()[nAxis] = branch.m_point[nAxis];
                         if (const auto intersectRes = pFrustum->intersects(boxRight, true); intersectRes != FrustumAABBIntersectionType::NO_INTERSECTION) {
                             auto pPassFrustum = intersectRes == FrustumAABBIntersectionType::CONTAINED ? nullptr : pFrustum;
-                            auto vTemp = getVisibleObjects(pPassFrustum, boxRight, branch.m_pRight);
+                            auto vTemp = getVisibleObjects_impl(pPassFrustum, boxRight, branch.m_pRight);
                             std::move(vTemp.begin(), vTemp.end(), std::inserter(vRet, vRet.end()));
                         }
                     }

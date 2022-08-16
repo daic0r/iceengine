@@ -58,6 +58,7 @@ protected:
 			auto instanceIter = m_mInstanceBuffer.emplace(e, ModelInstanceType{}).first;
 			instanceIter->second.pTransform = &transf; 
 			auto [insertIter, succ] = m_mInstances.emplace(&modelIter->second, std::vector<ModelInstance*>{});
+			m_mInstances.at(&modelIter->second).push_back(&instanceIter->second);
 		}
 		pModel = std::addressof(modelIter->second);
 		auto instanceIter = m_mInstanceBuffer.find(e);
@@ -90,8 +91,11 @@ protected:
 	bool update(float fDeltaTime, const std::set<Entity>& ents) noexcept {
 		m_sFrustumEnts.clear();
 		const auto& frustum = m_pCameraControllerSystem->frustum();
-		auto vEnts = m_kdTree.getVisibleObjects(&frustum);
-		std::move(vEnts.begin(), vEnts.end(), std::inserter( m_sFrustumEnts, m_sFrustumEnts.end()));
+		if constexpr (std::is_same_v<ModelStructType, Model>) {
+			auto vEnts = m_kdTree.getVisibleObjects(&frustum);
+			std::cout << "Have " << vEnts.size() << " elements\n";
+			std::move(vEnts.begin(), vEnts.end(), std::inserter( m_sFrustumEnts, m_sFrustumEnts.end()));
+		}
 		/*
 		for (auto e : ents) {
 			if (!isEntityEligibleForFrustumCulling(e))
@@ -107,11 +111,12 @@ protected:
 			//maxWorld = transf.m_transform * glm::vec4{ maxWorld, 1.0f };
 			const auto frustum = m_pCameraControllerSystem->transformedFrustum(glm::inverse(transf.m_transform));
 			//if (frustum.checkMinMaxBounds(minWorld, maxWorld, false) || frustum.checkMinMaxBounds(minWorld, maxWorld, true)) {
+			if (frustum.intersects(minWorld, maxWorld, false) != FrustumAABBIntersectionType::NO_INTERSECTION) {
 				m_sFrustumEnts.insert(e);
-			//}
+			}
 		}
+		std::cout << "Han " << m_sFrustumEnts.size() << " elements\n";
 		*/
-
 		return true;
 	}
 
