@@ -33,14 +33,6 @@ namespace Ice
 
     template<typename T>
     typename KdTree<T>::node_t* KdTree<T>::_subdivide(std::vector<glm::vec3> vPoint3, int nAxis, int nLevel) {
-        if (vPoint3.size() == 0)
-            return nullptr;
-        else
-        if (vPoint3.size() == 1) {
-            m_vNodes.emplace_back(leaf_node{});
-            return &m_vNodes.back();
-        }
-
         std::ranges::sort(vPoint3, [nAxis](const glm::vec3& a, const glm::vec3& b) mutable { 
             //std::cout << nAxis << "\n";
             /*
@@ -88,6 +80,9 @@ namespace Ice
             std::cout << "--------\n";
 #endif
             node.m_pRight = _subdivide(std::move(vRightOfMedian), (nAxis + 1) % 3, nLevel + 1);
+        } else {
+            m_vNodes.emplace_back(leaf_node{});
+            node.m_pRight = &m_vNodes.back();
         }
         if (vPoint3.size() > 1 || (vPoint3.size() == 1 && vPoint3.front()[nAxis] <= node.m_point[nAxis]))
         {
@@ -100,6 +95,9 @@ namespace Ice
             std::cout << "--------\n";
 #endif
             node.m_pLeft = _subdivide(std::move(vLeftOfMedian), (nAxis + 1) % 3, nLevel + 1);
+        } else {
+            m_vNodes.emplace_back(leaf_node{});
+            node.m_pLeft = &m_vNodes.back();
         }
         return pRet;
     }
@@ -118,10 +116,10 @@ namespace Ice
         for (std::size_t i{}; i < vPoints.size(); i+=3)
             vPoint3.emplace_back(vPoints[i], vPoints[i+1], vPoints[i+2]);
 
-        m_vNodes.reserve(vPoints.size());
+        m_vNodes.reserve(2 * vPoint3.size() + 1);
         m_pRoot = _subdivide(vPoint3, 0);
 #ifdef _LOG
-        std::cout << "Size of container: " << m_vNodes.size() << "\n";
+        std::cout << "Size of container: " << m_vNodes.size() << ", capacity: " << m_vNodes.capacity() << "\n";
 #endif
      }
 
@@ -156,11 +154,11 @@ namespace Ice
     }
 
     template<typename T>
-    std::vector<T> KdTree<T>::getVisibleObjects(const Frustum* pFrustum, 
+    std::unordered_set<T> KdTree<T>::getVisibleObjects(const Frustum* pFrustum, 
         AABB box, 
         node_t* pCurNode
     ) const {
-        std::vector<T> vRet{};
+        std::unordered_set<T> vRet{};
         if (pCurNode == nullptr)
             pCurNode = m_pRoot;
         std::visit(visitor{ 
@@ -169,11 +167,11 @@ namespace Ice
                 if (!pFrustum) {
                     if (branch.m_pLeft) {
                         auto vTemp = getVisibleObjects(pFrustum, box, branch.m_pLeft);
-                        std::move(vTemp.begin(), vTemp.end(), std::back_inserter(vRet));
+                        std::move(vTemp.begin(), vTemp.end(), std::inserter(vRet, vRet.end()));
                     }
                     if (branch.m_pRight) {
                         auto vTemp = getVisibleObjects(pFrustum, box, branch.m_pRight);
-                        std::move(vTemp.begin(), vTemp.end(), std::back_inserter(vRet));
+                        std::move(vTemp.begin(), vTemp.end(), std::inserter(vRet, vRet.end()));
                     }
                 } else {
                     if (branch.m_pLeft) {
@@ -182,7 +180,7 @@ namespace Ice
                         if (const auto intersectRes = pFrustum->intersects(boxLeft, true); intersectRes != FrustumAABBIntersectionType::NO_INTERSECTION) {
                             auto pPassFrustum = intersectRes == FrustumAABBIntersectionType::CONTAINED ? nullptr : pFrustum;
                             auto vTemp = getVisibleObjects(pPassFrustum, boxLeft, branch.m_pLeft);
-                            std::move(vTemp.begin(), vTemp.end(), std::back_inserter(vRet));
+                            std::move(vTemp.begin(), vTemp.end(), std::inserter(vRet, vRet.end()));
                         }
                     }
                     if (branch.m_pRight) {
@@ -191,13 +189,13 @@ namespace Ice
                         if (const auto intersectRes = pFrustum->intersects(boxRight, true); intersectRes != FrustumAABBIntersectionType::NO_INTERSECTION) {
                             auto pPassFrustum = intersectRes == FrustumAABBIntersectionType::CONTAINED ? nullptr : pFrustum;
                             auto vTemp = getVisibleObjects(pPassFrustum, boxRight, branch.m_pRight);
-                            std::move(vTemp.begin(), vTemp.end(), std::back_inserter(vRet));
+                            std::move(vTemp.begin(), vTemp.end(), std::inserter(vRet, vRet.end()));
                         }
                     }
                 }
             },
             [&vRet](const leaf_node& branch) {
-                vRet.insert(vRet.end(), branch.m_vObjects.begin(), branch.m_vObjects.end());
+                vRet.insert(branch.m_vObjects.begin(), branch.m_vObjects.end());
             }
         }, *pCurNode);
 

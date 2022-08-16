@@ -1,6 +1,7 @@
 #ifndef KdTree_h
 #define KdTree_h
 
+#include <unordered_set>
 #include <vector>
 #include <memory>
 #include <glm/vec3.hpp>
@@ -47,7 +48,7 @@ namespace Ice
             node_t* m_pLeft{}, *m_pRight{};
         };
         struct leaf_node {
-            std::vector<T> m_vObjects;
+            std::unordered_set<T> m_vObjects;
         };
         std::vector<node_t> m_vNodes{};
 
@@ -57,7 +58,7 @@ namespace Ice
         KdTree(const std::vector<float>& vPoints);
         void construct(const std::vector<float>& vPoints);
         void print(node_t* pNode = nullptr);
-        std::vector<T> getVisibleObjects(const Frustum*, 
+        std::unordered_set<T> getVisibleObjects(const Frustum*, 
             AABB box = AABB{ 
                 glm::vec3{ -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max() },
                 glm::vec3{ std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max() }
@@ -75,13 +76,15 @@ namespace Ice
                         pCurNode = p[nAxis] <= branch.m_point[nAxis] ? branch.m_pLeft : branch.m_pRight;
                     },
                     [obj=std::forward<U>(u),&pCurNode](leaf_node& branch) {
-                        branch.m_vObjects.emplace_back(std::forward<U>(obj));
+                        //if (std::ranges::none_of(branch.m_vObjects, [obj=std::forward<U>(obj)](auto&& v) { return v == obj; }))
+                            branch.m_vObjects.emplace(std::forward<U>(obj));
                         pCurNode = nullptr;
                     }
                 }, *pCurNode);
             }
          }
 
+/*
         template<typename Visitor> requires (BranchTraversingVisitor<Visitor> && LeafVisitor<Visitor, T>)
         void traverse(Visitor&& v) const {
             auto pCurNode = m_pRoot;
@@ -120,7 +123,7 @@ namespace Ice
                 }, *pCurNode);
             }
         }
-
+*/
     private:
         node_t* m_pRoot{};
     };

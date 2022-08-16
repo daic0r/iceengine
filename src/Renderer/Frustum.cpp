@@ -97,16 +97,10 @@ FrustumAABBIntersectionType Frustum::intersects(const AABB& box, bool bCheckCont
 */
 FrustumAABBIntersectionType Frustum::intersects(const glm::vec3& posMin, const glm::vec3& posMax, bool bCheckContainedCompletely) const noexcept
 {
-    std::array<FaceDirection, 6> vDirs;
+    constexpr std::array<FaceDirection, 6> vDirs{ eFront, eRight, eTop, eBack, eLeft, eBottom };
 
     FrustumAABBIntersectionType ret{ FrustumAABBIntersectionType::NO_INTERSECTION };
 
-    vDirs[0] = eFront;
-    vDirs[1] = eRight;
-    vDirs[2] = eTop;
-    vDirs[3] = eBack;
-    vDirs[4] = eLeft;
-    vDirs[5] = eBottom;
     for (auto dir : vDirs) {
         auto pVertex = posMin;
         auto nVertex = posMax;
