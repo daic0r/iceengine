@@ -10,38 +10,10 @@
 
 namespace Ice
 {
-
-    namespace detail
-    {
-        template <std::ranges::range R>
-        auto to_vector(R&& r) {
-            std::vector<std::ranges::range_value_t<R>> v;
-
-            // if we can get a size, reserve that much
-            if constexpr (requires { std::ranges::size(r); }) {
-                v.reserve(std::ranges::size(r));
-            }
-
-            // push all the elements
-            for (auto&& e : r) {
-                v.push_back(static_cast<decltype(e)&&>(e));
-            }
-
-            return v;
-        } 
-    } // namespace detail
-
     template<typename T>
     typename KdTree<T>::node_t* KdTree<T>::_subdivide(std::vector<glm::vec3> vPoint3, int nAxis, int nLevel) {
         std::ranges::sort(vPoint3, [nAxis](const glm::vec3& a, const glm::vec3& b) mutable { 
-            //std::cout << nAxis << "\n";
-            /*
-            for (int i = 0; i < 3; ++i, nAxis = (nAxis + 1) % 3) {
-                if (!Ice::Math::equal(a[nAxis], b[nAxis]))
-                    break;
-            }
-            */
-            return a[nAxis] < b[nAxis];
+           return a[nAxis] < b[nAxis];
         });
 #ifdef _LOG
         std::cout << "Input:\n";
@@ -62,7 +34,7 @@ namespace Ice
         std::cout << "Median: " << glm::to_string(*median) << ", depth: " << nLevel << "\n";
 #endif        
 
-        m_vNodes.emplace_back(branch_node{ (*median)[nAxis], static_cast<splitting_axis>(nAxis) });
+        m_vNodes.emplace_back(branch_node{ (*median)[nAxis] });
         auto pRet = &m_vNodes.back();
         auto& node = std::get<branch_node>(*pRet);
 
@@ -135,7 +107,7 @@ namespace Ice
         
         std::visit(visitor{ 
             [this, nAxis](const branch_node& node) { 
-                std::cout << "(" << node.m_fLocation << ", " << static_cast<int>(node.m_axis) << ", ";
+                std::cout << "(" << node.m_fLocation << ", " << nAxis << ", ";
                 if (node.m_pLeft) {
                     std::cout << "<--- ";
                     print(node.m_pLeft, (nAxis + 1) % 3);
@@ -173,8 +145,7 @@ namespace Ice
         if (pCurNode == nullptr)
             pCurNode = m_pRoot;
         std::visit(visitor{ 
-            [&box,&vRet,pFrustum,this](const branch_node& branch) {
-                const auto nAxis = static_cast<int>(branch.m_axis);
+            [&box,&vRet,pFrustum,this,nAxis](const branch_node& branch) {
                 if (!pFrustum) {
                     if (branch.m_pLeft) {
                         getVisibleObjects_impl(pFrustum, box, vRet, branch.m_pLeft, (nAxis + 1) % 3);

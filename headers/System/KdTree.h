@@ -44,7 +44,6 @@ namespace Ice
         using node_t = std::variant<branch_node, leaf_node>;
         struct branch_node {
             float m_fLocation{}; 
-            splitting_axis m_axis;
             node_t* m_pLeft{}, *m_pRight{};
         };
         struct leaf_node {
@@ -62,11 +61,10 @@ namespace Ice
         template<typename U = T>
         void emplace(const glm::vec3& p, U&& u) {
             auto pCurNode = m_pRoot;
-            //int nAxis{};
+            int nAxis{};
             while (pCurNode) {
                 std::visit(visitor{ 
-                    [&p,&pCurNode](const branch_node& branch) {
-                        const auto nAxis = static_cast<int>(branch.m_axis);
+                    [&p,&pCurNode,nAxis](const branch_node& branch) {
                         pCurNode = p[nAxis] <= branch.m_fLocation ? branch.m_pLeft : branch.m_pRight;
                     },
                     [obj=std::forward<U>(u),&pCurNode](leaf_node& branch) {
@@ -75,7 +73,7 @@ namespace Ice
                         pCurNode = nullptr;
                     }
                 }, *pCurNode);
-                //nAxis = (nAxis + 1) % 3;
+                nAxis = (nAxis + 1) % 3;
             }
          }
 
