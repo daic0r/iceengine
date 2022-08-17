@@ -43,82 +43,44 @@ namespace Ice
         struct branch_node;
         using node_t = std::variant<branch_node, leaf_node>;
         struct branch_node {
-            glm::vec3 m_point; // #TODO: save only the float that defines the axis
+            float m_fLocation{}; 
             splitting_axis m_axis;
             node_t* m_pLeft{}, *m_pRight{};
         };
         struct leaf_node {
-            std::unordered_set<T> m_vObjects;
+            std::vector<T> m_vObjects;
         };
 
         node_t* _subdivide(std::vector<glm::vec3>, int nAxis, int nLevel = 0);
-        std::unordered_set<T> getVisibleObjects_impl(const Frustum*, AABB box, node_t* pCurNode = nullptr) const;
+        void getVisibleObjects_impl(const Frustum*, AABB box, std::vector<T>& vRet, node_t* pCurNode = nullptr, int nAxis = 0) const;
 
     public:
         KdTree() = default;
         KdTree(const std::vector<float>& vPoints);
         void construct(const std::vector<float>& vPoints);
-        void print(node_t* pNode = nullptr);
+        void print(node_t* pNode = nullptr, int nAxis = 0);
         template<typename U = T>
         void emplace(const glm::vec3& p, U&& u) {
             auto pCurNode = m_pRoot;
+            //int nAxis{};
             while (pCurNode) {
                 std::visit(visitor{ 
                     [&p,&pCurNode](const branch_node& branch) {
                         const auto nAxis = static_cast<int>(branch.m_axis);
-                        pCurNode = p[nAxis] <= branch.m_point[nAxis] ? branch.m_pLeft : branch.m_pRight;
+                        pCurNode = p[nAxis] <= branch.m_fLocation ? branch.m_pLeft : branch.m_pRight;
                     },
                     [obj=std::forward<U>(u),&pCurNode](leaf_node& branch) {
-                        //if (std::ranges::none_of(branch.m_vObjects, [obj=std::forward<U>(obj)](auto&& v) { return v == obj; }))
-                            branch.m_vObjects.emplace(std::forward<U>(obj));
+                        if (std::ranges::none_of(branch.m_vObjects, [obj=std::forward<U>(obj)](auto&& v) { return v == obj; }))
+                            branch.m_vObjects.emplace_back(std::forward<U>(obj));
                         pCurNode = nullptr;
                     }
                 }, *pCurNode);
+                //nAxis = (nAxis + 1) % 3;
             }
          }
 
-        std::unordered_set<T> getVisibleObjects(const Frustum*) const;
-/*
-        template<typename Visitor> requires (BranchTraversingVisitor<Visitor> && LeafVisitor<Visitor, T>)
-        void traverse(Visitor&& v) const {
-            auto pCurNode = m_pRoot;
-            AABB boxLeft{
-                glm::vec3{ -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max() },
-                glm::vec3{ std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max() },
-            }, boxRight = boxLeft;
-            bool bAbort{};
-            while (!bAbort) {
-                std::visit(visitor{ 
-                    [&pCurNode,&bAbort,&boxLeft,&boxRight,v=std::forward<Visitor>(v)](const branch_node& branch) mutable {
-                        const auto nAxis = static_cast<int>(branch.m_axis);
-                        boxLeft.maxVertex()[nAxis] = branch.m_point[nAxis];
-                        boxRight.minVertex()[nAxis] = branch.m_point[nAxis];
-                        const auto ret = std::forward<Visitor>(v)(boxLeft, boxRight);
-                        switch (ret) {
-                            case TreeBranch::NONE:
-                                bAbort = true;
-                                break;
-                            case TreeBranch::LEFT:
-                                pCurNode = branch.m_pLeft;
-                                if (!pCurNode)
-                                    bAbort = true;
-                                break;
-                            case TreeBranch::RIGHT:
-                                pCurNode = branch.m_pRight;
-                                if (!pCurNode)
-                                    bAbort = true;
-                                break;
-                        } 
-                    },
-                    [&bAbort,v=std::forward<Visitor>(v)](const leaf_node& branch) mutable {
-                        std::forward<Visitor>(v)(branch.m_vObjects);
-                        bAbort = true;
-                    }
-                }, *pCurNode);
-            }
-        }
-*/
-    private:
+        void getVisibleObjects(const Frustum*, std::vector<T>&) const;
+   private:
         node_t* m_pRoot{};
         std::vector<node_t> m_vNodes{};
         AABB m_outerBox{};

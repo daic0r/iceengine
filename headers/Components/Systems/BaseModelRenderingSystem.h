@@ -15,6 +15,7 @@
 #include <System/KdTree.h>
 #include <algorithm>
 #include <ranges>
+#include <Utils/ScopedTimeMeasurement.h>
 
 namespace Ice {
 
@@ -33,6 +34,7 @@ protected:
 	IModelRenderer* m_pShadowRenderer{ nullptr };
 	IGraphicsSystem* m_pGraphicsSystem{};
 	KdTree<Entity> m_kdTree{};
+	std::vector<Entity> m_vVisibleEnts{};
 	bool m_bConstruction{ true };
 
 	virtual ModelStructType makeModelStruct(Entity) const = 0;
@@ -90,11 +92,17 @@ protected:
 
 	bool update(float fDeltaTime, const std::set<Entity>& ents) noexcept {
 		m_sFrustumEnts.clear();
+		m_vVisibleEnts.clear();
 		const auto& frustum = m_pCameraControllerSystem->frustum();
 		if constexpr (std::is_same_v<ModelStructType, Model>) {
-			auto vEnts = m_kdTree.getVisibleObjects(&frustum);
-			std::cout << "Have " << vEnts.size() << " elements\n";
-			std::move(vEnts.begin(), vEnts.end(), std::inserter( m_sFrustumEnts, m_sFrustumEnts.end()));
+			{
+				ScopedTimeMeasurement m([](std::chrono::nanoseconds d) {
+					std::cout << d.count() << " ns\n";	
+				});
+				m_kdTree.getVisibleObjects(&frustum, m_vVisibleEnts);
+			}
+			std::cout << "Have " << m_vVisibleEnts.size() << " elements\n";
+			std::move(m_vVisibleEnts.begin(), m_vVisibleEnts.end(), std::inserter( m_sFrustumEnts, m_sFrustumEnts.end()));
 		}
 		/*
 		for (auto e : ents) {
@@ -173,7 +181,12 @@ public:
 				}
 			}
 		}
-		m_kdTree.construct(vVertices);
+		{
+			ScopedTimeMeasurement m([](std::chrono::nanoseconds dur) {
+				std::cout << "Took " << dur.count() << "ns\n";
+			});
+			m_kdTree.construct(vVertices);
+		}
 		for (const auto& [ent, inst] : m_mInstanceBuffer) {
 			m_kdTree.emplace(glm::vec3{ inst.pTransform->m_transform * glm::vec4{ 0.0f, 0.0f, 0.0f, 1.0f } }, ent);
 		}

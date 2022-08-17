@@ -62,19 +62,19 @@ namespace Ice
         std::cout << "Median: " << glm::to_string(*median) << ", depth: " << nLevel << "\n";
 #endif        
 
-        m_vNodes.emplace_back(branch_node{ *median, static_cast<splitting_axis>(nAxis) });
+        m_vNodes.emplace_back(branch_node{ (*median)[nAxis], static_cast<splitting_axis>(nAxis) });
         auto pRet = &m_vNodes.back();
         auto& node = std::get<branch_node>(*pRet);
 
-        if (node.m_point[nAxis] > m_outerBox.maxVertex()[nAxis])
-            m_outerBox.maxVertex()[nAxis] = node.m_point[nAxis];
-        if (node.m_point[nAxis] < m_outerBox.minVertex()[nAxis])
-            m_outerBox.minVertex()[nAxis] = node.m_point[nAxis];
+        if (node.m_fLocation > m_outerBox.maxVertex()[nAxis])
+            m_outerBox.maxVertex()[nAxis] = node.m_fLocation;
+        if (node.m_fLocation < m_outerBox.minVertex()[nAxis])
+            m_outerBox.minVertex()[nAxis] = node.m_fLocation;
 
         vPoint3.erase(median);
         median = getMedian(vPoint3);
         
-        if (vPoint3.size() > 1 || (vPoint3.size() == 1 && vPoint3.front()[nAxis] > node.m_point[nAxis]))
+        if (vPoint3.size() > 1 || (vPoint3.size() == 1 && vPoint3.front()[nAxis] > node.m_fLocation))
         {
             std::vector<glm::vec3> vRightOfMedian( std::make_move_iterator(median + (vPoint3.size() == 1 ? 0 : 1)), std::make_move_iterator(vPoint3.end()) );
 #ifdef _LOG
@@ -89,7 +89,7 @@ namespace Ice
             m_vNodes.emplace_back(leaf_node{});
             node.m_pRight = &m_vNodes.back();
         }
-        if (vPoint3.size() > 1 || (vPoint3.size() == 1 && vPoint3.front()[nAxis] <= node.m_point[nAxis]))
+        if (vPoint3.size() > 1 || (vPoint3.size() == 1 && vPoint3.front()[nAxis] <= node.m_fLocation))
         {
             std::vector<glm::vec3> vLeftOfMedian( std::make_move_iterator(vPoint3.begin()), std::make_move_iterator(median + 1) );
 #ifdef _LOG
@@ -129,23 +129,23 @@ namespace Ice
      }
 
     template<typename T>
-    void KdTree<T>::print(typename KdTree<T>::node_t* pNode) {
+    void KdTree<T>::print(typename KdTree<T>::node_t* pNode, int nAxis) {
         if (pNode == nullptr)
             pNode = m_pRoot;
         
         std::visit(visitor{ 
-            [this](const branch_node& node) { 
-                std::cout << "(" << glm::to_string(node.m_point) << ", " << static_cast<int>(node.m_axis) << ", ";
+            [this, nAxis](const branch_node& node) { 
+                std::cout << "(" << node.m_fLocation << ", " << static_cast<int>(node.m_axis) << ", ";
                 if (node.m_pLeft) {
                     std::cout << "<--- ";
-                    print(node.m_pLeft);
+                    print(node.m_pLeft, (nAxis + 1) % 3);
                 }
                 else 
                     std::cout << "()";
                 std::cout << ", ";
                 if (node.m_pRight) {
                     std::cout << "---> ";
-                    print(node.m_pRight);
+                    print(node.m_pRight, (nAxis + 1) % 3);
                 }
                 else 
                     std::cout << "()";
@@ -159,16 +159,17 @@ namespace Ice
     }
 
     template<typename T>
-    std::unordered_set<T> KdTree<T>::getVisibleObjects(const Frustum* pFrustum) const {
-        return getVisibleObjects_impl(pFrustum, m_outerBox, nullptr);
+    void KdTree<T>::getVisibleObjects(const Frustum* pFrustum, std::vector<T>& vRet) const {
+        getVisibleObjects_impl(pFrustum, m_outerBox, vRet, nullptr, 0);
     }
 
     template<typename T>
-    std::unordered_set<T> KdTree<T>::getVisibleObjects_impl(const Frustum* pFrustum, 
-        AABB box, 
-        node_t* pCurNode
+    void KdTree<T>::getVisibleObjects_impl(const Frustum* pFrustum, 
+        AABB box,
+        std::vector<T>& vRet, 
+        node_t* pCurNode,
+        int nAxis
     ) const {
-        std::unordered_set<T> vRet{};
         if (pCurNode == nullptr)
             pCurNode = m_pRoot;
         std::visit(visitor{ 
@@ -176,40 +177,34 @@ namespace Ice
                 const auto nAxis = static_cast<int>(branch.m_axis);
                 if (!pFrustum) {
                     if (branch.m_pLeft) {
-                        auto vTemp = getVisibleObjects_impl(pFrustum, box, branch.m_pLeft);
-                        std::move(vTemp.begin(), vTemp.end(), std::inserter(vRet, vRet.end()));
+                        getVisibleObjects_impl(pFrustum, box, vRet, branch.m_pLeft, (nAxis + 1) % 3);
                     }
                     if (branch.m_pRight) {
-                        auto vTemp = getVisibleObjects_impl(pFrustum, box, branch.m_pRight);
-                        std::move(vTemp.begin(), vTemp.end(), std::inserter(vRet, vRet.end()));
+                        getVisibleObjects_impl(pFrustum, box, vRet, branch.m_pRight, (nAxis + 1) % 3);
                     }
                 } else {
                     if (branch.m_pLeft) {
                         AABB boxLeft = box;
-                        boxLeft.maxVertex()[nAxis] = branch.m_point[nAxis];
+                        boxLeft.maxVertex()[nAxis] = branch.m_fLocation;
                         if (const auto intersectRes = pFrustum->intersects(boxLeft, true); intersectRes != FrustumAABBIntersectionType::NO_INTERSECTION) {
                             auto pPassFrustum = intersectRes == FrustumAABBIntersectionType::CONTAINED ? nullptr : pFrustum;
-                            auto vTemp = getVisibleObjects_impl(pPassFrustum, boxLeft, branch.m_pLeft);
-                            std::move(vTemp.begin(), vTemp.end(), std::inserter(vRet, vRet.end()));
+                            getVisibleObjects_impl(pPassFrustum, boxLeft, vRet, branch.m_pLeft, (nAxis + 1) % 3);
                         }
                     }
                     if (branch.m_pRight) {
                         AABB boxRight = box;
-                        boxRight.minVertex()[nAxis] = branch.m_point[nAxis];
+                        boxRight.minVertex()[nAxis] = branch.m_fLocation;
                         if (const auto intersectRes = pFrustum->intersects(boxRight, true); intersectRes != FrustumAABBIntersectionType::NO_INTERSECTION) {
                             auto pPassFrustum = intersectRes == FrustumAABBIntersectionType::CONTAINED ? nullptr : pFrustum;
-                            auto vTemp = getVisibleObjects_impl(pPassFrustum, boxRight, branch.m_pRight);
-                            std::move(vTemp.begin(), vTemp.end(), std::inserter(vRet, vRet.end()));
+                            getVisibleObjects_impl(pPassFrustum, boxRight, vRet, branch.m_pRight, (nAxis + 1) % 3);
                         }
                     }
                 }
             },
             [&vRet](const leaf_node& branch) {
-                vRet.insert(branch.m_vObjects.begin(), branch.m_vObjects.end());
+                vRet.insert(vRet.end(), branch.m_vObjects.begin(), branch.m_vObjects.end());
             }
         }, *pCurNode);
-
-        return vRet;
     }
 
     template class KdTree<Entity>;
