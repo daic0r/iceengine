@@ -15,30 +15,8 @@ namespace Ice
 {
     class Frustum;
 
-    enum class TreeBranch {
-        NONE,
-        LEFT,
-        RIGHT
-    };
-
-    template<typename Callable>
-    concept BranchTraversingVisitor = requires {
-        // requires keyword checks that the expression following it is true
-        // otherwise, only the well-formedness of the expression would be checked
-        requires std::is_same_v<std::invoke_result_t<Callable, AABB, AABB>, TreeBranch>;
-    };
-    template<typename Callable, typename ValueType>
-    concept LeafVisitor = requires {
-        requires std::is_same_v<std::invoke_result_t<Callable, std::vector<ValueType>>, void>;
-    };
-
     template<typename T>
     class KdTree {
-        enum class splitting_axis {
-            X,
-            Y,
-            Z
-        };
         struct leaf_node;
         struct branch_node;
         using node_t = std::variant<branch_node, leaf_node>;
@@ -50,8 +28,8 @@ namespace Ice
             std::vector<T> m_vObjects;
         };
 
-        node_t* _subdivide(std::vector<glm::vec3>, int nAxis, int nLevel = 0);
-        void getVisibleObjects_impl(const Frustum*, AABB box, std::vector<T>& vRet, node_t* pCurNode = nullptr, int nAxis = 0) const;
+        node_t* subdivide(std::vector<glm::vec3>, int nAxis, int nLevel = 0);
+        void getVisibleObjects_impl(const Frustum*, const AABB& box, std::vector<T>& vRet, node_t* pCurNode = nullptr, int nAxis = 0) const;
 
     public:
         KdTree() = default;
