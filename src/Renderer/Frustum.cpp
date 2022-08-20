@@ -111,14 +111,19 @@ FrustumAABBIntersectionType Frustum::intersects(const glm::vec3& posMin, const g
         // (i.e. the normal is positive). for example, if the max point is to the right of the left plane, the box begins
         // to be visible. for the min bounds check, the min point is closer to the right plane, so we're using the min point here.
         // once the min point is to the left of the right plane, the box begins to be visible. this is done for each dimension.
-        for (int i = 0; i < 3; ++i) {
+        const auto findPVertex = [bCheckContainedCompletely,&posMax,&posMin,&normal,&pVertex,&nVertex](int i) {
             if (normal[i] >= 0.0f) { // determine p-vertex (vertex that is further along the normal's direction)
                 pVertex[i] = posMax[i];
                 if (bCheckContainedCompletely) {
                     nVertex[i] = posMin[i];
                 }
             }
-        }
+        };
+ 
+        findPVertex(0);
+        findPVertex(1);
+        findPVertex(2);
+
         float fDist = dist(dir, pVertex);
         if (fDist < 0.0f)
             return FrustumAABBIntersectionType::NO_INTERSECTION;
