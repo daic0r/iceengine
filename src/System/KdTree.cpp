@@ -90,6 +90,8 @@ namespace Ice
 
     template<typename T>
     void KdTree<T>::construct(std::vector<glm::vec3> vPoints) {
+        if (!m_vNodes.empty())
+            m_vNodes.clear();
         m_vNodes.reserve(2 * vPoints.size() + 1);
         m_pRoot = subdivide(vPoints, 0);
 #ifdef _LOG
