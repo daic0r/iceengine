@@ -10,7 +10,7 @@
 #include <Entities/BaseComponentSystem.h>
 #include <variant>
 #include <algorithm>
-#include <System/ThreadPool.h>
+#include <System/thread_pool.h>
 
 namespace Ice {
 
@@ -36,7 +36,7 @@ protected:
     std::vector<BaseComponentSystem*> m_vNonActiveSystems;
 	std::vector<IEntityComponentBuffer*> m_vEntityComponentBuffers;
     std::vector<std::variant<IStreamSaver*, IJSONSaver*>> m_vSavers;
-    ThreadPool m_threadPool{};
+    thread_pool m_threadPool{};
     
 public:
 	inline SceneId currentScene() const noexcept { return m_nCurrentScene; }

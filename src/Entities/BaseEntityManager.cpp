@@ -5,7 +5,6 @@
 #include <iostream>
 #include <array>
 #include <Interfaces/IStreamSaver.h>
-#include <System/ThreadPool.h>
 #include <chrono>
 #include <mutex>
 
@@ -144,7 +143,7 @@ bool BaseEntityManager::update(float fDeltaTime) {
 				nLastOrder = pSystem->executionOrder();
 				break;
 			}
-			m_vFutures.push_back(m_threadPool.queue([fDeltaTime, pSystem]() {
+			m_vFutures.push_back(m_threadPool.async([fDeltaTime, pSystem]() {
 				return pSystem->update(fDeltaTime);
 				}));
 			nLastOrder = pSystem->executionOrder();
