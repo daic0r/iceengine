@@ -12,6 +12,10 @@ namespace Ice
 {
     template<typename T>
     typename KdTree<T>::node_t* KdTree<T>::subdivide(std::vector<glm::vec3> vPoint3, int nAxis, int nLevel) {
+        if (vPoint3.empty()) {
+            m_vNodes.emplace_back(leaf_node{});
+            return &m_vNodes.back();
+        }
         std::ranges::sort(vPoint3, [nAxis](const glm::vec3& a, const glm::vec3& b) mutable { 
            return a[nAxis] < b[nAxis];
         });
