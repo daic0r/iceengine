@@ -111,9 +111,6 @@ bool Engine::init(const Config& config, ILoader *pLoader, std::unique_ptr<IGame>
     
     m_pGame->init();
     
-    entityManager.getSystem<ObjectRenderingSystem, true>()->finishConstruction();
-    //entityManager.getSystem<AnimatedModelRenderingSystem, true>()->finishConstruction();
-
     return bSuccess;
 }
 

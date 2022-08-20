@@ -24,6 +24,7 @@ class IModelRenderer;
 
 template<typename ModelStructType, typename ModelInstanceType>
 class BaseModelRenderingSystem {
+	static inline constexpr auto KDTREE_REFRESH_INTERVAL = 10;
 protected:
 	std::unordered_map<const Model*, std::vector<ModelInstance*>> m_mInstances;
 	std::unordered_map<Entity, std::pair<ModelStructType, ModelInstanceType>> m_mEntity2ModelStruct;
@@ -34,7 +35,8 @@ protected:
 	IGraphicsSystem* m_pGraphicsSystem{};
 	KdTree<Entity> m_kdTree{};
 	std::vector<Entity> m_vVisibleEnts{};
-	bool m_bConstruction{ true };
+	int m_nFramesSinceNoKdRefresh{};
+	std::vector<glm::vec3> m_vKdTreeVertices;
 
 	virtual ModelStructType makeModelStruct(Entity) const = 0;
 	virtual bool isEntityEligibleForRendering(Entity e) const = 0;
@@ -51,8 +53,6 @@ protected:
 		auto [iter, _] = m_mEntity2ModelStruct.emplace(e, std::make_pair(makeModelStruct(e), ModelInstanceType{}));
 		iter->second.second.pTransform = &transf;
 
-		//m_pRenderer->registerModel(pModel);
-		//m_pCameraControllerSystem = entityManager.getSystem<CameraControllerSystem, true>();
 		if (m_pShadowRenderer == nullptr)
 			m_pShadowRenderer = systemServices.getShadowMapRenderer();
 
@@ -64,23 +64,23 @@ protected:
 	}
 
 	bool update(float fDeltaTime, const std::set<Entity>& ents) noexcept {
+		if (m_nFramesSinceNoKdRefresh++ % KDTREE_REFRESH_INTERVAL == 0) {
+			buildKdTree();	
+			m_nFramesSinceNoKdRefresh %= KDTREE_REFRESH_INTERVAL;
+		}
 		m_sFrustumEnts.clear();
 		m_vVisibleEnts.clear();
 		const auto& frustum = m_pCameraControllerSystem->frustum();
-		if constexpr (std::is_same_v<ModelStructType, Model>) {
-			/*
-			{
-				ScopedTimeMeasurement m([](std::chrono::nanoseconds d) {
-					std::cout << d.count() << " ns\n";	
-				});
-				m_kdTree.getVisibleObjects(&frustum, m_vVisibleEnts);
-			}
-			std::cout << "Have " << m_vVisibleEnts.size() << " elements\n";
-			*/
+		{
+			ScopedTimeMeasurement m([](std::chrono::nanoseconds d) {
+				std::cout << d.count() << " ns\n";	
+			});
 			m_kdTree.getVisibleObjects(&frustum, m_vVisibleEnts);
-			std::move(m_vVisibleEnts.begin(), m_vVisibleEnts.end(), std::inserter( m_sFrustumEnts, m_sFrustumEnts.end()));
+			std::cout << "Have " << m_vVisibleEnts.size() << " elements\n";
 		}
-		/*
+		//m_kdTree.getVisibleObjects(&frustum, m_vVisibleEnts);
+		std::move(m_vVisibleEnts.begin(), m_vVisibleEnts.end(), std::inserter( m_sFrustumEnts, m_sFrustumEnts.end()));
+	/*
 		for (auto e : ents) {
 			if (!isEntityEligibleForFrustumCulling(e))
 				continue;
@@ -125,35 +125,41 @@ protected:
 
 public:
 	const std::set<Entity>& entitiesInFrustum() const noexcept { return m_sFrustumEnts; }
-	bool inConstruction() const noexcept { return m_bConstruction; }
-	void setInConstruction(bool b) noexcept { m_bConstruction = b; }
-	void finishConstruction() {
-		std::vector<glm::vec3> vVertices;
+	void buildKdTree() {
+		m_vKdTreeVertices.clear();
+
+		// Measured: WAY faster >without< multithreading the loop below
 		for (const auto& [e, modelInstPair] : m_mEntity2ModelStruct) {
 			AABB boxLocal{ modelInstPair.first.pMesh->extents() };
 
-			//for (auto pModelInstance : vInst) {
-				AABB boxWorld{};
-				const auto corners = boxLocal.cornerVertices(modelInstPair.second.pTransform->m_transform);
-				for (const auto& corner : corners) {
-					for (int i = 0; i < 3; ++i) {
-						if (corner[i] < boxWorld.minVertex()[i]) boxWorld.minVertex()[i] = corner[i];
-						if (corner[i] > boxWorld.maxVertex()[i]) boxWorld.maxVertex()[i] = corner[i];
-					}
+			AABB boxWorld{};
+			const auto corners = boxLocal.cornerVertices(modelInstPair.second.pTransform->m_transform);
+			for (const auto& corner : corners) {
+				for (int i = 0; i < 3; ++i) {
+					if (corner[i] < boxWorld.minVertex()[i]) boxWorld.minVertex()[i] = corner[i];
+					if (corner[i] > boxWorld.maxVertex()[i]) boxWorld.maxVertex()[i] = corner[i];
 				}
-				const auto worldCorners = boxWorld.cornerVertices();
-				for (const auto& corner : worldCorners) {
-					vVertices.emplace_back(corner[0], corner[1], corner[2]);
-				}
-			//}
+			}
+			m_vKdTreeVertices.push_back(boxWorld.minVertex());
+			m_vKdTreeVertices.push_back(boxWorld.maxVertex());
+
+/*				USE ALL CORNERS?
+			const auto worldCorners = boxWorld.cornerVertices();
+			for (const auto& corner : worldCorners) {
+				vVertices.emplace_back(corner[0], corner[1], corner[2]);
+			}
+*/
 		}
+
 		{
+			/*
 			ScopedTimeMeasurement m([](std::chrono::nanoseconds dur) {
 				std::cout << "Took " << dur.count() << "ns\n";
 			});
-			m_kdTree.construct(std::move(vVertices));
+			std::cout << "Constructing kd-Tree from " << m_vKdTreeVertices.size() << " points\n";
+			*/
+			m_kdTree.construct(std::move(m_vKdTreeVertices));
 		}
-		//for (const auto& [ent, inst] : m_mInstanceBuffer) {
 		for (const auto& [ent, modelInstPair] : m_mEntity2ModelStruct) {
 			m_kdTree.emplace(glm::vec3{ modelInstPair.second.pTransform->m_transform * glm::vec4{ 0.0f, 0.0f, 0.0f, 1.0f } }, ent);
 		}
