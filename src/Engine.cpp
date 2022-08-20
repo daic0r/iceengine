@@ -104,8 +104,6 @@ bool Engine::init(const Config& config, ILoader *pLoader, std::unique_ptr<IGame>
 
 	entityManager.notifySystemsInitialized();
 
-    threadPool;
-
     auto bSuccess = true;
     if (pLoader != nullptr)
         bSuccess = pLoader->loadData();
@@ -114,6 +112,7 @@ bool Engine::init(const Config& config, ILoader *pLoader, std::unique_ptr<IGame>
     m_pGame->init();
     
     entityManager.getSystem<ObjectRenderingSystem, true>()->finishConstruction();
+    //entityManager.getSystem<AnimatedModelRenderingSystem, true>()->finishConstruction();
 
     return bSuccess;
 }
@@ -186,8 +185,8 @@ bool Engine::run() {
     bool is_running = true;
     m_nLastTicks = SDL_GetTicks();
     
-    std::chrono::time_point<std::chrono::high_resolution_clock> lastTime = std::chrono::high_resolution_clock::now();
-    int nFps{ 0 };
+    //std::chrono::time_point<std::chrono::steady_clock> lastTime = std::chrono::steady_clock::now();
+    //int nFps{ 0 };
     while (is_running) {
 
         float nCurrentTicks = SDL_GetTicks();
@@ -226,13 +225,15 @@ bool Engine::run() {
         systemServices.getWidgetManager().update(fDeltaTime); // <-- Update widget manager AFTER the inputs have been processed so we can handle input here
         //SDL_GL_SwapWindow(MasterRendererGL::instance().window());
         
+        /*
         ++nFps;
-        auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - lastTime);
-        if (dur.count() > 1000) {
-            //std::cout << std::dec << nFps << " fps\n";
+        auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - lastTime);
+        if (dur.count() > 5000) {
+            std::cout << std::dec << nFps / 5 << " fps\n";
             nFps = 0;
-            lastTime = std::chrono::high_resolution_clock::now();
+            lastTime = std::chrono::steady_clock::now();
         }
+        */
     }
     
     return true;
