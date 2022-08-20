@@ -1,16 +1,11 @@
 #include <System/ThreadPool.h>
 #include <iostream>
 
-ThreadPool& ThreadPool::instance() noexcept {
-	static ThreadPool _inst;
-	return _inst;
-}
-
-ThreadPool::ThreadPool()
+ThreadPool::ThreadPool(std::size_t nNumThreads)
 {
-	const size_t nNumThreads = std::thread::hardware_concurrency() - 1;
-	m_vThreads.reserve(nNumThreads);
-	for (size_t i = 0; i < nNumThreads; ++i) {
+	const size_t n = nNumThreads == 0 ? std::thread::hardware_concurrency() - 1 : nNumThreads;
+	m_vThreads.reserve(n);
+	for (size_t i = 0; i < n; ++i) {
 		m_vThreads.emplace_back([this, i]() {
 			while (true) {
 				TaskType task;

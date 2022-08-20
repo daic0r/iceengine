@@ -125,16 +125,16 @@ void BaseEntityManager::notifySystemsInitialized() const noexcept {
 
 bool BaseEntityManager::update(float fDeltaTime) {
     static std::once_flag flag;
-    //static std::chrono::milliseconds dur;
-    //static float fTimeElapsed{ 0.0f };
-    //static size_t nFps{ 0 };
+    static std::chrono::nanoseconds dur;
+    static float fTimeElapsed{ 0.0f };
+    static size_t nFps{ 0 };
     bool bRet{ true };
 
     std::call_once(flag, [this]() { m_vFutures.reserve(m_vEntityComponentSystems.size()); });
 
 	m_vFutures.clear();
-    //using namespace std::chrono;
-    //auto be = high_resolution_clock::now();
+    using namespace std::chrono;
+    auto be = steady_clock::now();
 	size_t nLastUnfinishedIndex = 0;
 	int nLastOrder = 0;
 	while (nLastUnfinishedIndex < m_vEntityComponentSystems.size()) {
@@ -144,7 +144,7 @@ bool BaseEntityManager::update(float fDeltaTime) {
 				nLastOrder = pSystem->executionOrder();
 				break;
 			}
-			m_vFutures.push_back(threadPool.queue([fDeltaTime, pSystem]() {
+			m_vFutures.push_back(m_threadPool.queue([fDeltaTime, pSystem]() {
 				return pSystem->update(fDeltaTime);
 				}));
 			nLastOrder = pSystem->executionOrder();
@@ -155,16 +155,19 @@ bool BaseEntityManager::update(float fDeltaTime) {
 		m_vFutures.clear();
 	}
     //vFutures.clear();
-    //auto en = duration_cast<milliseconds>(high_resolution_clock::now() - be);
-    //dur += en;
-    //fTimeElapsed += fDeltaTime;
-    //++nFps;
-    //if (fTimeElapsed > 1.0f) {
-    //    std::cout << "Took " << static_cast<float>(dur.count()) / static_cast<float>(nFps) << "ms" << std::endl;
-    //    fTimeElapsed = 0.0f;
-    //    dur = milliseconds{ 0 };
-    //    nFps = 0;
-    //}
+    auto en = duration_cast<nanoseconds>(steady_clock::now() - be);
+    dur += en;
+    fTimeElapsed += fDeltaTime;
+    ++nFps;
+    if (fTimeElapsed > 3.0f) {
+        //nFps /= 3;
+        //dur /= 3;
+        //std::cout << nFps << " fps\n";
+        std::cout << "Took " << static_cast<float>(dur.count()) / static_cast<float>(nFps) << "ns" << std::endl;
+        fTimeElapsed = 0.0f;
+        dur = milliseconds{ 0 };
+        nFps = 0;
+    }
     return bRet;
 }
 

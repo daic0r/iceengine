@@ -26,8 +26,7 @@ template<typename ModelStructType, typename ModelInstanceType>
 class BaseModelRenderingSystem {
 protected:
 	std::unordered_map<const Model*, std::vector<ModelInstance*>> m_mInstances;
-	std::map<MeshComponent*, ModelStructType> m_mModels;
-	std::map<Entity, ModelInstanceType> m_mInstanceBuffer;
+	std::unordered_map<Entity, std::pair<ModelStructType, ModelInstanceType>> m_mEntity2ModelStruct;
 	std::set<Entity> m_sFrustumEnts;
 	CameraControllerSystem* m_pCameraControllerSystem{ nullptr };
 	IModelRenderer* m_pRenderer{ nullptr };
@@ -48,27 +47,10 @@ protected:
 	}
 
 	void onEntityAdded(Entity e) noexcept {
-		auto& ref = entityManager.getComponent<ModelReferenceComponent>(e);
-		auto& mesh = entityManager.getComponent<MeshComponent>(ref.m_entity);
 		auto& transf = entityManager.getSharedComponentOr<TransformComponent>(e);
+		auto [iter, _] = m_mEntity2ModelStruct.emplace(e, std::make_pair(makeModelStruct(e), ModelInstanceType{}));
+		iter->second.second.pTransform = &transf;
 
-		ModelStructType* pModel{ nullptr };
-		auto modelIter = m_mModels.find(&mesh);
-		if (modelIter == m_mModels.end()) {
-			bool bSucc;
-			std::tie(modelIter, bSucc) = m_mModels.emplace(&mesh, makeModelStruct(e));
-			auto instanceIter = m_mInstanceBuffer.emplace(e, ModelInstanceType{}).first;
-			instanceIter->second.pTransform = &transf; 
-			auto [insertIter, succ] = m_mInstances.emplace(&modelIter->second, std::vector<ModelInstance*>{});
-			m_mInstances.at(&modelIter->second).push_back(&instanceIter->second);
-		}
-		pModel = std::addressof(modelIter->second);
-		auto instanceIter = m_mInstanceBuffer.find(e);
-		if (instanceIter == m_mInstanceBuffer.end()) {
-			instanceIter = m_mInstanceBuffer.emplace(e, ModelInstanceType{}).first;
-			instanceIter->second.pTransform = &transf; 
-			m_mInstances.at(&modelIter->second).push_back(&instanceIter->second);
-		}
 		//m_pRenderer->registerModel(pModel);
 		//m_pCameraControllerSystem = entityManager.getSystem<CameraControllerSystem, true>();
 		if (m_pShadowRenderer == nullptr)
@@ -77,17 +59,8 @@ protected:
 	}
 
 	void willRemoveComponent(Entity e) noexcept {
-		if (m_mInstanceBuffer.contains(e)) {
-			const auto& ref = entityManager.getComponent<ModelReferenceComponent>(e);
-			auto& mesh = entityManager.getComponent<MeshComponent>(ref.m_entity);
-			auto pModel = &m_mModels.at(&mesh);
-			auto& vInstPtrs = m_mInstances.at(pModel);
-			auto instanceIter = m_mInstanceBuffer.find(e);
-			auto toDelIter = std::find(vInstPtrs.begin(), vInstPtrs.end(), &instanceIter->second);
-			vInstPtrs.erase(toDelIter);
-			m_mInstanceBuffer.erase(instanceIter);
-			m_sFrustumEnts.erase(e);
-		}
+		m_mEntity2ModelStruct.erase(e);
+		m_sFrustumEnts.erase(e);
 	}
 
 	bool update(float fDeltaTime, const std::set<Entity>& ents) noexcept {
@@ -95,6 +68,7 @@ protected:
 		m_vVisibleEnts.clear();
 		const auto& frustum = m_pCameraControllerSystem->frustum();
 		if constexpr (std::is_same_v<ModelStructType, Model>) {
+			/*
 			{
 				ScopedTimeMeasurement m([](std::chrono::nanoseconds d) {
 					std::cout << d.count() << " ns\n";	
@@ -102,6 +76,8 @@ protected:
 				m_kdTree.getVisibleObjects(&frustum, m_vVisibleEnts);
 			}
 			std::cout << "Have " << m_vVisibleEnts.size() << " elements\n";
+			*/
+			m_kdTree.getVisibleObjects(&frustum, m_vVisibleEnts);
 			std::move(m_vVisibleEnts.begin(), m_vVisibleEnts.end(), std::inserter( m_sFrustumEnts, m_sFrustumEnts.end()));
 		}
 		/*
@@ -139,17 +115,9 @@ protected:
 		for (auto e : ents) {
 			if (!isEntityEligibleForRendering(e))
 				continue;
-        
-			auto& transf = entityManager.getSharedComponentOr<TransformComponent>(e);
-
-			auto instanceIter = m_mInstanceBuffer.find(e);
-			instanceIter->second.pTransform = &transf;
-			extendedUpdateInstanceFunc(e, instanceIter->second);
-
-			auto& ref = entityManager.getComponent<ModelReferenceComponent>(e);
-			auto& mesh = entityManager.getComponent<MeshComponent>(ref.m_entity);
-			auto& model = m_mModels.at(&mesh);
-			m_mInstances[&model].push_back(&instanceIter->second);
+			auto& [model, inst] = m_mEntity2ModelStruct.at(e);
+			extendedUpdateInstanceFunc(e, inst);
+			m_mInstances[&model].push_back(&inst);
 		}
 		if (m_pShadowRenderer)
 			m_pShadowRenderer->render(env, m_mInstances);
@@ -160,13 +128,13 @@ public:
 	bool inConstruction() const noexcept { return m_bConstruction; }
 	void setInConstruction(bool b) noexcept { m_bConstruction = b; }
 	void finishConstruction() {
-		std::vector<float> vVertices;
-		for (const auto& [pModel, vInst] : m_mInstances) {
-			AABB boxLocal{ pModel->pMesh->extents() };
+		std::vector<glm::vec3> vVertices;
+		for (const auto& [e, modelInstPair] : m_mEntity2ModelStruct) {
+			AABB boxLocal{ modelInstPair.first.pMesh->extents() };
 
-			for (auto pModelInstance : vInst) {
+			//for (auto pModelInstance : vInst) {
 				AABB boxWorld{};
-				const auto corners = boxLocal.cornerVertices(pModelInstance->pTransform->m_transform);
+				const auto corners = boxLocal.cornerVertices(modelInstPair.second.pTransform->m_transform);
 				for (const auto& corner : corners) {
 					for (int i = 0; i < 3; ++i) {
 						if (corner[i] < boxWorld.minVertex()[i]) boxWorld.minVertex()[i] = corner[i];
@@ -175,20 +143,19 @@ public:
 				}
 				const auto worldCorners = boxWorld.cornerVertices();
 				for (const auto& corner : worldCorners) {
-					vVertices.push_back(corner[0]);
-					vVertices.push_back(corner[1]);
-					vVertices.push_back(corner[2]);
+					vVertices.emplace_back(corner[0], corner[1], corner[2]);
 				}
-			}
+			//}
 		}
 		{
 			ScopedTimeMeasurement m([](std::chrono::nanoseconds dur) {
 				std::cout << "Took " << dur.count() << "ns\n";
 			});
-			m_kdTree.construct(vVertices);
+			m_kdTree.construct(std::move(vVertices));
 		}
-		for (const auto& [ent, inst] : m_mInstanceBuffer) {
-			m_kdTree.emplace(glm::vec3{ inst.pTransform->m_transform * glm::vec4{ 0.0f, 0.0f, 0.0f, 1.0f } }, ent);
+		//for (const auto& [ent, inst] : m_mInstanceBuffer) {
+		for (const auto& [ent, modelInstPair] : m_mEntity2ModelStruct) {
+			m_kdTree.emplace(glm::vec3{ modelInstPair.second.pTransform->m_transform * glm::vec4{ 0.0f, 0.0f, 0.0f, 1.0f } }, ent);
 		}
 	}
 };
