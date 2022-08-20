@@ -10,7 +10,7 @@ ScopedTimeMeasurement::ScopedTimeMeasurement(const OnCompletionFuncType& func)
 
 ScopedTimeMeasurement::~ScopedTimeMeasurement() {
 	if (m_onCompletionFunc) {
-		auto dur = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - m_initTime);
+		auto dur = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - m_initTime);
 		m_onCompletionFunc(dur);
 	}
 }

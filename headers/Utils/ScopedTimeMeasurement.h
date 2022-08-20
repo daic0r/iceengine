@@ -7,7 +7,7 @@ namespace Ice {
 
 class ScopedTimeMeasurement {
 	using OnCompletionFuncType = std::function<void(std::chrono::nanoseconds)>;
-	std::chrono::time_point<std::chrono::high_resolution_clock> m_initTime = std::chrono::high_resolution_clock::now();
+	std::chrono::time_point<std::chrono::steady_clock> m_initTime = std::chrono::steady_clock::now();
 	OnCompletionFuncType m_onCompletionFunc;
 
 public:
