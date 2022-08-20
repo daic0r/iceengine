@@ -80,21 +80,14 @@ namespace Ice
     }
     
     template<typename T>
-    KdTree<T>::KdTree(const std::vector<float>& vPoints) {
-        construct(vPoints);
+    KdTree<T>::KdTree(std::vector<glm::vec3> vPoints) {
+        construct(std::move(vPoints));
     } 
 
     template<typename T>
-    void KdTree<T>::construct(const std::vector<float>& vPoints) {
-        //m_vPoints = vPoints;
-
-        std::vector<glm::vec3> vPoint3;
-        vPoint3.reserve(vPoints.size() / 3);
-        for (std::size_t i{}; i < vPoints.size(); i+=3)
-            vPoint3.emplace_back(vPoints[i], vPoints[i+1], vPoints[i+2]);
-
-        m_vNodes.reserve(2 * vPoint3.size() + 1);
-        m_pRoot = subdivide(vPoint3, 0);
+    void KdTree<T>::construct(std::vector<glm::vec3> vPoints) {
+        m_vNodes.reserve(2 * vPoints.size() + 1);
+        m_pRoot = subdivide(vPoints, 0);
 #ifdef _LOG
         std::cout << "Size of container: " << m_vNodes.size() << ", capacity: " << m_vNodes.capacity() << "\n";
 #endif

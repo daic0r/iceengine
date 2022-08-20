@@ -33,8 +33,8 @@ namespace Ice
 
     public:
         KdTree() = default;
-        KdTree(const std::vector<float>& vPoints);
-        void construct(const std::vector<float>& vPoints);
+        KdTree(std::vector<glm::vec3> vPoints);
+        void construct(std::vector<glm::vec3> vPoints);
         void print(node_t* pNode = nullptr, int nAxis = 0);
         template<typename U = T>
         void emplace(const glm::vec3& p, U&& u) {
