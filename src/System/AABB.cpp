@@ -118,4 +118,16 @@ bool AABB::intersects(const Ray& r, float* fpDistance) const noexcept {
     return bFound;
 }
 
+AABB AABB::transform(const glm::mat4& m) const noexcept {
+    AABB boxWorld{};
+    const auto corners = cornerVertices(m);
+    for (const auto& corner : corners) {
+        for (int i = 0; i < 3; ++i) {
+            if (corner[i] < boxWorld.minVertex()[i]) boxWorld.minVertex()[i] = corner[i];
+            if (corner[i] > boxWorld.maxVertex()[i]) boxWorld.maxVertex()[i] = corner[i];
+        }
+    }
+    return boxWorld;
+}
+
 }

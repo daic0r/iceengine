@@ -132,14 +132,7 @@ public:
 		for (const auto& [e, modelInstPair] : m_mEntity2ModelStruct) {
 			AABB boxLocal{ modelInstPair.first.pMesh->extents() };
 
-			AABB boxWorld{};
-			const auto corners = boxLocal.cornerVertices(modelInstPair.second.pTransform->m_transform);
-			for (const auto& corner : corners) {
-				for (int i = 0; i < 3; ++i) {
-					if (corner[i] < boxWorld.minVertex()[i]) boxWorld.minVertex()[i] = corner[i];
-					if (corner[i] > boxWorld.maxVertex()[i]) boxWorld.maxVertex()[i] = corner[i];
-				}
-			}
+			const auto boxWorld = boxLocal.transform(modelInstPair.second.pTransform->m_transform);
 			m_vKdTreeVertices.push_back(boxWorld.minVertex());
 			m_vKdTreeVertices.push_back(boxWorld.maxVertex());
 

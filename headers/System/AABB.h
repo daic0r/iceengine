@@ -42,6 +42,8 @@ public:
     bool intersects(const Ray& r, float* fpDistance = nullptr) const noexcept;
     std::array<glm::vec3, 8> cornerVertices(const glm::mat4& transform = glm::mat4{ 1.0f }) const noexcept;
 
+    AABB transform(const glm::mat4& m) const noexcept;
+
     constexpr static AABB unboundedBox() { 
         return AABB{ 
                 glm::vec3{ -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max() },
