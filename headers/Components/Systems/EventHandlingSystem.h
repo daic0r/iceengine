@@ -16,6 +16,7 @@ namespace Ice {
 
 class ObjectRenderingSystem;
 class AnimatedModelRenderingSystem;
+class Ray;
 struct CameraComponent;
 
 class EventHandlingSystem : public EntityComponentSystem<InputReceiverComponent> {
@@ -29,7 +30,7 @@ public:
     bool update(float fDeltaTime) override;
 	void onSystemsInitialized() noexcept override;
 
-	bool isModelInstanceUnderMouse(Entity, const CameraComponent&) const noexcept;
+	bool isModelInstanceUnderMouse(Entity, const Ray& mouseRay, const CameraComponent&) const noexcept;
 	void setCameraEnt(Entity e) noexcept { m_cameraEnt = e; }
 	Entity cameraEnt() const noexcept { return m_cameraEnt; }
 

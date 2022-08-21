@@ -7,6 +7,7 @@
 #include <System/Math.h>
 #include <Utils/TemplateHelpers.h>
 #include <Renderer/Frustum.h>
+#include <System/Ray.h>
 
 namespace Ice
 {
@@ -130,41 +131,93 @@ namespace Ice
     }
 
     template<typename T>
-    void KdTree<T>::getVisibleObjects(const Frustum* pFrustum, std::vector<T>& vRet) const {
-        getVisibleObjects_impl(pFrustum, m_outerBox, vRet, nullptr, 0);
+    KdTree<T>::node_info KdTree<T>::getVisibleObjects(const Frustum* pFrustum, std::vector<T>& vRet) const {
+        node_info firstFullyContained{};
+        firstFullyContained.m_box = m_outerBox;
+        getVisibleObjects_impl(pFrustum, m_outerBox, vRet, firstFullyContained, nullptr, 0);
+        return firstFullyContained;
     }
 
     template<typename T>
     void KdTree<T>::getVisibleObjects_impl(const Frustum* pFrustum, 
         const AABB& box,
         std::vector<T>& vRet, 
+        node_info& firstFullyContainedNode,
         node_t* pCurNode,
         int nAxis
     ) const {
         if (pCurNode == nullptr)
             pCurNode = m_pRoot;
         std::visit(visitor{ 
-            [&box,&vRet,pFrustum,this,nAxis](const branch_node& branch) {
-                static const auto traverse = [](const KdTree* pThis, const branch_node& branch, const Frustum* pFrustum, AABB nextBox, int nAxis, std::vector<T>& vRet, bool bIsLeft) {
+            [&box,&vRet,pFrustum,this,nAxis,pCurNode,&firstFullyContainedNode](const branch_node& branch) mutable {
+                static const auto traverse = [](const KdTree* pThis, const branch_node& branch, const Frustum* pFrustum, AABB nextBox, int nAxis, std::vector<T>& vRet, node_info& firstFullyContainedNode, node_t* pCurNode, bool bIsLeft) {
                     const auto pNextNode = bIsLeft ? branch.m_pLeft : branch.m_pRight;
                     if (pFrustum) {
                         auto& pointToModify = bIsLeft ? nextBox.maxVertex() : nextBox.minVertex();
                         pointToModify[nAxis] = branch.m_fLocation;
                         if (const auto intersectRes = pFrustum->intersects(nextBox, true); intersectRes != FrustumAABBIntersectionType::NO_INTERSECTION) {
                             const auto pPassFrustum = intersectRes == FrustumAABBIntersectionType::CONTAINED ? nullptr : pFrustum;
-                            pThis->getVisibleObjects_impl(pPassFrustum, nextBox, vRet, pNextNode, (nAxis + 1) % 3);
+                            if (!pPassFrustum && !firstFullyContainedNode.m_pNode) {
+                                firstFullyContainedNode.m_pNode = pNextNode;
+                                firstFullyContainedNode.m_box = nextBox;
+                                firstFullyContainedNode.m_nAxis = (nAxis + 1) % 3;
+                             }
+                            pThis->getVisibleObjects_impl(pPassFrustum, nextBox, vRet, firstFullyContainedNode, pNextNode, (nAxis + 1) % 3);
                         }
                     } else {
-                        pThis->getVisibleObjects_impl(nullptr, nextBox, vRet, pNextNode, (nAxis + 1) % 3);
+                        pThis->getVisibleObjects_impl(nullptr, nextBox, vRet, firstFullyContainedNode, pNextNode, (nAxis + 1) % 3);
                     }
                 };
-                traverse(this, branch, pFrustum, box, nAxis, vRet, true);
-                traverse(this, branch, pFrustum, box, nAxis, vRet, false);
+                /*
+                if (!firstFullyContainedNode.m_pNode && pFrustum) {
+                    if (const auto intersectRes = pFrustum->intersects(box, true); intersectRes == FrustumAABBIntersectionType::CONTAINED) {
+                        firstFullyContainedNode.m_pNode = pCurNode;
+                        firstFullyContainedNode.m_box = box;
+                        firstFullyContainedNode.m_nAxis = nAxis;
+                        pFrustum = nullptr;
+                    }
+                }
+                */
+                traverse(this, branch, pFrustum, box, nAxis, vRet, firstFullyContainedNode, pCurNode, true);
+                traverse(this, branch, pFrustum, box, nAxis, vRet, firstFullyContainedNode, pCurNode, false);
         },
             [&vRet](const leaf_node& branch) {
                 vRet.insert(vRet.end(), branch.m_vObjects.begin(), branch.m_vObjects.end());
             }
         }, *pCurNode);
+    }
+
+    template<typename T>
+    bool KdTree<T>::intersects(const Ray& r, node_t* pCurNode, const AABB& box, int nAxis, std::vector<T>& vOut) const {
+        if (!pCurNode)
+            return false;
+        std::visit(visitor{ 
+            [&](const branch_node& branch) {
+                if (branch.m_pLeft) {
+                    auto boxLeft = box;
+                    boxLeft.maxVertex()[nAxis] = branch.m_fLocation;
+                    if (boxLeft.intersects(r)) {
+                        intersects(r, branch.m_pLeft, boxLeft, (nAxis + 1) % 3, vOut);
+                    }
+                }
+                if (branch.m_pRight) {
+                    auto boxRight = box;
+                    boxRight.minVertex()[nAxis] = branch.m_fLocation;
+                    if (boxRight.intersects(r)) {
+                        intersects(r, branch.m_pRight, boxRight, (nAxis + 1) % 3, vOut);
+                    }
+                }
+             },
+            [&vOut](const leaf_node& leaf) {
+                vOut.insert(vOut.end(), leaf.m_vObjects.begin(), leaf.m_vObjects.end());
+            }
+        }, *pCurNode);
+        return !vOut.empty();
+    }
+
+    template<typename T>
+    bool KdTree<T>::intersects(const Ray& r, const node_info& curNode, std::vector<T>& vOut) const {
+        return intersects(r, curNode.m_pNode, curNode.m_box, curNode.m_nAxis, vOut);
     }
 
     template class KdTree<Entity>;

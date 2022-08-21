@@ -37,6 +37,7 @@ protected:
 	std::vector<Entity> m_vVisibleEnts{};
 	int m_nFramesSinceNoKdRefresh{};
 	std::vector<glm::vec3> m_vKdTreeVertices;
+	KdTree<Entity>::node_info m_lastFullNodeInFrustum;
 
 	virtual ModelStructType makeModelStruct(Entity) const = 0;
 	virtual bool isEntityEligibleForRendering(Entity e) const = 0;
@@ -72,11 +73,11 @@ protected:
 		m_vVisibleEnts.clear();
 		const auto& frustum = m_pCameraControllerSystem->frustum();
 		{
-			ScopedTimeMeasurement m([](std::chrono::nanoseconds d) {
+			/*ScopedTimeMeasurement m([](std::chrono::nanoseconds d) {
 				std::cout << d.count() << " ns\n";	
-			});
-			m_kdTree.getVisibleObjects(&frustum, m_vVisibleEnts);
-			std::cout << "Have " << m_vVisibleEnts.size() << " elements\n";
+			});*/
+			m_lastFullNodeInFrustum = m_kdTree.getVisibleObjects(&frustum, m_vVisibleEnts);
+			//std::cout << "Have " << m_vVisibleEnts.size() << " elements\n";
 		}
 		//m_kdTree.getVisibleObjects(&frustum, m_vVisibleEnts);
 		std::move(m_vVisibleEnts.begin(), m_vVisibleEnts.end(), std::inserter( m_sFrustumEnts, m_sFrustumEnts.end()));
@@ -124,6 +125,9 @@ protected:
 	}
 
 public:
+	const auto& kdTree() const noexcept { return m_kdTree; }
+	const auto& lastFullKdTreeNodeInFrustum() const noexcept { return m_lastFullNodeInFrustum; }
+
 	const std::set<Entity>& entitiesInFrustum() const noexcept { return m_sFrustumEnts; }
 	void buildKdTree() {
 		m_vKdTreeVertices.clear();

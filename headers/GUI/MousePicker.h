@@ -18,11 +18,12 @@ class IGraphicsSystem;
 
 class MousePicker {
     
-    glm::mat4 m_invView, m_invProjection;
     IGraphicsSystem *m_pGraphicsSystem{ nullptr };
+    int m_nMouseX{}, m_nMouseY{};
+    glm::mat4 m_invView, m_invProjection;
     
 public:
-    MousePicker(const glm::mat4&) noexcept;
+    MousePicker(int mouseX, int mouseY, const glm::mat4&) noexcept;
     
     glm::vec3 getMouseRay() const noexcept;
 };

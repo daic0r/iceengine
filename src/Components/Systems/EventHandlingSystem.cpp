@@ -35,19 +35,19 @@ namespace Ice {
 EventHandlingSystem::EventHandlingSystem() {
 }
 
-bool EventHandlingSystem::isModelInstanceUnderMouse(Entity e, const CameraComponent& camComp) const noexcept {
+bool EventHandlingSystem::isModelInstanceUnderMouse(Entity e, const Ray& mouseRay, const CameraComponent& camComp) const noexcept {
     const auto& modRef = entityManager.getComponent<ModelReferenceComponent>(e);
     const auto& meshComp = entityManager.getComponent<MeshComponent>(modRef.m_entity);
     const auto ext = meshComp.extents();
     const auto& transComp = entityManager.getSharedComponentOr<TransformComponent>(e);
-    glm::vec4 min4{ ext.minPoint, 1.0f };
+/*    glm::vec4 min4{ ext.minPoint, 1.0f };
     glm::vec4 max4{ ext.maxPoint, 1.0f };
     min4 = transComp.m_transform * min4;
     max4 = transComp.m_transform * max4;
-    AABB bb{ min4, max4 };
-    MousePicker pick{ camComp.m_camera.matrix() };
-    Ray r{ camComp.m_camera.position(), pick.getMouseRay() };
-    const bool bIntersects = bb.intersects(r);
+    AABB bb{ min4, max4 };*/
+    AABB box{ ext };
+    box = box.transform(transComp.m_transform);
+    const bool bIntersects = box.intersects(mouseRay);
     return bIntersects;
 }
 
@@ -66,12 +66,14 @@ bool EventHandlingSystem::update(float fDeltaTime) {
 			}
 		} else {
 			const auto& ents = entities(entityManager.currentScene());
+            /*
             const auto& sFrustumEnts1 = m_pObjRenderingSystem->entitiesInFrustum();
 			const auto& sFrustumEnts2 = m_pAnimObjRenderingSystem->entitiesInFrustum();
             auto checkEnts = ents | std::views::filter([&sFrustumEnts1,&sFrustumEnts2](auto e) {
                 const auto bHasTransform = entityManager.hasComponent<TransformComponent>(e);
                 return !bHasTransform || (bHasTransform && (sFrustumEnts1.contains(e) || sFrustumEnts2.contains(e)));
             });
+            */
 			// Mouse events will only be received by entities that are in view
 			// Otherwise they can't be accessed with the mouse
 			//m_vEntBuffer.clear();
@@ -82,12 +84,29 @@ bool EventHandlingSystem::update(float fDeltaTime) {
 			//const auto& ents = entities(entityManager.currentScene());
 			//std::set_intersection(sFrustumEnts1.cbegin(), sFrustumEnts1.cend(), ents.cbegin(), ents.cend(), std::back_inserter(m_vEntBuffer));
 			//std::set_intersection(sFrustumEnts2.cbegin(), sFrustumEnts2.cend(), ents.cbegin(), ents.cend(), std::back_inserter(m_vEntBuffer));
-			for (auto e : checkEnts) {
+            const auto& camComp = entityManager.getComponent<CameraComponent>(cameraEnt());
+            int x, y;
+            SDL_GetMouseState(&x, &y);
+            const MousePicker pick{ x, y, camComp.m_camera.matrix() } ;
+            const Ray mouseRay{ camComp.m_camera.position(), pick.getMouseRay() };
+
+            m_vEntBuffer.clear(); 
+            m_pObjRenderingSystem->kdTree().intersects(mouseRay, m_pObjRenderingSystem->lastFullKdTreeNodeInFrustum(), m_vEntBuffer);
+
+            if (m_vEntBuffer.size() > 0) {
+                std::cout << "Hab " << m_vEntBuffer.size() << " dinger am zeiger\n";
+            }
+            auto checkEnts = ents | std::views::filter([this](auto e) {
+                const auto bHasTransform = entityManager.hasComponent<TransformComponent>(e);
+                return !bHasTransform || (bHasTransform && std::ranges::any_of(m_vEntBuffer, [e](auto ent) { return e == ent; }));
+            });
+ 
+ 			for (auto e : checkEnts) {
 				auto& comp = entityManager.getComponent<InputReceiverComponent>(e);
                 for (const auto& func : comp.m_vMouseHandlers) {
                     const auto bHasComp = entityManager.hasComponent<ModelInstanceTagComponent>(e);
                     const auto bInvoke = !bHasComp || (bHasComp && entityManager.hasComponent<CameraComponent>(cameraEnt()) && 
-                             isModelInstanceUnderMouse(e, entityManager.getComponent<CameraComponent>(cameraEnt())));
+                             isModelInstanceUnderMouse(e, mouseRay, camComp));
                     if (bInvoke)
                         bRet &= func(e, event.type, &event.motion, &event.button, &event.wheel);
                 }

@@ -37,7 +37,9 @@ void ToolTipSystem::addToolTip(Entity e, GUI::Widget* w, const std::function<con
             min4 = transComp.m_transform * min4;
             max4 = transComp.m_transform * max4;
             AABB bb{ min4, max4 };
-            MousePicker pick{ camComp.m_camera.matrix() };
+            int x, y;
+            SDL_GetMouseState(&x, &y);
+            MousePicker pick{ x, y, camComp.m_camera.matrix() };
             Ray r{ camComp.m_camera.position(), pick.getMouseRay() };
             const bool bIntersects = bb.intersects(r);
             if (bIntersects && !bMouseOver) {

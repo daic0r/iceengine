@@ -10,13 +10,16 @@
 #include <System/AABB.h>
 #include <limits>
 #include <Utils/TemplateHelpers.h>
+#include <optional>
 
 namespace Ice
 {
     class Frustum;
+    class Ray;
 
     template<typename T>
     class KdTree {
+    public:
         struct leaf_node;
         struct branch_node;
         using node_t = std::variant<branch_node, leaf_node>;
@@ -27,11 +30,13 @@ namespace Ice
         struct leaf_node {
             std::vector<T> m_vObjects;
         };
+        struct node_info {
+            node_t* m_pNode{};
+            AABB m_box = AABB::unboundedBox();
+            int m_nAxis{-1};
+        };
 
-        node_t* subdivide(std::vector<glm::vec3>, int nAxis, int nLevel = 0);
-        void getVisibleObjects_impl(const Frustum*, const AABB& box, std::vector<T>& vRet, node_t* pCurNode = nullptr, int nAxis = 0) const;
-
-    public:
+   public:
         KdTree() = default;
         KdTree(std::vector<glm::vec3> vPoints);
         void construct(std::vector<glm::vec3> vPoints);
@@ -55,8 +60,14 @@ namespace Ice
             }
          }
 
-        void getVisibleObjects(const Frustum*, std::vector<T>&) const;
+        node_info getVisibleObjects(const Frustum*, std::vector<T>&) const;
+        bool intersects(const Ray&, const node_info& curNode, std::vector<T>& vOut) const;
+        const auto& boundingBox() const noexcept { return m_outerBox; }
    private:
+        node_t* subdivide(std::vector<glm::vec3>, int nAxis, int nLevel = 0);
+        void getVisibleObjects_impl(const Frustum*, const AABB& box, std::vector<T>& vRet, node_info& firstFullyContainedNode, node_t* pCurNode = nullptr, int nAxis = 0) const;
+        bool intersects(const Ray&, node_t* pCurNode, const AABB& box, int nAxis, std::vector<T>& vOut) const;
+
         node_t* m_pRoot{};
         std::vector<node_t> m_vNodes{};
         AABB m_outerBox{};
