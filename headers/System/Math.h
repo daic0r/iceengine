@@ -18,14 +18,14 @@ namespace Ice::Math {
     static inline constexpr T Epsilon = T{ .00001 };
     
     template<typename T>
-    T abs(T x) noexcept {
+    constexpr T abs(T x) noexcept {
         if (x < Zero<T>)
             return static_cast<T>(-1) * x;
         return x;
     }
 
     template<typename T>
-    T sgn(T x) {
+    constexpr T sgn(T x) {
         return x < Zero<T> ? static_cast<T>(-1) : (x > Zero<T> ? One<T> : Zero<T>);
     }
 
