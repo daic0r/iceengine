@@ -37,7 +37,6 @@ protected:
 	std::vector<Entity> m_vVisibleEnts{};
 	int m_nFramesSinceNoKdRefresh{};
 	std::vector<glm::vec3> m_vKdTreeVertices;
-	KdTree<Entity>::node_info m_lastFullNodeInFrustum;
 
 	virtual ModelStructType makeModelStruct(Entity) const = 0;
 	virtual bool isEntityEligibleForRendering(Entity e) const = 0;
@@ -76,7 +75,7 @@ protected:
 			/*ScopedTimeMeasurement m([](std::chrono::nanoseconds d) {
 				std::cout << d.count() << " ns\n";	
 			});*/
-			m_lastFullNodeInFrustum = m_kdTree.getVisibleObjects(&frustum, m_vVisibleEnts);
+			m_kdTree.getVisibleObjects(&frustum, m_vVisibleEnts);
 			//std::cout << "Have " << m_vVisibleEnts.size() << " elements\n";
 		}
 		//m_kdTree.getVisibleObjects(&frustum, m_vVisibleEnts);
@@ -126,7 +125,6 @@ protected:
 
 public:
 	const auto& kdTree() const noexcept { return m_kdTree; }
-	const auto& lastFullKdTreeNodeInFrustum() const noexcept { return m_lastFullNodeInFrustum; }
 
 	const std::set<Entity>& entitiesInFrustum() const noexcept { return m_sFrustumEnts; }
 	void buildKdTree() {

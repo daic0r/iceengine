@@ -60,12 +60,12 @@ namespace Ice
             }
          }
 
-        node_info getVisibleObjects(const Frustum*, std::vector<T>&) const;
-        bool intersects(const Ray&, const node_info& curNode, std::vector<T>& vOut) const;
+        void getVisibleObjects(const Frustum*, std::vector<T>&) const;
+        bool intersects(const Ray&, std::vector<T>& vOut) const;
         const auto& boundingBox() const noexcept { return m_outerBox; }
    private:
         node_t* subdivide(std::vector<glm::vec3>, int nAxis, int nLevel = 0);
-        void getVisibleObjects_impl(const Frustum*, const AABB& box, std::vector<T>& vRet, node_info& firstFullyContainedNode, node_t* pCurNode = nullptr, int nAxis = 0) const;
+        void getVisibleObjects_impl(const Frustum*, const AABB& box, std::vector<T>& vRet, node_t* pCurNode = nullptr, int nAxis = 0) const;
         bool intersects(const Ray&, node_t* pCurNode, const AABB& box, int nAxis, std::vector<T>& vOut) const;
 
         node_t* m_pRoot{};

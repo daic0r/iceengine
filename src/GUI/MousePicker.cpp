@@ -41,7 +41,7 @@ glm::vec3 MousePicker::getMouseRay() const noexcept {
     // To world space
     worldSpace = m_invView * worldSpace;
     
-    glm::vec3 ret{ worldSpace.x, worldSpace.y, worldSpace.z };
+    glm::vec3 ret{ worldSpace };
     ret = glm::normalize(ret);
     
     return ret;

@@ -40,11 +40,6 @@ bool EventHandlingSystem::isModelInstanceUnderMouse(Entity e, const Ray& mouseRa
     const auto& meshComp = entityManager.getComponent<MeshComponent>(modRef.m_entity);
     const auto ext = meshComp.extents();
     const auto& transComp = entityManager.getSharedComponentOr<TransformComponent>(e);
-/*    glm::vec4 min4{ ext.minPoint, 1.0f };
-    glm::vec4 max4{ ext.maxPoint, 1.0f };
-    min4 = transComp.m_transform * min4;
-    max4 = transComp.m_transform * max4;
-    AABB bb{ min4, max4 };*/
     AABB box{ ext };
     box = box.transform(transComp.m_transform);
     const bool bIntersects = box.intersects(mouseRay);
@@ -86,26 +81,25 @@ bool EventHandlingSystem::update(float fDeltaTime) {
 			//std::set_intersection(sFrustumEnts2.cbegin(), sFrustumEnts2.cend(), ents.cbegin(), ents.cend(), std::back_inserter(m_vEntBuffer));
             const auto& camComp = entityManager.getComponent<CameraComponent>(cameraEnt());
             int x, y;
+            // TODO: Replace direct access by something like IMouseInputController
+            // and IKeyboardInputController which can be fed by anything
             SDL_GetMouseState(&x, &y);
             const MousePicker pick{ x, y, camComp.m_camera.matrix() } ;
             const Ray mouseRay{ camComp.m_camera.position(), pick.getMouseRay() };
 
             m_vEntBuffer.clear(); 
-            m_pObjRenderingSystem->kdTree().intersects(mouseRay, m_pObjRenderingSystem->lastFullKdTreeNodeInFrustum(), m_vEntBuffer);
+            m_pObjRenderingSystem->kdTree().intersects(mouseRay, m_vEntBuffer);
+            std::ranges::sort(m_vEntBuffer);
 
-            if (m_vEntBuffer.size() > 0) {
-                std::cout << "Hab " << m_vEntBuffer.size() << " dinger am zeiger\n";
-            }
             auto checkEnts = ents | std::views::filter([this](auto e) {
                 const auto bHasTransform = entityManager.hasComponent<TransformComponent>(e);
-                return !bHasTransform || (bHasTransform && std::ranges::any_of(m_vEntBuffer, [e](auto ent) { return e == ent; }));
+                return !bHasTransform || (bHasTransform && std::ranges::binary_search(m_vEntBuffer, e));
             });
- 
  			for (auto e : checkEnts) {
 				auto& comp = entityManager.getComponent<InputReceiverComponent>(e);
                 for (const auto& func : comp.m_vMouseHandlers) {
                     const auto bHasComp = entityManager.hasComponent<ModelInstanceTagComponent>(e);
-                    const auto bInvoke = !bHasComp || (bHasComp && entityManager.hasComponent<CameraComponent>(cameraEnt()) && 
+                    const auto bInvoke = !bHasComp || (bHasComp &&
                              isModelInstanceUnderMouse(e, mouseRay, camComp));
                     if (bInvoke)
                         bRet &= func(e, event.type, &event.motion, &event.button, &event.wheel);
