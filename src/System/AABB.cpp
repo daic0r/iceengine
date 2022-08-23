@@ -46,6 +46,7 @@ bool AABB::intersects(const AABB &other) const noexcept {
     return bRet;
 }
 
+/*
 bool AABB::intersects(const Ray& r, float* fpDistance) const noexcept {
     const auto faces = std::invoke([this]() {
         std::array<std::array<glm::vec3, 4>, 6> _faces;
@@ -116,6 +117,47 @@ bool AABB::intersects(const Ray& r, float* fpDistance) const noexcept {
     }
 
     return bFound;
+}
+*/
+
+// See: https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-box-intersection
+bool AABB::intersects(const Ray& r) const noexcept {
+    const auto invDir = 1.0f / r.direction();
+    
+    const std::array<bool, 3> arSgn{ invDir.x < 0.0f, invDir.y < 0.0f, invDir.z < 0.0f };
+
+    float txmin = ((arSgn[0] ? maxVertex().x : minVertex().x) - r.origin().x) * invDir.x;
+    float txmax = ((!arSgn[0] ? maxVertex().x : minVertex().x) - r.origin().x) * invDir.x;
+    
+    float tymin = ((arSgn[1] ? maxVertex().y : minVertex().y) - r.origin().y) * invDir.y;
+    float tymax = ((!arSgn[1] ? maxVertex().y : minVertex().y) - r.origin().y) * invDir.y;
+
+    if (txmin > tymax || tymin > txmax)
+        return false;
+
+    if (tymin > txmin)
+        txmin = tymin;
+    if (tymax < txmax)
+        txmax = tymax;
+
+    float tzmin = ((arSgn[2] ? maxVertex().z : minVertex().z) - r.origin().z) * invDir.z;
+    float tzmax = ((!arSgn[2] ? maxVertex().z : minVertex().z) - r.origin().z) * invDir.z;
+
+    if (txmin > tzmax || tzmin > txmax)
+        return false;
+
+    if (tzmin > txmin)
+        txmin = tzmin;
+    if (tzmax < txmax)
+        txmax = tzmax;
+
+    auto t = txmin;
+    if (t < 0.0f) {
+        t = txmax;
+        if (t < 0.0f) return false;
+    }
+
+    return true;
 }
 
 AABB AABB::transform(const glm::mat4& m) const noexcept {
