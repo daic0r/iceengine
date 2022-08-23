@@ -105,7 +105,7 @@ System/Model.cpp
 System/StreamTools.cpp
 System/PathSegment.cpp
 System/AABB.cpp
-System/ThreadPool.cpp
+System/thread_pool.cpp
 System/Light.cpp
 System/Skybox.cpp
 System/RenderMaterial.cpp
@@ -155,6 +155,7 @@ find_library(SDL2_image SDL2_image)
 find_library(uuid uuid)
 find_library(dl dl)
 find_library(pthread pthread)
+find_library(profiler profiler)
 
 if (NOT SDL2)
 	message(FATAL_ERROR "SDL2 not found")
@@ -184,13 +185,18 @@ if (NOT pthread)
 	message(FATAL_ERROR "pthread not found")
 endif()
 
+if (NOT profiler)
+	message(FATAL_ERROR "profiler not found")
+endif()
+
 target_compile_options(${PROJECT_NAME} PRIVATE -O0 -g -fPIC -Wno-non-template-friend)
-target_compile_definitions(${PROJECT_NAME} PRIVATE RENDERER_OPEN_GL _DEBUG _LOG)
+target_link_options(${PROJECT_NAME} PRIVATE -Wl,--no-as-needed)
+target_compile_definitions(${PROJECT_NAME} PRIVATE RENDERER_OPEN_GL _DEBUG)
 #target_link_options(${PROJECT_NAME} PRIVATE -pg)
 #target_link_directories(${PROJECT_NAME} PRIVATE ../external/linux PRIVATE /usr/local/lib PRIVATE /usr/lib)
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ../external/inc PUBLIC ../external/inc/SDL2) # PUBLIC . PUBLIC ${CMAKE_SYSTEM_INCLUDE_PATH})
 target_include_directories(${PROJECT_NAME} PUBLIC ../headers) # PUBLIC . PUBLIC ${CMAKE_SYSTEM_INCLUDE_PATH})
-target_link_libraries(${PROJECT_NAME} SDL2 GLEW crossguid SDL2_image uuid dl pthread)
+target_link_libraries(${PROJECT_NAME} SDL2 GLEW crossguid SDL2_image uuid dl pthread profiler)
 
 install(TARGETS ${PROJECT_NAME}
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
