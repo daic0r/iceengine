@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <array>
 #include <algorithm>
+#include <vector>
 #include <Utils/MeshGeneration/VertexTraversalStrategy.h>
 
 namespace Ice::MeshGeneration

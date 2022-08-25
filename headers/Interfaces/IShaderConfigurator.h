@@ -21,7 +21,7 @@ public:
     virtual void initialize() noexcept {}
     virtual void getUniformLocations() noexcept {}
 	virtual void loadUniforms(const RenderEnvironment&) noexcept {}
-    virtual ~IShaderConfigurator() {}
+    virtual ~IShaderConfigurator() = default;
     
 };
 
