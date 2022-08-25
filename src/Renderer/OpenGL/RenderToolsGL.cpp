@@ -179,9 +179,9 @@ void RenderToolsGL::bindFramebuffer(GLuint nFramebuffer, int width, int height) 
     glCall(glViewport(0, 0, width, height));
 }
 
-void RenderToolsGL::unbindCurrentFramebuffer() {
-    glCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
-    glCall(glViewport(0, 0, systemServices.getGraphicsSystem()->displayWidth(), systemServices.getGraphicsSystem()->displayHeight()));
+void RenderToolsGL::unbindCurrentFramebuffer(GLuint nLastBuffer, GLsizei nWidth, GLsizei nHeight) {
+    glCall(glBindFramebuffer(GL_FRAMEBUFFER, nLastBuffer));
+    glCall(glViewport(0, 0, nWidth, nHeight));
 }
 
 std::unique_ptr<GLubyte[]> RenderToolsGL::createUniformBuffer(GLuint nShaderProgram, const std::string& strName, const std::vector<const GLchar*>& vVarNames, std::vector<GLuint>& vOffsets, GLuint& nBuffer, GLint& nBufSize) {

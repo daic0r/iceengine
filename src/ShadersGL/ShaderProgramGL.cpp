@@ -27,11 +27,20 @@ ShaderProgramGL::ShaderProgramGL(const std::string& strPathVertexShader, const s
 {
     m_strVertexShaderPath = strPathVertexShader;
     m_strFragmentShaderPath = strPathFragmentShader;
-    setConfigurator(std::move(pConfig));
+    if (pConfig)
+        setConfigurator(std::move(pConfig));
 }
 
 void ShaderProgramGL::load() {
-    primeShaders(m_strVertexShaderPath, m_strFragmentShaderPath);
+    m_vertexShaderId = loadFromFile(m_strVertexShaderPath, GL_VERTEX_SHADER);
+    m_fragmentShaderId = loadFromFile(m_strFragmentShaderPath, GL_FRAGMENT_SHADER);
+    primeShaders();
+}
+
+void ShaderProgramGL::fromSource(std::string_view strVertexShader, std::string_view strFragmentShader) {
+    m_vertexShaderId = loadFromSource(strVertexShader, GL_VERTEX_SHADER);
+    m_fragmentShaderId = loadFromSource(strFragmentShader, GL_FRAGMENT_SHADER);
+    primeShaders();
 }
 
 ShaderProgramGL& ShaderProgramGL::operator=(ShaderProgramGL&& other) {
@@ -49,6 +58,7 @@ ShaderProgramGL::ShaderProgramGL(ShaderProgramGL&& other) {
 
 ShaderProgramGL::~ShaderProgramGL() {
     unuse();
+    delete m_pConfigurator;
     if (m_vertexShaderId != 0) {
         glDetachShader(m_programId, m_vertexShaderId);
         glDeleteShader(m_vertexShaderId);
@@ -63,7 +73,7 @@ ShaderProgramGL::~ShaderProgramGL() {
 
 void ShaderProgramGL::setConfigurator(std::unique_ptr<IShaderConfigurator> pConfig) noexcept {
     pConfig->setShaderProgram(this);
-    m_pConfigurator = std::move(pConfig);
+    m_pConfigurator = pConfig.release(); // std::move(pConfig);
 }
 
 unsigned int ShaderProgramGL::loadFromFile(const std::string& filename, unsigned int shaderType) {
@@ -81,20 +91,8 @@ unsigned int ShaderProgramGL::loadFromFile(const std::string& filename, unsigned
         strContents += "\n";
     }
     f.close();
-    
-    unsigned int shaderId = glCreateShader(shaderType);
-    
-    const GLchar* source = (const GLchar*) strContents.c_str();
-    glShaderSource(shaderId, 1, &source, nullptr);
-    
-    glCompileShader(shaderId);
-    int bShaderCompiled;
-    glGetShaderiv(shaderId, GL_COMPILE_STATUS, &bShaderCompiled);
-    if (bShaderCompiled != GL_TRUE) {
-        throw std::runtime_error(getLog(false, shaderId));
-    }
-    
-    return shaderId;
+   
+    return loadFromSource(strContents, shaderType);
 }
 
 std::string ShaderProgramGL::getLog(bool bProgramOrShader, unsigned int shader )
@@ -132,16 +130,19 @@ std::string ShaderProgramGL::getLog(bool bProgramOrShader, unsigned int shader )
     throw std::runtime_error(strErr);
 }
 
-void ShaderProgramGL::primeShaders(const std::string& strPathVertexShader, const std::string& strPathFragmentShader) {
-    configurator()->initialize();
+void ShaderProgramGL::primeShaders() {
+    const auto pConfig = configurator();
+    if (pConfig)
+        pConfig->initialize();
     
     m_programId = glCreateProgram();
     
-    m_vertexShaderId = loadFromFile(strPathVertexShader, GL_VERTEX_SHADER);
+    //m_vertexShaderId = loadFromFile(strPathVertexShader, GL_VERTEX_SHADER);
     glAttachShader(m_programId, m_vertexShaderId);
-    m_fragmentShaderId = loadFromFile(strPathFragmentShader, GL_FRAGMENT_SHADER);
+    //m_fragmentShaderId = loadFromFile(strPathFragmentShader, GL_FRAGMENT_SHADER);
     glAttachShader(m_programId, m_fragmentShaderId);
-    configurator()->bindAttributes();
+    if (pConfig)
+        pConfig->bindAttributes();
     glLinkProgram(m_programId);
     
     int programSuccess = GL_TRUE;
@@ -150,7 +151,23 @@ void ShaderProgramGL::primeShaders(const std::string& strPathVertexShader, const
         throw std::runtime_error(getLog(true, m_programId));
     }
 
-    configurator()->getUniformLocations();
+    if (pConfig)
+        pConfig->getUniformLocations();
+}
+
+unsigned int ShaderProgramGL::loadFromSource(std::string_view strSource, unsigned int nShaderType) {
+    const auto shaderId = glCreateShader(nShaderType);
+    
+    const GLchar* source = (const GLchar*) strSource.data();
+    glShaderSource(shaderId, 1, &source, nullptr);
+    
+    glCompileShader(shaderId);
+    int bShaderCompiled;
+    glGetShaderiv(shaderId, GL_COMPILE_STATUS, &bShaderCompiled);
+    if (bShaderCompiled != GL_TRUE) {
+        throw std::runtime_error(getLog(false, shaderId));
+    }
+    return shaderId;
 }
 
 void ShaderProgramGL::use() {
@@ -196,6 +213,35 @@ void ShaderProgramGL::loadFloat(int uniformID, float f) const noexcept {
 
 void ShaderProgramGL::loadInt(int uniformID, int i) const noexcept {
     glUniform1i(uniformID, i);
+}
+
+const char* ShaderProgramGL::canvasVertexShader() noexcept {
+    return R"(
+#version 410
+
+layout (location = 0) in vec2 position;
+out vec2 texCoord;
+
+void main() {
+    texCoord = position * 0.5 + 0.5;
+    gl_Position = vec4(position, 0.0, 1.0);
+}
+)";
+}
+
+const char* ShaderProgramGL::canvasFragmentShader() noexcept {
+    return R"(
+#version 410
+
+in vec2 texCoord;
+uniform sampler2D tex;
+
+layout (location = 0) out vec4 outColor;
+
+void main() {
+    outColor = texture(tex, texCoord);
+}
+)";
 }
 
 }

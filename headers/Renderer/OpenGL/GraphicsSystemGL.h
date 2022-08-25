@@ -14,6 +14,9 @@
 #include <optional>
 #include <Renderer/OpenGL/CommonMatrixUBO_GL.h>
 #include <Interfaces/IGraphicsSystem.h>
+#include <ShadersGL/ShaderProgramGL.h>
+#include <Renderer/OpenGL/FramebufferObjectGL.h>
+#include <Renderer/OpenGL/RenderObjectGL.h>
 
 struct SDL_Window;
 
@@ -36,7 +39,7 @@ class ObjectRenderingSystem;
 class GraphicsSystemGL : public IGraphicsSystem {
 private:
     static bool m_bInstanced;
-    
+
 public:
     GraphicsSystemGL();
    
@@ -71,6 +74,7 @@ public:
 private:
     static SDL_Cursor* init_system_cursor(const char* image[]);
     void updateProjectionMatrix() noexcept;
+    bool updateFramebuffer() noexcept;
     void initGL();
 
     glm::mat4 m_projectionMatrix;
@@ -81,6 +85,11 @@ private:
     SDL_Cursor* m_pCursor{ nullptr };
     SDL_Window* m_pWindow{ nullptr };
     SDL_GLContext m_context{ nullptr };
+
+    RenderObjectGL m_quad;
+    FramebufferObjectGL m_fbo;
+    ShaderProgramGL m_quadShader;
+    GLuint m_texUniformId{};
 };
 
 }

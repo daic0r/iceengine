@@ -20,6 +20,8 @@ class FramebufferObjectGL {
     GLuint m_nDepthAttachment{ 0 };
 	GLuint m_nDepthTextureAttachment{ 0 };
     std::uint16_t m_nWidth{ 0 }, m_nHeight{ 0 };
+    GLsizei m_nOldWidth{}, m_nOldHeight{};
+    GLint m_nLastFBO{};
     
 public:
     FramebufferObjectGL() = default;
@@ -46,7 +48,7 @@ public:
 	void setDepthTextureAttachmentId(GLuint id) noexcept { m_nDepthTextureAttachment = id; }
     
 	void create() noexcept;
-    void bind() noexcept;
+    void bind(GLsizei nOldWidth = 0, GLsizei nOldHeight = 0) noexcept;
     void unbind() noexcept;
     
     void swap(FramebufferObjectGL&) noexcept;

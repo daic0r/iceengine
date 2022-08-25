@@ -196,7 +196,7 @@ void WidgetRendererGL::renderWidget(const GUI::ModelPreview* pPreview) {
         inst.pTransform = &transf;
         
         //RenderToolsGL::bindFramebuffer(pInfo->nFramebuffer, width, height);
-        pInfo->fbo.bind();
+        pInfo->fbo.bind(systemServices.getGraphicsSystem()->displayWidth(), systemServices.getGraphicsSystem()->displayHeight());
         glCall(glClearColor(pPreview->color().r, pPreview->color().g, pPreview->color().b, pPreview->color().a));
         glCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
         

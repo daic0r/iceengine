@@ -64,12 +64,15 @@ void FramebufferObjectGL::create() noexcept {
 		m_nFramebuffer = RenderToolsGL::createFramebuffer();
 }
 
-void FramebufferObjectGL::bind() noexcept {
+void FramebufferObjectGL::bind(GLsizei nOldWidth, GLsizei nOldHeight) noexcept {
+    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &m_nLastFBO);
+    m_nOldWidth = nOldWidth;
+    m_nOldHeight = nOldHeight;
     RenderToolsGL::bindFramebuffer(m_nFramebuffer, m_nWidth, m_nHeight);
 }
 
 void FramebufferObjectGL::unbind() noexcept {
-    RenderToolsGL::unbindCurrentFramebuffer();
+    RenderToolsGL::unbindCurrentFramebuffer(m_nLastFBO, m_nOldWidth, m_nOldHeight);
 }
 
 void FramebufferObjectGL::swap(FramebufferObjectGL &other) noexcept {

@@ -29,6 +29,13 @@
 
 namespace Ice {
 
+static const std::vector<GLfloat> vQuad{ 
+    -1.0f, 1.0f,
+    -1.0f, -1.0f,
+    1.0f, 1.0f,
+    1.0f, -1.0f
+};
+
 bool GraphicsSystemGL::m_bInstanced{ false };
 static const char* arrow[] = {
     /* width height num_colors chars_per_pixel */
@@ -140,10 +147,11 @@ bool GraphicsSystemGL::init() {
     
     glEnable(GL_DEPTH_TEST);
     //Initialize clear color
-    glClearColor( 0.0f, 0.f, 0.f, 1.f );
+    glClearColor( 0.0f, 1.f, 1.f, 1.f );
     glEnable(GL_MULTISAMPLE);
     
     updateProjectionMatrix();
+    updateFramebuffer();
     
     m_pCursor = init_system_cursor(arrow);
     SDL_SetCursor(m_pCursor);
@@ -155,11 +163,30 @@ bool GraphicsSystemGL::init() {
 }
 
 void GraphicsSystemGL::beginRender() noexcept {
-    glCall(glClear( GL_COLOR_BUFFER_BIT));
-    glCall(glClear (GL_DEPTH_BUFFER_BIT));
+    // Bind FBO to render to
+    m_fbo.bind();
+    glClear( GL_COLOR_BUFFER_BIT);
+    glClear (GL_DEPTH_BUFFER_BIT);
 }
 
 void GraphicsSystemGL::endRender() noexcept {
+    // Unbind the FBO, thereby enabling rendering to the actual screen
+    m_fbo.unbind();
+    glClear (GL_DEPTH_BUFFER_BIT);
+    glDisable(GL_DEPTH_TEST);
+    // Bind quad VAO
+    glBindVertexArray(m_quad.vao());
+    // Activate the shader
+    m_quadShader.use();
+    // Bind texture
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, m_fbo.textureAttachmentId());
+    // Render the quad
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    // Cleanup
+    m_quadShader.unuse();
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindVertexArray(0);
     SDL_GL_SwapWindow( m_pWindow );
 }
 
@@ -259,68 +286,16 @@ SDL_GLContext GraphicsSystemGL::context() const noexcept {
     return m_context;
 }
 
-void GraphicsSystemGL::initGL()
-{
-   
-    //Success flag
-//    bool success = true;
-    
-//    std::string frustumVertexShaderPath{ Config::BasePath };
-//    frustumVertexShaderPath.append("Game/Shaders/VertexShaderFrustum.glsl");
-//    std::string frustumFragmentShaderPath { Config::BasePath };
-//    frustumFragmentShaderPath.append("Game/Shaders/FragmentShaderFrustum.glsl");
-//
-//    std::unique_ptr<IShaderConfigurator> pFrustumShaderConfig = std::make_unique<FrustumShaderConfigurator>();
-//    auto pFrustumShader = std::make_unique<ShaderProgramGL>(frustumVertexShaderPath, frustumFragmentShaderPath, std::move(pFrustumShaderConfig));
-//    GLuint frustumProgram = shaderManager.registerShaderProgram("frustumShader", std::move(pFrustumShader))->id();
-//    m_pFrustumShader = dynamic_cast<FrustumShaderConfigurator*>(shaderManager.getShader("frustumShader"));
-    
-    //glEnable(GL_CULL_FACE);
-//    glEnable(GL_DEPTH_TEST);
-    
-    //Initialize clear color
-//    glClearColor( 0.0f, 0.f, 0.f, 1.f );
+void GraphicsSystemGL::initGL() {
+    m_quad = RenderToolsGL::loadVerticesToVAO(vQuad, 2);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
 
-//    initSkybox();
-//  // textRenderer;
-//
-//    systemServices.getTextManager()->registerFont("Candara");
-//    systemServices.getTextManager()->registerFont("Verdana");
-//    TextStyle style;
-//    style.color() = glm::vec3{ 1.0f, 1.0f, 1.0f };
-//    style.size() = 180.0f;
-//    style.fontName() = "Verdana";
-//    style.thickness() = .42;
-//    style.edgeWidth() = .19f;
-//    style.borderWidth() = 0; //.6f;
-//    style.borderEdge() = 0; //.05f;
-//    style.shadowOffset() = glm::vec2{ .000f, .000f };
-//    //UIText(const std::string& strValue, const glm::vec2& pos, float fLineWidth = 2.0f, int nSize = 12, const glm::vec3 color = glm::vec3{ 1.0f, 1.0f, 1.0f }, const std::string& strFontName = "Verdana", float fThickness = .5f, float fEdgeWidth = .1f, const glm::vec3& borderColor = glm::vec3{ .0f, .0f, .0f }, float fBorderWidth = .0f, float fBorderEdge = .4f  );
-//    systemServices.getTextManager()->addText(GUIText{ "Ice Engine", glm::vec2{ -0.8f,0.8f }, style });
-
-//    style.color() = glm::vec3{ .0f, .0f, .0f };
-//    style.borderColor() = glm::vec3{ .0f, 1.0f, .0f };
-//    style.fontName() = "Verdana";
-//    systemServices.getTextManager()->addText(GUIText{ "Written by daic0r", glm::vec2{ -0.95f, -.8f }, style, -M_PI_2 });
-    //systemServices.getTextManager()->addText(GUIText{ "Prrrrrt", glm::vec2{ -.9f, .85f }, .5f, 24, glm::vec3{ 0.0f, 1.0f, 0.0f }});
-//
-//    GLenum err;
-//    while((err = glGetError()) != GL_NO_ERROR)
-//    {
-//        std::cout << std::hex << "Before draw " << err << std::endl;
-//    }
-//
-//    m_pModelRenderer = systemServices.getModelRenderer();
-//    m_pWaterRenderer = systemServices.getWaterRenderer();
-//    m_pWaterFramebuffers = std::make_unique<WaterFramebuffersGL>();
-//    m_pTerrainRenderer = systemServices.getTerrainRenderer();
-//
-//    m_pTerrainRenderingSystem = std::make_unique<TerrainRenderingSystem>();
-//    m_pObjectRenderingSystem = std::make_unique<ObjectRenderingSystem>();
-
-    //m_pTerrainRenderingSystem = entityManager.getSystem<TerrainRenderingSystem>();
-    
-//    return success;
+    m_quadShader.fromSource(ShaderProgramGL::canvasVertexShader(), ShaderProgramGL::canvasFragmentShader());
+    m_quadShader.use();
+    m_texUniformId = m_quadShader.getUniformLocation("tex");
+    m_quadShader.loadInt(m_texUniformId, 0);
+    m_quadShader.unuse();
 }
 
 //void GraphicsSystemGL::registerModel(Model *pModel) {
@@ -367,6 +342,7 @@ void GraphicsSystemGL::resizeWindow(int width, int height) noexcept {
     m_nWidth = width;
     m_nHeight = height;
     updateProjectionMatrix();
+    updateFramebuffer();
 }
 
 void GraphicsSystemGL::updateProjectionMatrix() noexcept {
@@ -374,6 +350,18 @@ void GraphicsSystemGL::updateProjectionMatrix() noexcept {
 	// if the default depth buffer precision of 16-bits is used. With 24 bits, even 0.1f seems
 	// to work alright; however, despite using 24 bits I'll use 1.0f just to be sure
     m_projectionMatrix = glm::perspective(glm::radians(fov()), (float)m_nWidth/(float)m_nHeight, distNearPlane(), distFarPlane());
+}
+
+bool GraphicsSystemGL::updateFramebuffer() noexcept {
+    m_fbo = FramebufferObjectGL( displayWidth(), displayHeight() );
+    m_fbo.create();
+    assert(m_fbo.createTextureAttachment());
+    assert(m_fbo.createDepthAttachment());
+    glDrawBuffer(GL_COLOR_ATTACHMENT0);
+    if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        return false;
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    return true;
 }
 
 void GraphicsSystemGL::setFov(float fFov) noexcept {
