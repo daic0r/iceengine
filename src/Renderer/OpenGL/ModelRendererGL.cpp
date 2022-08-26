@@ -54,7 +54,7 @@ void ModelRendererGL::prepareRendering(const RenderEnvironment&) noexcept {
 	glCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 }
 
-void ModelRendererGL::render(const RenderEnvironment& env, const std::unordered_map<const Model*, std::vector<ModelInstance*>>& instances) noexcept {
+void ModelRendererGL::render(const RenderEnvironment& env, const std::vector<std::pair<Model, std::vector<ModelInstance*>>>& instances) noexcept {
 
     prepareRendering(env);
 	_render(env, instances);
@@ -114,7 +114,7 @@ void ModelRendererGL::setRenderMaterial(const RenderMaterial& mat, ModelShaderCo
 //	glCall(glBindVertexArray(0));
 //}
 
-void ModelRendererGL::_render(const RenderEnvironment& env, const std::unordered_map<const Model*, std::vector<ModelInstance*>>& instances) noexcept {
+void ModelRendererGL::_render(const RenderEnvironment& env, const std::vector<std::pair<Model, std::vector<ModelInstance*>>>& instances) noexcept {
     [[maybe_unused]] int nCount{ 0 };
 
     // Render model instances, opaque first
@@ -122,7 +122,7 @@ void ModelRendererGL::_render(const RenderEnvironment& env, const std::unordered
 		if (kvp.second.empty())
 			continue;
 
-		auto pModel = systemServices.getModelManager()->getModel(kvp.first->pMesh);
+		auto pModel = systemServices.getModelManager()->getModel(kvp.first.pMesh);
 		//if (iter == m_mModels.end()) {
 		//	registerModel(kvp.first);
 		//	iter = m_mModels.find(kvp.first->pMesh);
@@ -135,9 +135,9 @@ void ModelRendererGL::_render(const RenderEnvironment& env, const std::unordered
 		prepareShader(pModel, env);
 
 		int nBufferIndex = 0;
-		for (const auto& [strMaterial, vIndices] : kvp.first->pMesh->materialIndices()) {
-			//dynamic_cast<Shader3dConfigurator*>(pModel->shaderConfigurator())->loadDiffuseColor(kvp.first->getMaterial(kvp2.first).diffuse());
-			const auto& material = kvp.first->pMaterials->getMaterial(strMaterial);
+		for (const auto& [strMaterial, vIndices] : kvp.first.pMesh->materialIndices()) {
+			//dynamic_cast<Shader3dConfigurator*>(pModel->shaderConfigurator())->loadDiffuseColor(kvp.first.getMaterial(kvp2.first).diffuse());
+			const auto& material = kvp.first.pMaterials->getMaterial(strMaterial);
 			
 			setRenderMaterial(material, pShaderConfig);
 
@@ -145,11 +145,20 @@ void ModelRendererGL::_render(const RenderEnvironment& env, const std::unordered
 			if (pTex != nullptr)
 				pTex->bind(0);
 
-			m_vWorldTransforms.clear();
+			//m_vWorldTransforms.clear();
 			if (m_prepareInstanceDataFunc)
 				m_prepareInstanceDataFunc();
 			// Render all instances of this model
-			size_t nInsCount = 0;
+		size_t nInsCount = 0;
+		glBindBuffer(GL_ARRAY_BUFFER, pModel->bufferAt(3));
+		glm::mat4* arMatrices = static_cast<glm::mat4*>(glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY));
+		for (auto pInst : kvp.second) {
+			arMatrices[nInsCount++] = pInst->pTransform->m_transform;
+		}
+		glUnmapBuffer(GL_ARRAY_BUFFER);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+		/*
 			for (auto pInst : kvp.second) {
 
 				auto ptr = glm::value_ptr(pInst->pTransform->m_transform);
@@ -164,9 +173,10 @@ void ModelRendererGL::_render(const RenderEnvironment& env, const std::unordered
 				
 			}
 			RenderToolsGL::loadVBOData(pModel->bufferAt(3), m_vWorldTransforms);
+			*/
 			if (m_updateInstanceDataFunc)
 				m_updateInstanceDataFunc(pModel->shaderConfigurator(), pModel);
-			glCall(glDrawElementsInstanced(GL_TRIANGLES, vIndices.size(), GL_UNSIGNED_INT, &vIndices[0], kvp.second.size()));
+			glDrawElementsInstanced(GL_TRIANGLES, vIndices.size(), GL_UNSIGNED_INT, &vIndices[0], kvp.second.size());
 			++nBufferIndex;
 			if (pTex != nullptr)
 				pTex->unbind();
@@ -180,9 +190,9 @@ void ModelRendererGL::_render(const RenderEnvironment& env, const std::unordered
 		}
 
 		unbindShader(pModel);
-        glCall(glBindVertexArray(0));
     }
 
+	glCall(glBindVertexArray(0));
 //    auto vpMat = env.projectionMatrix * env.viewMatrix;
 //
 //    // Sort transparent meshes by z-value

@@ -200,9 +200,9 @@ void WidgetRendererGL::renderWidget(const GUI::ModelPreview* pPreview) {
         glCall(glClearColor(pPreview->color().r, pPreview->color().g, pPreview->color().b, pPreview->color().a));
         glCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
         
-        std::unordered_map<const Model*, std::vector<ModelInstance*>> mData;
+        std::vector<std::pair<Model, std::vector<ModelInstance*>>> mData;
         for (const auto& model : pPreview->models())
-            mData.emplace(std::piecewise_construct, std::forward_as_tuple(&model), std::forward_as_tuple<std::initializer_list<ModelInstance*>>({ &inst }));
+            mData.emplace_back(std::piecewise_construct, std::forward_as_tuple(model), std::forward_as_tuple<std::initializer_list<ModelInstance*>>({ &inst }));
         //{ { pPreview->model(), { &inst } } };
         m_pModelRenderer->render(env, mData);
 

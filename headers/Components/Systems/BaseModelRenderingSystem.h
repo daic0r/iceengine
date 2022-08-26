@@ -26,7 +26,7 @@ template<typename ModelStructType, typename ModelInstanceType>
 class BaseModelRenderingSystem {
 	static inline constexpr auto KDTREE_REFRESH_INTERVAL = 10;
 protected:
-	std::unordered_map<const Model*, std::vector<ModelInstance*>> m_mInstances;
+	std::vector<std::pair<Model, std::vector<ModelInstance*>>> m_vInstances;
 	std::unordered_map<Entity, std::pair<ModelStructType, ModelInstanceType>> m_mEntity2ModelStruct;
 	std::set<Entity> m_sFrustumEnts;
 	CameraControllerSystem* m_pCameraControllerSystem{ nullptr };
@@ -52,7 +52,10 @@ protected:
 		auto& transf = entityManager.getSharedComponentOr<TransformComponent>(e);
 		auto [iter, _] = m_mEntity2ModelStruct.emplace(e, std::make_pair(makeModelStruct(e), ModelInstanceType{}));
 		iter->second.second.pTransform = &transf;
-
+		
+		if (std::ranges::none_of(m_vInstances, [iter](const auto& kvp) { return kvp.first.pMesh == iter->second.first.pMesh; })) {
+			m_vInstances.emplace_back(iter->second.first, std::vector<ModelInstance*>{});
+		}
 		if (m_pShadowRenderer == nullptr)
 			m_pShadowRenderer = systemServices.getShadowMapRenderer();
 
@@ -109,7 +112,7 @@ protected:
     
 		// Clear all the contained vectors but don't destruct them to prevent
 		// having to reallocate memory
-		for (auto& kvp : m_mInstances) {
+		for (auto& kvp : m_vInstances) {
 			kvp.second.clear();
 		}
 		for (auto e : ents) {
@@ -117,10 +120,11 @@ protected:
 				continue;
 			auto& [model, inst] = m_mEntity2ModelStruct.at(e);
 			extendedUpdateInstanceFunc(e, inst);
-			m_mInstances[&model].push_back(&inst);
+			auto iter = std::ranges::find_if(m_vInstances, [&model](const auto& kvp) { return kvp.first.pMesh == model.pMesh; });
+			iter->second.push_back(&inst);
 		}
 		if (m_pShadowRenderer)
-			m_pShadowRenderer->render(env, m_mInstances);
+			m_pShadowRenderer->render(env, m_vInstances);
 	}
 
 public:

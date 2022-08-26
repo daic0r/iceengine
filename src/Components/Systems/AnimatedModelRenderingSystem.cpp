@@ -40,7 +40,7 @@ void AnimatedModelRenderingSystem::render(const RenderEnvironment& env) noexcept
 		inst.vJointTransforms = vJointTransforms;
 	});
     
-    m_pRenderer->render(env, m_mInstances);
+    m_pRenderer->render(env, m_vInstances);
 }
 
 void AnimatedModelRenderingSystem::onEntityAdded(Entity e) noexcept {

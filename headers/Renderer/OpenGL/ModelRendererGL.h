@@ -54,14 +54,14 @@ protected:
     
 public:
     ModelRendererGL() noexcept;
-    void render(const RenderEnvironment&, const std::unordered_map<const Model*, std::vector<ModelInstance*>>&) noexcept override;
+    void render(const RenderEnvironment&, const std::vector<std::pair<Model, std::vector<ModelInstance*>>>&) noexcept override;
 	//void renderShadowDepthTexture() const noexcept override;
 	//GLuint getShadowDepthTextureId() const noexcept;
 	//const glm::mat4& shadowProjectionViewMatrix() const noexcept { return m_shadowProjectionViewMatrix; }
 
 private:
     virtual void prepareRendering(const RenderEnvironment&) noexcept;
-	void _render(const RenderEnvironment&, const std::unordered_map<const Model*, std::vector<ModelInstance*>>&) noexcept;
+	void _render(const RenderEnvironment&, const std::vector<std::pair<Model, std::vector<ModelInstance*>>>&) noexcept;
     virtual void finishRendering() noexcept;
 
 	virtual void prepareShader(RenderObjectGL* pModel, const RenderEnvironment& env) noexcept;

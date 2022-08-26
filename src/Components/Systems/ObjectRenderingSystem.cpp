@@ -33,7 +33,7 @@ void ObjectRenderingSystem::render(const RenderEnvironment& env) noexcept {
     
 	BaseClassType::render(env, [](Entity, ModelInstance&) {});
     
-    m_pRenderer->render(env, m_mInstances);
+    m_pRenderer->render(env, m_vInstances);
 }
 
 void ObjectRenderingSystem::onEntityAdded(Entity e) noexcept {
