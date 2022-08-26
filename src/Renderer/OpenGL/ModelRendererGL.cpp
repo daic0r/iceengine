@@ -62,6 +62,9 @@ void ModelRendererGL::render(const RenderEnvironment& env, const std::vector<std
 }
 
 void ModelRendererGL::finishRendering() noexcept {
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glCall(glBindVertexArray(0));
+
 	glCall(glDisable(GL_CULL_FACE));
 	glCall(glDisable(GL_BLEND));
 	glCall(glDisable(GL_DEPTH_TEST));
@@ -134,6 +137,20 @@ void ModelRendererGL::_render(const RenderEnvironment& env, const std::vector<st
 
 		prepareShader(pModel, env);
 
+		if (m_prepareInstanceDataFunc)
+			m_prepareInstanceDataFunc();
+		// Render all instances of this model
+		size_t nInsCount = 0;
+		glBindBuffer(GL_ARRAY_BUFFER, pModel->bufferAt(3));
+		glm::mat4* arMatrices = static_cast<glm::mat4*>(glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY));
+		for (auto pInst : kvp.second) {
+			arMatrices[nInsCount++] = pInst->pTransform->m_transform;
+		}
+		glUnmapBuffer(GL_ARRAY_BUFFER);
+
+		if (m_updateInstanceDataFunc)
+			m_updateInstanceDataFunc(pModel->shaderConfigurator(), pModel);
+
 		int nBufferIndex = 0;
 		for (const auto& [strMaterial, vIndices] : kvp.first.pMesh->materialIndices()) {
 			//dynamic_cast<Shader3dConfigurator*>(pModel->shaderConfigurator())->loadDiffuseColor(kvp.first.getMaterial(kvp2.first).diffuse());
@@ -146,18 +163,6 @@ void ModelRendererGL::_render(const RenderEnvironment& env, const std::vector<st
 				pTex->bind(0);
 
 			//m_vWorldTransforms.clear();
-			if (m_prepareInstanceDataFunc)
-				m_prepareInstanceDataFunc();
-			// Render all instances of this model
-		size_t nInsCount = 0;
-		glBindBuffer(GL_ARRAY_BUFFER, pModel->bufferAt(3));
-		glm::mat4* arMatrices = static_cast<glm::mat4*>(glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY));
-		for (auto pInst : kvp.second) {
-			arMatrices[nInsCount++] = pInst->pTransform->m_transform;
-		}
-		glUnmapBuffer(GL_ARRAY_BUFFER);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-
 		/*
 			for (auto pInst : kvp.second) {
 
@@ -174,8 +179,6 @@ void ModelRendererGL::_render(const RenderEnvironment& env, const std::vector<st
 			}
 			RenderToolsGL::loadVBOData(pModel->bufferAt(3), m_vWorldTransforms);
 			*/
-			if (m_updateInstanceDataFunc)
-				m_updateInstanceDataFunc(pModel->shaderConfigurator(), pModel);
 			glDrawElementsInstanced(GL_TRIANGLES, vIndices.size(), GL_UNSIGNED_INT, &vIndices[0], kvp.second.size());
 			++nBufferIndex;
 			if (pTex != nullptr)
@@ -191,8 +194,6 @@ void ModelRendererGL::_render(const RenderEnvironment& env, const std::vector<st
 
 		unbindShader(pModel);
     }
-
-	glCall(glBindVertexArray(0));
 //    auto vpMat = env.projectionMatrix * env.viewMatrix;
 //
 //    // Sort transparent meshes by z-value

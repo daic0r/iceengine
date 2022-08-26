@@ -27,7 +27,7 @@ class BaseModelRenderingSystem {
 	static inline constexpr auto KDTREE_REFRESH_INTERVAL = 10;
 protected:
 	std::vector<std::pair<Model, std::vector<ModelInstance*>>> m_vInstances;
-	std::unordered_map<Entity, std::pair<ModelStructType, ModelInstanceType>> m_mEntity2ModelStruct;
+	std::vector<std::pair<Entity, std::pair<ModelStructType, ModelInstanceType>>> m_vEntity2ModelStruct;
 	std::set<Entity> m_sFrustumEnts;
 	CameraControllerSystem* m_pCameraControllerSystem{ nullptr };
 	IModelRenderer* m_pRenderer{ nullptr };
@@ -50,7 +50,7 @@ protected:
 
 	void onEntityAdded(Entity e) noexcept {
 		auto& transf = entityManager.getSharedComponentOr<TransformComponent>(e);
-		auto [iter, _] = m_mEntity2ModelStruct.emplace(e, std::make_pair(makeModelStruct(e), ModelInstanceType{}));
+		auto iter = m_vEntity2ModelStruct.emplace(m_vEntity2ModelStruct.end(), e, std::make_pair(makeModelStruct(e), ModelInstanceType{}));
 		iter->second.second.pTransform = &transf;
 		
 		if (std::ranges::none_of(m_vInstances, [iter](const auto& kvp) { return kvp.first.pMesh == iter->second.first.pMesh; })) {
@@ -62,7 +62,8 @@ protected:
 	}
 
 	void willRemoveComponent(Entity e) noexcept {
-		m_mEntity2ModelStruct.erase(e);
+		const auto iter = std::ranges::find_if(m_vEntity2ModelStruct, [e](const auto& kvp) { return e == kvp.first; });
+		m_vEntity2ModelStruct.erase(iter);
 		m_sFrustumEnts.erase(e);
 	}
 
@@ -118,7 +119,8 @@ protected:
 		for (auto e : ents) {
 			if (!isEntityEligibleForRendering(e))
 				continue;
-			auto& [model, inst] = m_mEntity2ModelStruct.at(e);
+
+			auto& [model, inst] = std::ranges::find_if(m_vEntity2ModelStruct, [e](const auto& kvp) { return e == kvp.first; })->second;
 			extendedUpdateInstanceFunc(e, inst);
 			auto iter = std::ranges::find_if(m_vInstances, [&model](const auto& kvp) { return kvp.first.pMesh == model.pMesh; });
 			iter->second.push_back(&inst);
@@ -135,7 +137,7 @@ public:
 		m_vKdTreeVertices.clear();
 
 		// Measured: WAY faster >without< multithreading the loop below
-		for (const auto& [e, modelInstPair] : m_mEntity2ModelStruct) {
+		for (const auto& [e, modelInstPair] : m_vEntity2ModelStruct) {
 			AABB boxLocal{ modelInstPair.first.pMesh->extents() };
 
 			const auto boxWorld = boxLocal.transform(modelInstPair.second.pTransform->m_transform);
@@ -159,7 +161,7 @@ public:
 			*/
 			m_kdTree.construct(std::move(m_vKdTreeVertices));
 		}
-		for (const auto& [ent, modelInstPair] : m_mEntity2ModelStruct) {
+		for (const auto& [ent, modelInstPair] : m_vEntity2ModelStruct) {
 			m_kdTree.emplace(glm::vec3{ modelInstPair.second.pTransform->m_transform * glm::vec4{ 0.0f, 0.0f, 0.0f, 1.0f } }, ent);
 		}
 	}
