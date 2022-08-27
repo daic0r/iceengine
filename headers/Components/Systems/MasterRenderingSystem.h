@@ -53,7 +53,7 @@ public:
     bool update(float fDeltaTime) override;
 	void onSystemsInitialized() noexcept override;
 
-    void addPostProcessingEffect(PostProcessingEffect effect);
+    IPostProcessingEffect* addPostProcessingEffect(PostProcessingEffect effect);
 };
 
 }

@@ -118,9 +118,12 @@ void MasterRenderingSystem::onSystemsInitialized() noexcept {
 	m_pCameraControllerSystem = entityManager.getSystem<CameraControllerSystem, true>();
 }
 
-void MasterRenderingSystem::addPostProcessingEffect(PostProcessingEffect effect)
+IPostProcessingEffect* MasterRenderingSystem::addPostProcessingEffect(PostProcessingEffect effect)
 {
-    m_pPostProcessingPipeline->add(m_nEffectOrder++, PostProcessingEffectFactory::create(effect));
+    auto pEffect = PostProcessingEffectFactory::create(effect);
+    auto pRet = pEffect.get();
+    m_pPostProcessingPipeline->add(m_nEffectOrder++, std::move(pEffect));
+    return pRet;
 }
 
 
