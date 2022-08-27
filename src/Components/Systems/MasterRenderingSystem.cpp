@@ -21,6 +21,8 @@
 #include <Components/Systems/DayNightCycleSystem.h>
 #include <Interfaces/IModelRenderer.h>
 #include <Interfaces/IShadowMapRenderer.h>
+#include <Events/EventQueue.h>
+#include <Events/WindowResizedEvent.h>
 
 namespace Ice {
 
@@ -41,10 +43,12 @@ MasterRenderingSystem::MasterRenderingSystem() noexcept {
 	entityManager.registerComponentSystem<true>(m_pParticleSystemSystem.get());
 	m_pSunRenderingSystem = std::make_unique<SunRenderingSystem>();
 	entityManager.registerComponentSystem<false>(m_pSunRenderingSystem.get());
-    //__widgetRenderer = std::make_unique<WidgetRendererGL>();
+
+    m_pPostProcessingPipeline = std::make_unique<PostProcessingPipeline>();
 
     m_pGraphicsSystem = systemServices.getGraphicsSystem();
     m_pWidgetRenderer = systemServices.getWidgetRenderer();
+    m_pEventQueue = systemServices.getEventQueue();
 }
 
 bool MasterRenderingSystem::update(float fDeltaTime) {
@@ -57,6 +61,23 @@ bool MasterRenderingSystem::update(float fDeltaTime) {
 			break;
 		}
 	}
+
+    bool bDone{};
+    while (auto pEvent = m_pEventQueue->peekInternalEvent()) {
+        switch (pEvent->id()) {
+            case EventId::WINDOW_RESIZED_EVENT:
+            {
+                const auto args = std::any_cast<WindowResizedEventArgs>(pEvent->args());
+                m_pPostProcessingPipeline->resize(args.width(), args.height());
+            }
+                bDone = true;
+                break;
+            default:
+                break;
+        }
+        if (bDone)
+            break;
+    }
 
 	//const Camera& cam, float fDistNear, float fDistFar, float fovV, float fAspectRatio
 	//Frustum f{ cam.m_camera, m_pGraphicsSystem->distNearPlane(), m_pGraphicsSystem->distFarPlane(), glm::radians(m_pGraphicsSystem->fov()), m_pGraphicsSystem->aspectRatio() };
@@ -72,8 +93,9 @@ bool MasterRenderingSystem::update(float fDeltaTime) {
 
 	env.pSun = std::addressof(entityManager.getComponent<SunComponent>(*m_pDayNightSystem->entities(entityManager.currentScene()).begin()).m_light);
 
+    m_pPostProcessingPipeline->originalCanvas()->bind();
     m_pGraphicsSystem->beginRender();
-    m_pSkyboxRenderingSystem->render(env);
+    //m_pSkyboxRenderingSystem->render(env);
 	dynamic_cast<IShadowMapRenderer*>(systemServices.getShadowMapRenderer())->clear();
     m_pObjectRenderingSystem->render(env);
     m_pAnimatedModelRenderingSystem->render(env);
@@ -81,6 +103,7 @@ bool MasterRenderingSystem::update(float fDeltaTime) {
 	m_pSunRenderingSystem->render(env);
     m_pPathSegmentRenderingSystem->render(env);
 	m_pParticleSystemSystem->render(env);
+    m_pPostProcessingPipeline->run();
 	//dynamic_cast<IShadowMapRenderer*>(systemServices.getShadowMapRenderer())->renderShadowDepthTexture();
 	//m_pObjectRenderingSystem->m_pRenderer->renderShadowDepthTexture();
     m_pWidgetRenderer->render(env, systemServices.getWidgetManager().rootLevelWidgets());
@@ -94,5 +117,11 @@ bool MasterRenderingSystem::update(float fDeltaTime) {
 void MasterRenderingSystem::onSystemsInitialized() noexcept {
 	m_pCameraControllerSystem = entityManager.getSystem<CameraControllerSystem, true>();
 }
+
+void MasterRenderingSystem::addPostProcessingEffect(PostProcessingEffect effect)
+{
+    m_pPostProcessingPipeline->add(m_nEffectOrder++, PostProcessingEffectFactory::create(effect));
+}
+
 
 }

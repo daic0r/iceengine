@@ -164,13 +164,14 @@ bool GraphicsSystemGL::init() {
 
 void GraphicsSystemGL::beginRender() noexcept {
     // Bind FBO to render to
-    m_fbo.bind();
+    //m_fbo.bind();
     glClear( GL_COLOR_BUFFER_BIT);
     glClear (GL_DEPTH_BUFFER_BIT);
 }
 
 void GraphicsSystemGL::endRender() noexcept {
     // Unbind the FBO, thereby enabling rendering to the actual screen
+    /*
     m_fbo.unbind();
     glClear (GL_DEPTH_BUFFER_BIT);
     glDisable(GL_DEPTH_TEST);
@@ -187,6 +188,7 @@ void GraphicsSystemGL::endRender() noexcept {
     m_quadShader.unuse();
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindVertexArray(0);
+    */
     SDL_GL_SwapWindow( m_pWindow );
 }
 
@@ -287,6 +289,7 @@ SDL_GLContext GraphicsSystemGL::context() const noexcept {
 }
 
 void GraphicsSystemGL::initGL() {
+    /*
     m_quad = RenderToolsGL::loadVerticesToVAO(vQuad, 2);
     glEnableVertexAttribArray(0);
     glBindVertexArray(0);
@@ -296,6 +299,7 @@ void GraphicsSystemGL::initGL() {
     m_texUniformId = m_quadShader.getUniformLocation("tex");
     m_quadShader.loadInt(m_texUniformId, 0);
     m_quadShader.unuse();
+    */
 }
 
 //void GraphicsSystemGL::registerModel(Model *pModel) {
@@ -353,6 +357,7 @@ void GraphicsSystemGL::updateProjectionMatrix() noexcept {
 }
 
 bool GraphicsSystemGL::updateFramebuffer() noexcept {
+    /*
     m_fbo = FramebufferObjectGL( displayWidth(), displayHeight() );
     m_fbo.create();
     assert(m_fbo.createTextureAttachment());
@@ -361,6 +366,7 @@ bool GraphicsSystemGL::updateFramebuffer() noexcept {
     if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         return false;
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    */
     return true;
 }
 

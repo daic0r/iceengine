@@ -1,3 +1,5 @@
+#ifdef RENDERER_OPEN_GL
+
 #include <GL/glew.h>
 #include <Renderer/PostProcessing/OpenGL/BasePostProcessorGL.h>
 #include <ShadersGL/ShaderProgramGL.h>
@@ -17,7 +19,7 @@ static const std::vector<GLfloat> vQuad{
 
 RenderObjectGL BasePostProcessorGL::m_quad;
 
-BasePostProcessorGL::BasePostProcessorGL(GLsizei nWidth, GLsizei nHeight)
+BasePostProcessorGL::BasePostProcessorGL(GLsizei nWidth, GLsizei nHeight, bool bDepthAttachment)
     : m_fbo{ nWidth < 0 ? systemServices.getGraphicsSystem()->displayWidth() : nWidth, nHeight < 0 ? systemServices.getGraphicsSystem()->displayHeight() : nHeight }
 {
     if (!bStaticInit) [[unlikely]] {
@@ -29,18 +31,19 @@ BasePostProcessorGL::BasePostProcessorGL(GLsizei nWidth, GLsizei nHeight)
     }
 
     m_fbo.createTextureAttachment();
+    if (bDepthAttachment)
+        m_fbo.createDepthAttachment();
     m_fbo.unbind();
+}
 
+void BasePostProcessorGL::initialize() {
     m_shader.fromSource(getVertexShaderSource(), getFragmentShaderSource());
     m_shader.use();
-    m_nTexUniformID = m_shader.getUniformLocation("tex");
-    m_shader.loadInt(m_nTexUniformID, 0);
+    m_shader.loadInt(m_shader.getUniformLocation("tex"), 0); //texture unit 0
     m_shader.unuse();
 }
 
-
-GLuint BasePostProcessorGL::postProcess(GLuint nTextureID) {
-    m_fbo.bind();
+void BasePostProcessorGL::postProcess(IPostProcessingEffect* pPrevious) {
     glClear (GL_DEPTH_BUFFER_BIT);
     glDisable(GL_DEPTH_TEST);
     // Bind quad VAO
@@ -49,18 +52,34 @@ GLuint BasePostProcessorGL::postProcess(GLuint nTextureID) {
     m_shader.use();
     // Bind texture
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, nTextureID);
+    glBindTexture(GL_TEXTURE_2D, static_cast<BasePostProcessorGL*>(pPrevious)->textureId());
     // Render the quad
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     // Cleanup
     glBindTexture(GL_TEXTURE_2D, 0);
     m_shader.unuse();
     glBindVertexArray(0);
-    m_fbo.unbind();
 
-    return m_fbo.textureAttachmentId();
+    return;
 }
 
+void BasePostProcessorGL::bind() {
+    m_fbo.bind();
+}
+
+void BasePostProcessorGL::unbind() {
+    m_fbo.unbind();
+}
+
+void BasePostProcessorGL::resize(int nWidth, int nHeight) {
+    if (hasStaticSize())
+        return;
+    m_fbo.resize(nWidth, nHeight);
+}
+
+GLuint BasePostProcessorGL::textureId() const noexcept {
+    return m_fbo.textureAttachmentId();
+}
 
 const char* BasePostProcessorGL::getVertexShaderSource() noexcept {
     return R"(
@@ -81,3 +100,5 @@ void main() {
 
 
 }
+
+#endif

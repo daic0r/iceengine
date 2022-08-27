@@ -59,6 +59,11 @@ Renderer/OpenGL/PathSegmentRendererGL.cpp
 Renderer/OpenGL/TextRendererGL.cpp
 Renderer/OpenGL/SunRendererGL.cpp
 Renderer/OpenGL/UniformBufferObjectGL.cpp
+Renderer/PostProcessing/PostProcessingPipeline.cpp
+Renderer/PostProcessing/PostProcessingEffectFactory.cpp
+Renderer/PostProcessing/OpenGL/BasePostProcessorGL.cpp
+Renderer/PostProcessing/OpenGL/ContrastChangerGL.cpp
+Renderer/PostProcessing/OpenGL/OriginalCanvasGL.cpp
 Renderer/Frustum.cpp
 Renderer/CubeTexture.cpp
 Events/EventQueue.cpp

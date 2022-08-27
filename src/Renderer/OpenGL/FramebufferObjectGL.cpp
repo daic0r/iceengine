@@ -28,14 +28,21 @@ FramebufferObjectGL::~FramebufferObjectGL() {
         glCall(glDeleteTextures(1, &m_nTexAttachment));
     if (m_nDepthAttachment != 0)
         glCall(glDeleteRenderbuffers(1, &m_nDepthAttachment));
+    if (m_nDepthTextureAttachment != 0)
+        glCall(glDeleteTextures(1, &m_nDepthTextureAttachment));
+    m_nFramebuffer = m_nTexAttachment = m_nDepthAttachment = m_nDepthTextureAttachment = 0;
 }
 
 FramebufferObjectGL::FramebufferObjectGL(FramebufferObjectGL&& other) noexcept {
     m_nFramebuffer = std::exchange(other.m_nFramebuffer, 0);
     m_nTexAttachment = std::exchange(other.m_nTexAttachment, 0);
     m_nDepthAttachment = std::exchange(other.m_nDepthAttachment, 0);
+    m_nDepthTextureAttachment = std::exchange(other.m_nDepthTextureAttachment, 0);
     m_nWidth = std::exchange(other.m_nWidth, 0);
     m_nHeight = std::exchange(other.m_nHeight, 0);
+    m_nOldWidth = std::exchange(other.m_nOldWidth, 0);
+    m_nOldHeight = std::exchange(other.m_nOldHeight, 0);
+    m_nLastFBO = std::exchange(other.m_nLastFBO, 0);
 }
 
 FramebufferObjectGL& FramebufferObjectGL::operator=(FramebufferObjectGL&& other) noexcept {
@@ -45,17 +52,20 @@ FramebufferObjectGL& FramebufferObjectGL::operator=(FramebufferObjectGL&& other)
 }
 
 bool FramebufferObjectGL::createTextureAttachment() noexcept {
-    m_nTexAttachment = RenderToolsGL::createTextureFramebufferAttachment(m_nWidth, m_nHeight);
+    if (m_nTexAttachment == 0)
+        m_nTexAttachment = RenderToolsGL::createTextureFramebufferAttachment(m_nWidth, m_nHeight);
     return m_nTexAttachment != 0;
 }
 
 bool FramebufferObjectGL::createDepthAttachment() noexcept {
-    m_nDepthAttachment = RenderToolsGL::createDepthBufferFramebufferAttachment(m_nWidth, m_nHeight);
+    if (m_nDepthAttachment == 0)
+        m_nDepthAttachment = RenderToolsGL::createDepthBufferFramebufferAttachment(m_nWidth, m_nHeight);
     return m_nDepthAttachment != 0;
 }
 
 bool FramebufferObjectGL::createDepthTextureAttachment() noexcept {
-	m_nDepthTextureAttachment = RenderToolsGL::createDepthTextureFramebufferAttachment(m_nWidth, m_nHeight);
+    if (m_nDepthTextureAttachment == 0)
+        m_nDepthTextureAttachment = RenderToolsGL::createDepthTextureFramebufferAttachment(m_nWidth, m_nHeight);
 	return m_nDepthTextureAttachment != 0;
 }
 
@@ -75,13 +85,35 @@ void FramebufferObjectGL::unbind() noexcept {
     RenderToolsGL::unbindCurrentFramebuffer(m_nLastFBO, m_nOldWidth, m_nOldHeight);
 }
 
+void FramebufferObjectGL::resize(GLsizei nWidth, GLsizei nHeight) noexcept {
+    bind(); // <-- important: must be bound before deletion
+    const auto bTexture = m_nTexAttachment != 0;
+    const auto bDepth = m_nDepthAttachment != 0;
+    const auto bDepthTexture = m_nDepthTextureAttachment != 0;
+    this->~FramebufferObjectGL();
+    setWidth(nWidth);
+    setHeight(nHeight);
+    create();
+    if (bTexture)
+        createTextureAttachment();
+    if (bDepth)
+        createDepthAttachment();
+    if (bDepthTexture)
+        createDepthTextureAttachment();
+    unbind(); // <--important: doesn't work otherwise (don't know why, because the FBO is rebound at the beginning of each frame anyway)
+}
+
 void FramebufferObjectGL::swap(FramebufferObjectGL &other) noexcept {
     using std::swap;
     swap(m_nFramebuffer, other.m_nFramebuffer);
     swap(m_nTexAttachment, other.m_nTexAttachment);
     swap(m_nDepthAttachment, other.m_nDepthAttachment);
+    swap(m_nDepthTextureAttachment, other.m_nDepthTextureAttachment);
     swap(m_nWidth, other.m_nWidth);
     swap(m_nHeight, other.m_nHeight);
+    swap(m_nOldWidth, other.m_nOldWidth);
+    swap(m_nOldHeight, other.m_nOldHeight);
+    swap(m_nLastFBO, other.m_nLastFBO);
 }
 
 }

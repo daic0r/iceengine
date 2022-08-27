@@ -46,10 +46,18 @@ public:
     void setDepthAttachmentId(GLuint id) noexcept { m_nDepthAttachment = id; }
 	auto depthTextureAttachmentId() const noexcept { return m_nDepthTextureAttachment; }
 	void setDepthTextureAttachmentId(GLuint id) noexcept { m_nDepthTextureAttachment = id; }
+    auto lastFBO() const noexcept { return m_nLastFBO; }
+    void setLastFBO(GLint nFbo) noexcept { m_nLastFBO = nFbo; }
+    auto oldWidth() const noexcept { return m_nOldWidth; }
+    void setOldWidth(GLsizei nWidth) noexcept { m_nOldWidth = nWidth; }
+    auto oldHeight() const noexcept { return m_nOldHeight; }
+    void setOldHeight(GLsizei nHeight) noexcept { m_nOldHeight = nHeight; }
     
 	void create() noexcept;
     void bind(GLsizei nOldWidth = 0, GLsizei nOldHeight = 0) noexcept;
     void unbind() noexcept;
+    void resize(GLsizei nWidth, GLsizei nHeight) noexcept;
+
     
     void swap(FramebufferObjectGL&) noexcept;
     friend void swap(FramebufferObjectGL& a, FramebufferObjectGL& b) noexcept {

@@ -18,12 +18,15 @@
 #include <Components/Systems/PathSegmentRenderingSystem.h>
 #include <Components/Systems/ParticleSystemSystem.h>
 #include <Components/Systems/SunRenderingSystem.h>
+#include <Renderer/PostProcessing/PostProcessingPipeline.h>
+#include <Renderer/PostProcessing/PostProcessingEffectFactory.h>
 
 namespace Ice {
 
 class IGraphicsSystem;
 class IWidgetRenderer;
 class DayNightCycleSystem;
+class IEventQueue;
 
 class MasterRenderingSystem : public EntityComponentSystem<CameraComponent> {
 	friend class Engine;
@@ -36,17 +39,21 @@ class MasterRenderingSystem : public EntityComponentSystem<CameraComponent> {
     std::unique_ptr<PathSegmentRenderingSystem> m_pPathSegmentRenderingSystem;
 	std::unique_ptr<ParticleSystemSystem> m_pParticleSystemSystem;
 	std::unique_ptr<SunRenderingSystem> m_pSunRenderingSystem;
+    std::unique_ptr<PostProcessingPipeline> m_pPostProcessingPipeline;
     IGraphicsSystem *m_pGraphicsSystem{ nullptr };
     IWidgetRenderer *m_pWidgetRenderer{ nullptr };
+    IEventQueue *m_pEventQueue{};
 	CameraControllerSystem* m_pCameraControllerSystem{ nullptr };
 	DayNightCycleSystem* m_pDayNightSystem{ nullptr };
+    std::size_t m_nEffectOrder{ 0 };
     
 public:
     
     MasterRenderingSystem() noexcept;
     bool update(float fDeltaTime) override;
 	void onSystemsInitialized() noexcept override;
-    
+
+    void addPostProcessingEffect(PostProcessingEffect effect);
 };
 
 }
