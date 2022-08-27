@@ -148,6 +148,7 @@ GLuint RenderToolsGL::createTextureFramebufferAttachment(int width, int height) 
     glCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
     glCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
     glCall(glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, nTexture, 0));
+    glCall(glBindTexture(GL_TEXTURE_2D, 0));
     return nTexture;
 }
 
@@ -161,6 +162,7 @@ GLuint RenderToolsGL::createDepthTextureFramebufferAttachment(int width, int hei
 	glCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
 	glCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
     glCall(glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, nTexture, 0));
+    glCall(glBindTexture(GL_TEXTURE_2D, 0));
     return nTexture;
 }
 
@@ -170,6 +172,7 @@ GLuint RenderToolsGL::createDepthBufferFramebufferAttachment(int width, int heig
     glCall(glBindRenderbuffer(GL_RENDERBUFFER, nDepthBuffer));
     glCall(glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height));
     glCall(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, nDepthBuffer));
+    glCall(glBindRenderbuffer(GL_RENDERBUFFER, 0));
     return nDepthBuffer;
 }
 

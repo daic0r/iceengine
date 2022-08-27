@@ -21,6 +21,7 @@ namespace Ice {
         for (const auto& [nOrder, pEffect] : m_vEffects) {
             pEffect->bind();
             pEffect->postProcess(pPrevious);
+            pEffect->unbind();
             pPrevious = pEffect.get();
         }
         originalCanvas()->unbind();
