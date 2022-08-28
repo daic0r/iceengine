@@ -14,7 +14,7 @@
 
 namespace Ice {
 
-FramebufferObjectGL::FramebufferObjectGL(std::uint16_t w, std::uint16_t h, bool bCreate) noexcept
+FramebufferObjectGL::FramebufferObjectGL(GLsizei w, GLsizei h, bool bCreate) noexcept
 : m_nWidth{ w }, m_nHeight{ h }
 {
 	if (bCreate)
@@ -86,7 +86,6 @@ void FramebufferObjectGL::unbind() noexcept {
 }
 
 void FramebufferObjectGL::resize(GLsizei nWidth, GLsizei nHeight) noexcept {
-    bind(); // <-- important: must be bound before deletion
     const auto bTexture = m_nTexAttachment != 0;
     const auto bDepth = m_nDepthAttachment != 0;
     const auto bDepthTexture = m_nDepthTextureAttachment != 0;
@@ -100,7 +99,7 @@ void FramebufferObjectGL::resize(GLsizei nWidth, GLsizei nHeight) noexcept {
         createDepthAttachment();
     if (bDepthTexture)
         createDepthTextureAttachment();
-    unbind(); // <--important: doesn't work otherwise (don't know why, because the FBO is rebound at the beginning of each frame anyway)
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void FramebufferObjectGL::swap(FramebufferObjectGL &other) noexcept {

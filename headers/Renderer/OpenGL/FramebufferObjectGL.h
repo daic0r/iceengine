@@ -19,13 +19,13 @@ class FramebufferObjectGL {
     GLuint m_nTexAttachment{ 0 };
     GLuint m_nDepthAttachment{ 0 };
 	GLuint m_nDepthTextureAttachment{ 0 };
-    std::uint16_t m_nWidth{ 0 }, m_nHeight{ 0 };
-    GLsizei m_nOldWidth{}, m_nOldHeight{};
+    GLsizei m_nWidth{ 0 }, m_nHeight{ 0 };
+    GLsizei m_nOldWidth{ -1 }, m_nOldHeight{ -1 };
     GLint m_nLastFBO{};
     
 public:
     FramebufferObjectGL() = default;
-    FramebufferObjectGL(std::uint16_t w, std::uint16_t h, bool bCreate = true) noexcept;
+    FramebufferObjectGL(GLsizei w, GLsizei h, bool bCreate = true) noexcept;
     FramebufferObjectGL(const FramebufferObjectGL&) = delete;
     FramebufferObjectGL& operator=(const FramebufferObjectGL&) = delete;
     FramebufferObjectGL(FramebufferObjectGL&&) noexcept;
@@ -54,7 +54,7 @@ public:
     void setOldHeight(GLsizei nHeight) noexcept { m_nOldHeight = nHeight; }
     
 	void create() noexcept;
-    void bind(GLsizei nOldWidth = 0, GLsizei nOldHeight = 0) noexcept;
+    void bind(GLsizei nOldWidth = -1, GLsizei nOldHeight = -1) noexcept;
     void unbind() noexcept;
     void resize(GLsizei nWidth, GLsizei nHeight) noexcept;
 

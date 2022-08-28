@@ -64,6 +64,10 @@ void BasePostProcessorGL::postProcess(IPostProcessingEffect* pPrevious) {
 }
 
 void BasePostProcessorGL::bind() {
+    // Rationale: we're in a postprocessing pipeline
+    // --> the viewport size before an effect is bound will be that of the effect
+    // (we're applying one effect after another to the output of the previous effect)
+    // therefore, save our size as the old size that will be restored upon unbinding
     m_fbo.bind();
 }
 

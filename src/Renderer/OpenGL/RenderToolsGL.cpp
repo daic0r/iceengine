@@ -177,14 +177,13 @@ GLuint RenderToolsGL::createDepthBufferFramebufferAttachment(int width, int heig
 }
 
 void RenderToolsGL::bindFramebuffer(GLuint nFramebuffer, int width, int height) {
-    glCall(glBindTexture(GL_TEXTURE_2D, 0)); // unbind texture
     glCall(glBindFramebuffer(GL_FRAMEBUFFER, nFramebuffer));
     glCall(glViewport(0, 0, width, height));
 }
 
 void RenderToolsGL::unbindCurrentFramebuffer(GLuint nLastBuffer, GLsizei nWidth, GLsizei nHeight) {
     glCall(glBindFramebuffer(GL_FRAMEBUFFER, nLastBuffer));
-    glCall(glViewport(0, 0, nWidth > 0 ? nWidth : systemServices.getGraphicsSystem()->displayWidth(), nHeight > 0 ? nHeight : systemServices.getGraphicsSystem()->displayHeight()));
+    glCall(glViewport(0, 0, nWidth > -1 ? nWidth : systemServices.getGraphicsSystem()->displayWidth(), nHeight > -1 ? nHeight : systemServices.getGraphicsSystem()->displayHeight()));
 }
 
 std::unique_ptr<GLubyte[]> RenderToolsGL::createUniformBuffer(GLuint nShaderProgram, const std::string& strName, const std::vector<const GLchar*>& vVarNames, std::vector<GLuint>& vOffsets, GLuint& nBuffer, GLint& nBufSize) {

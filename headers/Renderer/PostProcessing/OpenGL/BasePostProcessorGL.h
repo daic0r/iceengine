@@ -19,6 +19,11 @@ public:
     void postProcess(IPostProcessingEffect* pPrevious) override;
     void unbind();
     void resize(int nWidth, int nHeight) override;
+    /* hasStaticSize
+    /* 
+    /* Is true if the effect is applied to something like an onscreen GUI that we might
+    /* not want to resize and that'll remain static
+    */
     bool hasStaticSize() const noexcept { return m_bStaticSize; }
     void setStaticSize(bool b) noexcept { m_bStaticSize = b; }
 

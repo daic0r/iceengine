@@ -40,7 +40,7 @@ public:
     static GLuint createDepthTextureFramebufferAttachment(int width, int height);
     static GLuint createDepthBufferFramebufferAttachment(int width, int height);
     static void bindFramebuffer(GLuint nFramebuffer, int width, int height);
-    static void unbindCurrentFramebuffer(GLuint nLastBuffer = 0, GLsizei nWidth = 0, GLsizei nHeight = 0);
+    static void unbindCurrentFramebuffer(GLuint nLastBuffer = 0, GLsizei nWidth = -1, GLsizei nHeight = -1);
     
     static std::unique_ptr<GLubyte[]> createUniformBuffer(GLuint nShaderProgram, const std::string& strName, const std::vector<const GLchar*>& vVarNames, std::vector<GLuint>& vOffsets, GLuint& nBuffer, GLint& nBufSize);
     static std::unique_ptr<IShaderProgram> createShaderProgram(const std::string& strId, std::unique_ptr<IShaderConfigurator> pConfig) noexcept;
