@@ -14,7 +14,7 @@ class BasePostProcessorGL : public IPostProcessingEffect {
 public:
     BasePostProcessorGL(GLsizei nWidth = -1, GLsizei nHeight = -1, bool bDepthAttachment = false);
 
-    void initialize();
+    virtual void initialize();
     void bind();
     void postProcess(IPostProcessingEffect* pPrevious) override;
     void unbind();

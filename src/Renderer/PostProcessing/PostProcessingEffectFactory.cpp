@@ -1,5 +1,11 @@
 #include <Renderer/PostProcessing/PostProcessingEffectFactory.h>
 
+#ifdef RENDERER_OPEN_GL
+#include <Renderer/PostProcessing/OpenGL/OriginalCanvasGL.h>
+#include <Renderer/PostProcessing/OpenGL/ContrastChangerGL.h>
+#include <Renderer/PostProcessing/OpenGL/GaussianBlurGL.h>
+#endif
+
 namespace Ice::PostProcessingEffectFactory
 {
      
@@ -24,7 +30,25 @@ namespace Ice::PostProcessingEffectFactory
                 }
 #endif
                 break;
-        }
+            case PostProcessingEffect::HORIZONTAL_GAUSSIAN_BLUR:
+#ifdef RENDERER_OPEN_GL
+                {
+                    auto pRet = std::make_unique<HorizontalGaussianBlurGL>(nWidth, nHeight);
+                    pRet->initialize();
+                    return pRet;
+                }
+#endif
+                break;
+            case PostProcessingEffect::VERTICAL_GAUSSIAN_BLUR:
+#ifdef RENDERER_OPEN_GL
+                {
+                    auto pRet = std::make_unique<VerticalGaussianBlurGL>(nWidth, nHeight);
+                    pRet->initialize();
+                    return pRet;
+                }
+#endif
+                break;
+          }
         return nullptr;
     }
 

@@ -7,10 +7,6 @@
 
 namespace Ice {
 
-ContrastChangerGL::ContrastChangerGL(GLsizei nWidth, GLsizei nHeight)
-    : BasePostProcessorGL{ nWidth, nHeight }
-{}
-
 void ContrastChangerGL::setContrast(float f) noexcept {
 
     if (m_nContrastUniformId < 0) [[unlikely]]

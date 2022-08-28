@@ -5,7 +5,7 @@
 
 #include <Renderer/OpenGL/FramebufferObjectGL.h>
 #include <Renderer/PostProcessing/OpenGL/BasePostProcessorGL.h>
-#include <Interfaces/IContrastChanger.h>
+#include <Interfaces/PostProcessing/IContrastChanger.h>
 
 namespace Ice {
 
@@ -14,7 +14,8 @@ class ContrastChangerGL : public BasePostProcessorGL, public IContrastChanger {
     GLint m_nContrastUniformId{ -1 };
 
 public:
-    ContrastChangerGL(GLsizei nWidth = -1, GLsizei nHeight = -1);
+    using BasePostProcessorGL::BasePostProcessorGL;
+
     void setContrast(float f) noexcept override;
 
 private:
