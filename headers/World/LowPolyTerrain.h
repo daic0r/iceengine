@@ -5,6 +5,7 @@
 #include <optional>
 #include <Utils/MeshGeneration/LowPolyTerrainIndexGenerator.h>
 #include <functional>
+#include <glm/mat4x4.hpp>
 
 namespace Ice {
 
@@ -45,7 +46,7 @@ namespace Ice {
         constexpr auto tileHeight() const noexcept { return m_fTileHeight; } 
         constexpr decltype(auto) heightMap() const noexcept { return (m_vHeightMap); }
 
-        std::optional<float> getHeight(float x, float z) const noexcept;
+        std::optional<float> getHeight(float x, float z, glm::mat4* pMatrix = nullptr) const noexcept;
         bool getCenterCoordsForTile(int x, int z, float& outX, float& outZ) const noexcept;
 
         auto terrainId() const noexcept { return m_nId; }

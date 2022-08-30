@@ -3,19 +3,20 @@
 #include <glm/vec3.hpp>
 #include <System/Math.h>
 #include <bitset>
+#include <glm/gtc/matrix_transform.hpp>
 
 namespace Ice
 {
     
-    std::optional<float> LowPolyTerrain::getHeight(float x, float z) const noexcept {
+    std::optional<float> LowPolyTerrain::getHeight(float x, float z, glm::mat4* pMatrix) const noexcept {
         if ((x < 0.0f) || (x >= width()) || (z < 0.0f) || (z >= height()))
             return std::nullopt;
         
         const auto nTileX = static_cast<int>(x / tileWidth());
         const auto nTileZ = static_cast<int>(z / tileHeight());
 
-        float fRelX = x - static_cast<int>(x);
-        float fRelZ = z - static_cast<int>(z);
+        float fRelX = x - (nTileX * tileWidth());
+        float fRelZ = z - (nTileZ * tileHeight());
 
         const auto& tileStrategy = m_getTraversalStrategyForTileFunc(nTileX, nTileZ);
 
@@ -50,7 +51,7 @@ namespace Ice
         std::size_t nLastIndex{};
         std::tuple<float,float,float> lambdas;
         // Triangle determined above?        
-        if ((bVariant1 && fRelZ <= tileHeight() - fRelX) || (!bVariant1 && fRelZ >= fRelX) ){
+        if ((bVariant1 && (fRelZ <= (tileHeight() - fRelX))) || (!bVariant1 && (fRelZ >= fRelX)) ){
             nLastIndex = 3 - (diagFromPoint + diagToPoint);
             thirdVertex = triangle1[nLastIndex];
         } else {
@@ -73,7 +74,28 @@ namespace Ice
             glm::vec2{ fRelX, fRelZ }
         );
 
-        return std::get<0>(lambdas) * triangle1[diagFromPoint].y + std::get<1>(lambdas) * triangle1[diagToPoint].y + std::get<2>(lambdas) * thirdVertex.y;
+        const auto fRet = std::get<0>(lambdas) * triangle1[diagFromPoint].y + std::get<1>(lambdas) * triangle1[diagToPoint].y + std::get<2>(lambdas) * thirdVertex.y;
+
+        if (pMatrix) {
+            auto xAxis = glm::normalize(glm::vec3{ tileWidth(), heightAt(nTileX + 1, nTileZ) - heightAt(nTileX, nTileZ), 0.0f });
+            auto zAxis = glm::normalize(glm::vec3{ 0.0f, heightAt(nTileX, nTileZ + 1) - heightAt(nTileX, nTileZ), tileHeight() });
+            const auto yAxis = glm::cross(zAxis, xAxis);
+            auto ret = glm::inverse(    // inverse -> transform INTO terrain tile space
+                glm::mat4{ 
+                    glm::vec4{ xAxis[0], yAxis[0], zAxis[0], 0.0f },
+                    glm::vec4{ xAxis[1], yAxis[1], zAxis[1], 0.0f },
+                    glm::vec4{ xAxis[2], yAxis[2], zAxis[2], 0.0f },
+                    glm::vec4{ 0.0f, 0.0f, 0.0f, 1.0f }
+                }
+            );
+            // after object is in in terrain tile space, we can translate it to the
+            // relevant world position
+            ret = glm::translate(glm::mat4{1.0f}, glm::vec3{ x, fRet, z }) * ret;
+
+            *pMatrix = ret;
+        }
+
+        return fRet;
     }
 
     bool LowPolyTerrain::getCenterCoordsForTile(int x, int z, float& outX, float& outZ) const noexcept {
