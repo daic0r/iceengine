@@ -10,10 +10,14 @@
 
 namespace Ice {
 
-WaterTile::WaterTile(const glm::vec2& pos, float height, float fSize) {
-    m_position = pos;
-    m_fHeight = height;
-    m_fSize = fSize;
+WaterTile::WaterTile(const glm::vec2& pos, float height, std::size_t nNumTilesH, std::size_t nNumTilesV, float fTileWidth, float fTileHeight)
+    : m_position{ pos },
+    m_fHeight{ height },
+    m_nNumTilesH{ nNumTilesH },
+    m_nNumTilesV{ nNumTilesV },
+    m_fTileWidth{ fTileWidth },
+    m_fTileHeight{ fTileHeight }
+{
 }
 
 }

@@ -15,6 +15,9 @@
 #include <memory>
 #include <vector>
 #include "../../Interfaces/IWaterRenderer.h"
+#include <Renderer/OpenGL/WaterFramebuffersGL.h>
+#include <Renderer/OpenGL/RenderObjectGL.h>
+#include <unordered_map>
 
 namespace Ice {
 
@@ -23,7 +26,7 @@ class IShaderProgram;
 class RenderObjectGL;
 class WaterTile;
 struct RenderEnvironment;
-class WaterFrambebuffersGL;
+class WaterFramebuffersGL;
 class TextureGL;
 
 class WaterRendererGL : public IWaterRenderer {
@@ -32,15 +35,24 @@ class WaterRendererGL : public IWaterRenderer {
     static const std::vector<GLfloat> m_vQuadVertices;
     std::unique_ptr<RenderObjectGL> m_pQuad;
     std::unique_ptr<IShaderProgram> m_pShaderProgram{ nullptr };
-    WaterShaderConfigurator *m_pShaderConfig{ nullptr };
+    /*WaterShaderConfigurator *m_pShaderConfig{ nullptr };
     TextureGL *m_pDuDvTexture{ nullptr }, *m_pNormalTexture{ nullptr };
     float m_fMoveFactor{ 0.0f };
+    std::unique_ptr<WaterFramebuffersGL> m_pFramebuffers;
+    */
+    GLint m_nPersViewMatrixID{ -1 }, m_nModelMatrixID{ -1 };
+    std::unordered_map<WaterTile*, RenderObjectGL> m_mTileObjects;
     
 public:
     WaterRendererGL();
     void prepareRendering(const RenderEnvironment&) noexcept override;
     void render(const RenderEnvironment&, const std::vector<WaterTile*>&) noexcept override;
     void finishRendering() noexcept override;
+
+private:
+    RenderObjectGL& registerWaterTile(WaterTile*);
+    static const char* getVertexShaderSource() noexcept;
+    static const char* getFragmentShaderSource() noexcept;
 };
 
 }

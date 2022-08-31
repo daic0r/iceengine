@@ -18,6 +18,7 @@
 #include <Components/Systems/PathSegmentRenderingSystem.h>
 #include <Components/Systems/ParticleSystemSystem.h>
 #include <Components/Systems/SunRenderingSystem.h>
+#include <Components/Systems/WaterRenderingSystem.h>
 #include <Renderer/PostProcessing/PostProcessingPipeline.h>
 #include <Renderer/PostProcessing/PostProcessingEffectFactory.h>
 
@@ -39,6 +40,7 @@ class MasterRenderingSystem : public EntityComponentSystem<CameraComponent> {
     std::unique_ptr<PathSegmentRenderingSystem> m_pPathSegmentRenderingSystem;
 	std::unique_ptr<ParticleSystemSystem> m_pParticleSystemSystem;
 	std::unique_ptr<SunRenderingSystem> m_pSunRenderingSystem;
+    std::unique_ptr<WaterRenderingSystem> m_pWaterRenderingSystem;
     std::unique_ptr<PostProcessingPipeline> m_pPostProcessingPipeline;
     IGraphicsSystem *m_pGraphicsSystem{ nullptr };
     IWidgetRenderer *m_pWidgetRenderer{ nullptr };

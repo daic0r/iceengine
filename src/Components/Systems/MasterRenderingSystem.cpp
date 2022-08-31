@@ -43,6 +43,8 @@ MasterRenderingSystem::MasterRenderingSystem() noexcept {
 	entityManager.registerComponentSystem<true>(m_pParticleSystemSystem.get());
 	m_pSunRenderingSystem = std::make_unique<SunRenderingSystem>();
 	entityManager.registerComponentSystem<false>(m_pSunRenderingSystem.get());
+	m_pWaterRenderingSystem = std::make_unique<WaterRenderingSystem>();
+	entityManager.registerComponentSystem<false>(m_pWaterRenderingSystem.get());
 
     m_pPostProcessingPipeline = std::make_unique<PostProcessingPipeline>();
 
@@ -100,6 +102,7 @@ bool MasterRenderingSystem::update(float fDeltaTime) {
     m_pObjectRenderingSystem->render(env);
     m_pAnimatedModelRenderingSystem->render(env);
     m_pTerrainRenderingSystem->render(env);
+    m_pWaterRenderingSystem->render(env);
 	m_pSunRenderingSystem->render(env);
     m_pPathSegmentRenderingSystem->render(env);
 	m_pParticleSystemSystem->render(env);
