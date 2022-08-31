@@ -61,6 +61,8 @@ public:
 	float distNearPlane() const noexcept override { return 1.0f; }
 	float distFarPlane() const noexcept override { return 1500.0f; }
 	float aspectRatio() const noexcept override { return static_cast<float>(m_nWidth) / static_cast<float>(m_nHeight); }
+    void toggleWireframe() noexcept override;
+    bool wireframe() const noexcept { return m_bWireframe; }
 	void shutDown();
     ~GraphicsSystemGL();
 
@@ -90,6 +92,7 @@ private:
     FramebufferObjectGL m_fbo;
     ShaderProgramGL m_quadShader;
     GLuint m_texUniformId{};
+    bool m_bWireframe{};
 };
 
 }

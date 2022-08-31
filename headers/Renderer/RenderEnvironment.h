@@ -34,6 +34,7 @@ struct RenderEnvironment {
     float fDeltaTime{ 0.0f };
 
     float fAspectRatio{ 0.0f };
+    bool bWireframe{};
 };
 
 }

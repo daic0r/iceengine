@@ -20,7 +20,7 @@ namespace Ice {
             std::size_t nWidthHeightMap,
             std::size_t nHeightHeightMap,
             const std::vector<float>& vHeightMap,
-            const std::function<const MeshGeneration::VertexTraversalStrategy&(int,int)>& getTraversalStrategyForTileFunc
+            MeshGeneration::LowPolyTerrainIndexGenerator gen
         )
             : m_vHeightMap{ vHeightMap },
             m_nHeightMapWidth{ nWidthHeightMap },
@@ -31,7 +31,7 @@ namespace Ice {
             m_fHeight{ fTileHeight * nHeightHeightMap },
             m_fTileWidth{ fTileWidth },
             m_fTileHeight{ fTileHeight },
-            m_getTraversalStrategyForTileFunc{ getTraversalStrategyForTileFunc },
+            m_indexGen{ gen },
             m_nId{ NextId++ }
         {
         }
@@ -62,7 +62,7 @@ namespace Ice {
 
         // Via this function we provide a way to find out how to traverse the height points in
         // order to calculate the terrain height at a given point
-        std::function<const MeshGeneration::VertexTraversalStrategy&(int,int)> m_getTraversalStrategyForTileFunc;
+        MeshGeneration::LowPolyTerrainIndexGenerator m_indexGen;
     };
 
 }

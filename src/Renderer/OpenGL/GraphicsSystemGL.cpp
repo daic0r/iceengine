@@ -391,6 +391,10 @@ float GraphicsSystemGL::getVerticalPixelScale() const noexcept {
     return 2.0f / displayHeight();
 }
 
+void GraphicsSystemGL::toggleWireframe() noexcept {
+    m_bWireframe = !m_bWireframe;
+}
+
 SDL_Cursor* GraphicsSystemGL::init_system_cursor(const char* image[])
 {
     int i, row, col;

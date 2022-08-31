@@ -13,14 +13,18 @@ namespace Ice::MeshGeneration
 
     // Width and Height refer to the height map dimensions
     // Number of tiles is one less respectively
-    template<std::size_t Width, std::size_t Height>
     class LowPolyTerrainIndexGenerator {
-        static constexpr std::size_t getNumIndices() {
+        std::size_t Width, Height;
+
+        constexpr std::size_t getNumIndices() {
             return 6 * (Width - 1) * (Height - 1);
         }
 
     public:
-        static constexpr auto generateIndices() {
+        constexpr LowPolyTerrainIndexGenerator(std::size_t nWidth, std::size_t nHeight)
+            : Width{ nWidth }, Height{ nHeight } {}
+
+        constexpr auto generateIndices() {
             IndexGeneratorContainerType arIndices{}; 
             arIndices.resize(getNumIndices());
 
@@ -34,7 +38,7 @@ namespace Ice::MeshGeneration
             return arIndices;
         }
 
-        static constexpr const auto& getTraversalStrategyForTile(int x, int z) {
+        constexpr const auto& getTraversalStrategyForTile(int x, int z) const noexcept {
             if (z < Height - 2) {
                 if (x % 2 == z % 2) {
                     return LowPolyTerrainQuadVariant1UpperPortionStrategy;
@@ -49,7 +53,7 @@ namespace Ice::MeshGeneration
         } 
 
     private:
-        static constexpr std::size_t getNumRowVertices(int z) noexcept {
+        constexpr std::size_t getNumRowVertices(int z) noexcept {
             if (z >= Height - 2) {
                 return Width;
             }
@@ -58,7 +62,7 @@ namespace Ice::MeshGeneration
 
         // bLeft specifies which of the duplicated vertices we want: the one
         // belonging to the left or the right quad
-        static constexpr std::size_t getVertexIndex(int vertexX, int vertexZ, bool bLeft) noexcept {
+        constexpr std::size_t getVertexIndex(int vertexX, int vertexZ, bool bLeft) noexcept {
             std::size_t nRetIdx{};
             for (auto z = 0; z < vertexZ; ++z) {
                 nRetIdx += getNumRowVertices(z);
@@ -75,13 +79,13 @@ namespace Ice::MeshGeneration
             return nRetIdx;
         }
 
-        static constexpr void push_upper_left_triangle(int x, int z, IndexGeneratorContainerType& arIndices, std::size_t& idx) noexcept {
+        constexpr void push_upper_left_triangle(int x, int z, IndexGeneratorContainerType& arIndices, std::size_t& idx) noexcept {
             const auto strat = LowPolyTerrainQuadVariant1UpperPortionStrategy;
             arIndices[idx++] = getVertexIndex(x + strat[0].x, z + strat[0].z, false);
             arIndices[idx++] = getVertexIndex(x + strat[1].x, z + strat[1].z, false);
             arIndices[idx++] = getVertexIndex(x + strat[2].x, z + strat[2].z, true);
         }
-        static constexpr void push_lower_right_triangle(int x, int z, IndexGeneratorContainerType& arIndices, std::size_t& idx) {
+        constexpr void push_lower_right_triangle(int x, int z, IndexGeneratorContainerType& arIndices, std::size_t& idx) {
             // Last row of tiles has different ordering due to different provoking vertex
             // Must be - 2 because (x,z) are tile coordinates and we have one less tile in each dimension
             // than vertices => the last tile row index is at Height - 2
@@ -90,13 +94,13 @@ namespace Ice::MeshGeneration
             arIndices[idx++] = getVertexIndex(x + strat[4].x, z + strat[4].z, false);
             arIndices[idx++] = getVertexIndex(x + strat[5].x, z + strat[5].z, true);
     }
-        static constexpr void push_lower_left_triangle(int x, int z, IndexGeneratorContainerType& arIndices, std::size_t& idx) noexcept {
+        constexpr void push_lower_left_triangle(int x, int z, IndexGeneratorContainerType& arIndices, std::size_t& idx) noexcept {
             const auto strat = LowPolyTerrainQuadVariant2UpperPortionStrategy;
             arIndices[idx++] = getVertexIndex(x + strat[0].x, z + strat[0].z, false);
             arIndices[idx++] = getVertexIndex(x + strat[1].x, z + strat[1].z, false);
             arIndices[idx++] = getVertexIndex(x + strat[2].x, z + strat[2].z, true);
         }
-        static constexpr void push_upper_right_triangle(int x, int z, IndexGeneratorContainerType& arIndices, std::size_t& idx) noexcept {
+        constexpr void push_upper_right_triangle(int x, int z, IndexGeneratorContainerType& arIndices, std::size_t& idx) noexcept {
             // Last row of tiles has different ordering due to different provoking vertex
             // Must be - 2 because (x,z) are tile coordinates and we have one less tile in each dimension
             // than vertices => the last tile row index is at Height - 2
@@ -106,16 +110,16 @@ namespace Ice::MeshGeneration
             arIndices[idx++] = getVertexIndex(x + strat[5].x, z + strat[5].z, true);
     }
         // Takes tile coordinates
-        static constexpr void push_quad_indices_variant1(int x, int z, IndexGeneratorContainerType& arIndices, std::size_t& idx) noexcept {
+        constexpr void push_quad_indices_variant1(int x, int z, IndexGeneratorContainerType& arIndices, std::size_t& idx) noexcept {
             push_upper_left_triangle(x, z, arIndices, idx);
             push_lower_right_triangle(x, z, arIndices, idx);
         }
-        static constexpr void push_quad_indices_variant2(int x, int z, IndexGeneratorContainerType& arIndices, std::size_t& idx) noexcept {
+        constexpr void push_quad_indices_variant2(int x, int z, IndexGeneratorContainerType& arIndices, std::size_t& idx) noexcept {
             push_lower_left_triangle(x, z, arIndices, idx);
             push_upper_right_triangle(x, z, arIndices, idx);
         }
 
-        static constexpr void push_quad_indices(int x, int z, IndexGeneratorContainerType& arIndices, std::size_t& idx) noexcept {
+        constexpr void push_quad_indices(int x, int z, IndexGeneratorContainerType& arIndices, std::size_t& idx) noexcept {
             const auto bIsQuadVariant1 = (x % 2) == (z % 2);
             if (bIsQuadVariant1)
                 push_quad_indices_variant1(x, z, arIndices, idx);

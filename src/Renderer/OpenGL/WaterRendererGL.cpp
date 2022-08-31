@@ -30,7 +30,7 @@
 #include <System/Camera.h>
 #include <ranges>
 #include <algorithm>
-#include <Utils/MeshGeneration/LowPolyWaterMeshGenerator.h>
+#include <Utils/MeshGeneration/LowPolyTerrainMeshGenerator.h>
 
 namespace Ice {
 
@@ -94,6 +94,9 @@ void WaterRendererGL::prepareRendering(const RenderEnvironment& env) noexcept {
     //glCall(glEnable(GL_BLEND));
     //glCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
     glEnable(GL_DEPTH_TEST);
+#ifdef _DEBUG
+    glPolygonMode(GL_FRONT_AND_BACK, env.bWireframe ? GL_LINE : GL_FILL);
+#endif
 }
 
 void WaterRendererGL::render(const RenderEnvironment& env, const std::vector<WaterTile*> &vTiles) noexcept {
@@ -126,6 +129,9 @@ void WaterRendererGL::finishRendering() noexcept {
     glCall(glBindTexture(GL_TEXTURE_2D, 0));
     glCall(glBindVertexArray(0));
     glCall(glDisable(GL_DEPTH_TEST));
+#ifdef _DEBUG
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+#endif
     glCall(m_pShaderProgram->unuse());
 }
 
@@ -133,13 +139,13 @@ const char* WaterRendererGL::getVertexShaderSource() noexcept {
     return R"(
 #version 410
 
-layout(location = 0) in vec2 vertexPos;
+layout(location = 0) in vec3 vertexPos;
 
 uniform mat4 modelMatrix;
 uniform mat4 perspectiveViewMatrix;
 
 void main() {
-    gl_Position =  perspectiveViewMatrix * modelMatrix * vec4(vertexPos.x, 0, vertexPos.y, 1);
+    gl_Position =  perspectiveViewMatrix * modelMatrix * vec4(vertexPos.x, 0, vertexPos.z, 1);
 }
 
 )";
@@ -163,8 +169,10 @@ RenderObjectGL& WaterRendererGL::registerWaterTile(WaterTile* pTile) {
     if (iter != m_mTileObjects.end())
         return iter->second;
     
-    LowPolyWaterMeshGenerator g{ pTile->numTilesH(), pTile->numTilesV(), pTile->tileWidth(), pTile->tileHeight() };
-    g.generate();
+    MeshGeneration::LowPolyTerrainMeshGenerator<> g{ pTile->numTilesH(), pTile->numTilesV() };// pTile->numTilesH(), pTile->numTilesV(), pTile->tileWidth(), pTile->tileHeight() };
+    const auto vMesh = g.generateVertices(pTile->tileWidth(), pTile->tileHeight(), nullptr);
+    const auto vIndices = g.generateIndices();
+
     GLuint nVao;
     glCall(glCreateVertexArrays(1, &nVao));
     glCall(glBindVertexArray(nVao));
@@ -172,13 +180,13 @@ RenderObjectGL& WaterRendererGL::registerWaterTile(WaterTile* pTile) {
     
     GLuint buffers[2]; 
     glCall(glCreateBuffers(2, buffers));
-    glCall(glNamedBufferStorage(buffers[0], g.vertices().size() * sizeof(glm::vec2), &g.vertices()[0], 0));
+    glCall(glNamedBufferStorage(buffers[0], vMesh.size() * sizeof(glm::vec2), &vMesh[0], 0));
     glCall(glBindBuffer(GL_ARRAY_BUFFER, buffers[0]));
-    glCall(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), (void*) 0));
+    glCall(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*) 0));
     glCall(glEnableVertexAttribArray(0));
     glCall(glBindBuffer(GL_ARRAY_BUFFER, 0));
 
-    glCall(glNamedBufferStorage(buffers[1], g.indices().size() * sizeof(unsigned int), &g.indices()[0], 0));
+    glCall(glNamedBufferStorage(buffers[1], vIndices.size() * sizeof(unsigned int), &vIndices[0], 0));
 
     glCall(glBindVertexArray(0));
     auto [insert_iter, success ] = m_mTileObjects.emplace(pTile, RenderObjectGL{ nVao });

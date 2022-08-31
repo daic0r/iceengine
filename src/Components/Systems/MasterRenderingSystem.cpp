@@ -89,6 +89,7 @@ bool MasterRenderingSystem::update(float fDeltaTime) {
     env.projectionMatrix = m_pGraphicsSystem->projectionMatrix();
 	env.pFrustum = &m_pCameraControllerSystem->frustum();
     env.fAspectRatio = m_pGraphicsSystem->aspectRatio();
+    env.bWireframe = m_pGraphicsSystem->wireframe();
 
 	if (m_pDayNightSystem == nullptr)
 		m_pDayNightSystem = entityManager.getSystem<DayNightCycleSystem, true>();

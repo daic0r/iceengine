@@ -33,6 +33,8 @@ public:
 	virtual float distNearPlane() const noexcept = 0;
 	virtual float distFarPlane() const noexcept = 0;
 	virtual float aspectRatio() const noexcept = 0;
+    virtual void toggleWireframe() noexcept = 0;
+    virtual bool wireframe() const noexcept = 0;
     virtual ~IGraphicsSystem() {}
 };
 

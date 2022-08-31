@@ -18,7 +18,7 @@ namespace Ice
         float fRelX = x - (nTileX * tileWidth());
         float fRelZ = z - (nTileZ * tileHeight());
 
-        const auto& tileStrategy = m_getTraversalStrategyForTileFunc(nTileX, nTileZ);
+        const auto& tileStrategy = m_indexGen.getTraversalStrategyForTile(nTileX, nTileZ);
 
         const auto heightAt = [this](int x, int z) {
             return m_vHeightMap[heightMapWidth() * z + x];

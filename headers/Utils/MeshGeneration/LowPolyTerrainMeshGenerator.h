@@ -11,9 +11,9 @@
 
 namespace Ice::MeshGeneration
 {
-    template<std::size_t Width, std::size_t Height, typename IndexGenerator = LowPolyTerrainIndexGenerator<Width, Height>>
+    template<typename IndexGenerator = LowPolyTerrainIndexGenerator>
     class LowPolyTerrainMeshGenerator {
-        static constexpr auto getNumVertices() {
+        constexpr auto getNumVertices() {
             return 
                 // all except last 2 rows of height map entries (i.e. last row of tiles):
                 //  - single vertex first and last column
@@ -26,17 +26,24 @@ namespace Ice::MeshGeneration
                 + (2 * Width);
         }
 
-        static constexpr auto VERTEX_DIM = 3;
-        static constexpr auto COLOR_DIM = 4;
+        constexpr static inline auto VERTEX_DIM = 3;
+        constexpr static inline auto COLOR_DIM = 4;
 
         using VertexContType = std::vector<float>;//, getNumVertices() * VERTEX_DIM>;
         using NormalsContType = std::vector<float>;//, getNumVertices() * VERTEX_DIM>;
         using ColorsContType = std::vector<float>;//, getNumVertices() * COLOR_DIM>;
         using IndexContType = IndexGeneratorContainerType; 
 
+        std::size_t Width, Height;
+        IndexGenerator m_indexGen;
+
     public:
+        using index_generator_t = IndexGenerator;
+        constexpr LowPolyTerrainMeshGenerator(std::size_t nWidth, std::size_t nHeight)
+            : Width{ nWidth }, Height{ nHeight }, m_indexGen{ Width, Height } {}
+
         template<std::size_t NumColors>
-        static constexpr auto generateVerticesAndColors(
+        constexpr auto generateVerticesAndColors(
             float fTileWidth,
             float fTileHeight,
             float fHeightRangeMin,
@@ -44,38 +51,63 @@ namespace Ice::MeshGeneration
             const std::vector<float>& arHeightMap,
             const std::array<RGBA, NumColors>& arColors
         ) {
-            VertexContType retVertices{};
+            VertexContType retVertices = generateVertices(fTileWidth, fTileHeight, &arHeightMap);
             ColorsContType retColors{};
-            retVertices.resize(getNumVertices() * VERTEX_DIM);
             retColors.resize(getNumVertices() * COLOR_DIM);
             std::size_t idx{}, colorIdx{};
 
             for (std::size_t z = 0; z < Height; ++z) {
-                storeVertex(0.0f, arHeightMap[z * Width], z * fTileHeight, retVertices, idx);
                 const auto color = getVertexColor(arHeightMap[z * Width], fHeightRangeMin, fHeightRangeMax, arColors);
                 storeColor(color, retColors, colorIdx);
 
                 for (std::size_t x = 1; x < Width - 1; ++x) {
-                    const auto storeVertexAndColor = [&]() {
+                    const auto storeColorImpl = [&]() {
                         const auto fHeight = arHeightMap[z * Width + x];
-                        storeVertex(x * fTileWidth, fHeight, z * fTileHeight, retVertices, idx);
                         const auto color = getVertexColor(fHeight, fHeightRangeMin, fHeightRangeMax, arColors);
                         storeColor(color, retColors, colorIdx);
                     };
-                    storeVertexAndColor();
+                    storeColorImpl();
                     // Don't double vertex in the last 2 rows
                     if (z < Height - 2) {
-                        storeVertexAndColor();
+                        storeColorImpl();
                     }
                 }
-                storeVertex((Width - 1) * fTileWidth, arHeightMap[z * Width + (Width - 1)], z * fTileHeight, retVertices, idx);
                 const auto color2 = getVertexColor(arHeightMap[z * Width + (Width - 1)], fHeightRangeMin, fHeightRangeMax, arColors);
                 storeColor(color2, retColors, colorIdx);
             }
             return std::make_pair(retVertices, retColors);
         }
 
-        static constexpr auto generateNormals(const VertexContType& arVertices, const IndexContType& arIndices) {
+        constexpr auto generateVertices(
+            float fTileWidth,
+            float fTileHeight,
+            const std::vector<float>* arHeightMap
+        )
+        {
+            VertexContType retVertices{};
+            retVertices.resize(getNumVertices() * VERTEX_DIM);
+            std::size_t idx{};
+
+            for (std::size_t z = 0; z < Height; ++z) {
+                storeVertex(0.0f, arHeightMap ? (*arHeightMap)[z * Width] : 0.0f, z * fTileHeight, retVertices, idx);
+
+                for (std::size_t x = 1; x < Width - 1; ++x) {
+                    const auto storeVertexImpl = [&]() {
+                        const auto fHeight = arHeightMap ? (*arHeightMap)[z * Width + x] : 0.0f;
+                        storeVertex(x * fTileWidth, fHeight, z * fTileHeight, retVertices, idx);
+                    };
+                    storeVertexImpl();
+                    // Don't double vertex in the last 2 rows
+                    if (z < Height - 2) {
+                        storeVertexImpl();
+                    }
+                }
+                storeVertex((Width - 1) * fTileWidth, arHeightMap ? (*arHeightMap)[z * Width + (Width - 1)] : 0.0f, z * fTileHeight, retVertices, idx);
+            }
+            return retVertices;
+        }
+
+        constexpr auto generateNormals(const VertexContType& arVertices, const IndexContType& arIndices) {
             struct vec3 {
                 float x, y, z;
                 
@@ -117,18 +149,19 @@ namespace Ice::MeshGeneration
             return arNormals;
         }
 
-        static constexpr auto generateIndices() {
-            return IndexGenerator::generateIndices();
+        constexpr IndexGenerator& indexGenerator() { return m_indexGen; }
+        constexpr auto generateIndices() {
+            return indexGenerator().generateIndices();
         }
     private:
-        static constexpr void storeVertex(float x, float y, float z, VertexContType& arVertices, std::size_t& idx) {
+        constexpr void storeVertex(float x, float y, float z, VertexContType& arVertices, std::size_t& idx) {
             arVertices[idx] = x;
             arVertices[idx+1] = y;
             arVertices[idx+2] = z;
             idx += VERTEX_DIM;
         }
 
-        static constexpr void storeColor(const std::tuple<float,float,float> color, ColorsContType& arColors, std::size_t& idx) {
+        constexpr void storeColor(const std::tuple<float,float,float> color, ColorsContType& arColors, std::size_t& idx) {
             arColors[idx] = std::get<0>(color);
             arColors[idx+1] = std::get<1>(color);
             arColors[idx+2] = std::get<2>(color);
@@ -136,14 +169,14 @@ namespace Ice::MeshGeneration
             idx += COLOR_DIM;
         }
 
-        static constexpr void storeNormal(float x, float y, float z, NormalsContType& arNormals, std::size_t idx) {
+        constexpr void storeNormal(float x, float y, float z, NormalsContType& arNormals, std::size_t idx) {
             arNormals[idx*VERTEX_DIM] = x;
             arNormals[idx*VERTEX_DIM+1] = y;
             arNormals[idx*VERTEX_DIM+2] = z;
         }
     public:
         template<std::size_t NumColors>
-        static constexpr auto getVertexColor(float fHeight, float fHeightRangeMin, float fHeightRangeMax, const std::array<RGBA, NumColors>& arColors) {
+        constexpr auto getVertexColor(float fHeight, float fHeightRangeMin, float fHeightRangeMax, const std::array<RGBA, NumColors>& arColors) {
             const auto fIntervalSize = 1.0f / (arColors.size() - 1);
             const auto fNormHeight = Ice::Math::map0to1Range(fHeight, fHeightRangeMin, fHeightRangeMax);
             const auto fContainerPos = fNormHeight / fIntervalSize;
