@@ -27,7 +27,8 @@ class BaseModelRenderingSystem {
 	static inline constexpr auto KDTREE_REFRESH_INTERVAL = 10;
 protected:
 	std::vector<std::pair<Model, std::vector<ModelInstance*>>> m_vInstances;
-	std::vector<std::pair<Entity, std::pair<ModelStructType, ModelInstanceType>>> m_vEntity2ModelStruct;
+	//std::vector<std::pair<Entity, std::pair<ModelStructType, ModelInstanceType>>> m_vEntity2ModelStruct;
+	std::unordered_map<Entity, std::pair<ModelStructType, ModelInstanceType>> m_vEntity2ModelStruct;
 	std::vector<Entity> m_vFrustumEnts;
 	CameraControllerSystem* m_pCameraControllerSystem{ nullptr };
 	IModelRenderer* m_pRenderer{ nullptr };
@@ -50,8 +51,8 @@ protected:
 
 	void onEntityAdded(Entity e) noexcept {
 		auto& transf = entityManager.getSharedComponentOr<TransformComponent>(e);
-		auto iter = m_vEntity2ModelStruct.emplace(m_vEntity2ModelStruct.end(), e, std::make_pair(makeModelStruct(e), ModelInstanceType{}));
-		std::ranges::sort(m_vEntity2ModelStruct, [e](const auto& a, const auto& b) { return a.first < b.first; });
+		auto [iter, _] = m_vEntity2ModelStruct.emplace(e, std::make_pair(makeModelStruct(e), ModelInstanceType{}));
+		//std::ranges::sort(m_vEntity2ModelStruct, [e](const auto& a, const auto& b) { return a.first < b.first; });
 		iter->second.second.pTransform = &transf;
 		
 		if (std::ranges::none_of(m_vInstances, [iter](const auto& kvp) { return kvp.first.pMesh == iter->second.first.pMesh; })) {
@@ -91,7 +92,7 @@ protected:
 			// PROFILING: SUPER FAST
 			// #DONOTOPTIMIZE
 			m_kdTree.getVisibleObjects(&frustum, m_vFrustumEnts);
-			std::ranges::sort(m_vFrustumEnts);
+			//std::ranges::sort(m_vFrustumEnts);
 			//std::cout << "Have " << m_vVisibleEnts.size() << " elements\n";
 		}
 		//m_kdTree.getVisibleObjects(&frustum, m_vVisibleEnts);
@@ -136,6 +137,7 @@ protected:
 				continue;
 
 			//auto& [model, inst] = std::ranges::find_if(m_vEntity2ModelStruct, [e](const auto& kvp) { return e == kvp.first; })->second;
+			/*
 			auto end_bound = m_vEntity2ModelStruct.end();
 			auto start_bound = iter;
 			while (iter->first != e) {
@@ -150,6 +152,8 @@ protected:
 				iter = start_bound;
 			}
 			auto& [model, inst] = iter->second;
+			*/
+			auto& [model, inst] = m_vEntity2ModelStruct.find(e)->second;
 			extendedUpdateInstanceFunc(e, inst);
 			auto iter2 = std::ranges::find_if(m_vInstances, [&model](const auto& kvp) { return kvp.first.pMesh == model.pMesh; });
 			iter2->second.push_back(&inst);
