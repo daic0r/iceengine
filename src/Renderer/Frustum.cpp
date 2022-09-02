@@ -55,12 +55,12 @@ Frustum::Frustum(const Camera& cam, float fDistNear, float fDistFar, float fovV,
     m_ntl = centerNear + upHeightNear - rightWidthNear;
 
     
-    m_planes.emplace(eFront, FrustumPlane{ centerNear, m_direction });
-    m_planes.emplace(eBack, FrustumPlane{ centerFar, -m_direction });
-    m_planes.emplace(eLeft, FrustumPlane{ m_ntl, m_nbl, m_ftl });
-    m_planes.emplace(eRight, FrustumPlane{ m_ntr, m_ftr, m_nbr });
-    m_planes.emplace(eTop, FrustumPlane{ m_ntr, m_ntl, m_ftr });
-    m_planes.emplace(eBottom, FrustumPlane{ m_nbl , m_nbr, m_fbl });
+    m_planes[eFront] = FrustumPlane{ centerNear, m_direction };
+    m_planes[eBack] = FrustumPlane{ centerFar, -m_direction };
+    m_planes[eLeft] = FrustumPlane{ m_ntl, m_nbl, m_ftl };
+    m_planes[eRight] = FrustumPlane{ m_ntr, m_ftr, m_nbr };
+    m_planes[eTop] = FrustumPlane{ m_ntr, m_ntl, m_ftr };
+    m_planes[eBottom] = FrustumPlane{ m_nbl , m_nbr, m_fbl };
 
 }
 
@@ -74,11 +74,11 @@ Frustum::Frustum(const Camera& cam, float fDistNear, float fDistFar, float fovV,
 */
 float Frustum::dist(FaceDirection dir, const glm::vec3& pos) const
 {
-    return m_planes.at(dir).dist(pos);
+    return m_planes[dir].dist(pos);
 }
 
 const glm::vec3& Frustum::planeNormal(FaceDirection dir) const {
-    return m_planes.at(dir).m_normal;
+    return m_planes[dir].m_normal;
 }
 
 FrustumAABBIntersectionType Frustum::intersects(const AABB& box, bool bCheckContainedCompletely) const noexcept {

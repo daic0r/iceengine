@@ -37,13 +37,14 @@ class Frustum {
 		glm::vec3 m_point;
 
 	public:
+		FrustumPlane() = default;
 		FrustumPlane(const glm::vec3& p0, const glm::vec3& normal);
 		FrustumPlane(const glm::vec3& p0, const glm::vec3& p1, const glm::vec3& p2);
 		float dist(const glm::vec3& p) const;
 		void print() const;
 	};
 
-	std::unordered_map<FaceDirection, FrustumPlane> m_planes;
+	std::array<FrustumPlane, 6> m_planes;
 
 	glm::vec3 m_position;
 	glm::vec3 m_direction;
