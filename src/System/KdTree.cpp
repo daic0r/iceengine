@@ -39,7 +39,7 @@ namespace Ice
         std::cout << "Median: " << glm::to_string(*median) << ", depth: " << nLevel << "\n";
 #endif        
 
-        m_vNodes.emplace_back(branch_node{ (*median)[nAxis] });
+        m_vNodes.emplace_back(branch_node{ .m_fLocation = (*median)[nAxis] });
         auto pRet = &m_vNodes.back();
         auto& node = std::get<branch_node>(*pRet);
 
@@ -148,19 +148,18 @@ namespace Ice
             [&box,&vRet,pFrustum,this,nAxis,pCurNode](const branch_node& branch) mutable {
                 static const auto traverse = [](const KdTree* pThis, const branch_node& branch, const Frustum* pFrustum, AABB nextBox, int nAxis, std::vector<T>& vRet, node_t* pCurNode, bool bIsLeft) {
                     const auto pNextNode = bIsLeft ? branch.m_pLeft : branch.m_pRight;
-                    if (pFrustum) {
-                        auto& pointToModify = bIsLeft ? nextBox.maxVertex() : nextBox.minVertex();
-                        pointToModify[nAxis] = branch.m_fLocation;
-                        if (const auto intersectRes = pFrustum->intersects(nextBox, true); intersectRes != FrustumAABBIntersectionType::NO_INTERSECTION) {
-                            const auto pPassFrustum = intersectRes == FrustumAABBIntersectionType::CONTAINED ? nullptr : pFrustum;
-                            pThis->getVisibleObjects_impl(pPassFrustum, nextBox, vRet, pNextNode, (nAxis + 1) % 3);
+                    auto& pointToModify = bIsLeft ? nextBox.maxVertex() : nextBox.minVertex();
+                    pointToModify[nAxis] = branch.m_fLocation;
+                    if (const auto intersectRes = pFrustum->intersects(nextBox, true); intersectRes != FrustumAABBIntersectionType::NO_INTERSECTION) {
+                        if (intersectRes == FrustumAABBIntersectionType::CONTAINED) {
+                            vRet.insert(vRet.end(), branch.m_vObjects.begin(), branch.m_vObjects.end());
+                        } else {
+                            pThis->getVisibleObjects_impl(pFrustum, nextBox, vRet, pNextNode, (nAxis + 1) % 3);
                         }
-                    } else {
-                        pThis->getVisibleObjects_impl(nullptr, nextBox, vRet, pNextNode, (nAxis + 1) % 3);
                     }
-                };
-                traverse(this, branch, pFrustum, box, nAxis, vRet, pCurNode, true);
-                traverse(this, branch, pFrustum, box, nAxis, vRet, pCurNode, false);
+            };
+            traverse(this, branch, pFrustum, box, nAxis, vRet, pCurNode, true);
+            traverse(this, branch, pFrustum, box, nAxis, vRet, pCurNode, false);
         },
             [&vRet](const leaf_node& branch) {
                 vRet.insert(vRet.end(), branch.m_vObjects.begin(), branch.m_vObjects.end());

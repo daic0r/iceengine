@@ -28,7 +28,7 @@ class BaseModelRenderingSystem {
 protected:
 	std::vector<std::pair<Model, std::vector<ModelInstance*>>> m_vInstances;
 	std::vector<std::pair<Entity, std::pair<ModelStructType, ModelInstanceType>>> m_vEntity2ModelStruct;
-	std::set<Entity> m_sFrustumEnts;
+	std::vector<Entity> m_vFrustumEnts;
 	CameraControllerSystem* m_pCameraControllerSystem{ nullptr };
 	IModelRenderer* m_pRenderer{ nullptr };
 	IModelRenderer* m_pShadowRenderer{ nullptr };
@@ -62,28 +62,35 @@ protected:
 	}
 
 	void willRemoveComponent(Entity e) noexcept {
-		const auto iter = std::ranges::find_if(m_vEntity2ModelStruct, [e](const auto& kvp) { return e == kvp.first; });
-		m_vEntity2ModelStruct.erase(iter);
-		m_sFrustumEnts.erase(e);
+		{
+			const auto iter = std::ranges::find_if(m_vEntity2ModelStruct, [e](const auto& kvp) { return e == kvp.first; });
+			m_vEntity2ModelStruct.erase(iter);
+		}
+		{
+			auto iter = std::ranges::find(m_vFrustumEnts, e);
+			if (iter != m_vFrustumEnts.end())
+				m_vFrustumEnts.erase(iter);
+		}
 	}
 
 	bool update(float fDeltaTime, const std::set<Entity>& ents) noexcept {
 		if (m_nFramesSinceNoKdRefresh++ % KDTREE_REFRESH_INTERVAL == 0) {
 			buildKdTree();	
 			m_nFramesSinceNoKdRefresh %= KDTREE_REFRESH_INTERVAL;
+			m_nFramesSinceNoKdRefresh = 1;
 		}
-		m_sFrustumEnts.clear();
-		m_vVisibleEnts.clear();
+		m_vFrustumEnts.clear();
+		//m_vVisibleEnts.clear();
 		const auto& frustum = m_pCameraControllerSystem->frustum();
 		{
 			/*ScopedTimeMeasurement m([](std::chrono::nanoseconds d) {
 				std::cout << d.count() << " ns\n";	
 			});*/
-			m_kdTree.getVisibleObjects(&frustum, m_vVisibleEnts);
+			m_kdTree.getVisibleObjects(&frustum, m_vFrustumEnts);
 			//std::cout << "Have " << m_vVisibleEnts.size() << " elements\n";
 		}
 		//m_kdTree.getVisibleObjects(&frustum, m_vVisibleEnts);
-		std::move(m_vVisibleEnts.begin(), m_vVisibleEnts.end(), std::inserter( m_sFrustumEnts, m_sFrustumEnts.end()));
+		//std::move(m_vVisibleEnts.begin(), m_vVisibleEnts.end(), std::inserter( m_sFrustumEnts, m_sFrustumEnts.end()));
 	/*
 		for (auto e : ents) {
 			if (!isEntityEligibleForFrustumCulling(e))
@@ -132,7 +139,7 @@ protected:
 public:
 	const auto& kdTree() const noexcept { return m_kdTree; }
 
-	const std::set<Entity>& entitiesInFrustum() const noexcept { return m_sFrustumEnts; }
+	const auto& entitiesInFrustum() const noexcept { return m_vFrustumEnts; }
 	void buildKdTree() {
 		m_vKdTreeVertices.clear();
 
@@ -141,14 +148,14 @@ public:
 			AABB boxLocal{ modelInstPair.first.pMesh->extents() };
 
 			const auto boxWorld = boxLocal.transform(modelInstPair.second.pTransform->m_transform);
-			m_vKdTreeVertices.push_back(boxWorld.minVertex());
-			m_vKdTreeVertices.push_back(boxWorld.maxVertex());
+			//m_vKdTreeVertices.push_back(boxWorld.minVertex());
+			//m_vKdTreeVertices.push_back(boxWorld.maxVertex());
 
-/*				USE ALL CORNERS?
 			const auto worldCorners = boxWorld.cornerVertices();
 			for (const auto& corner : worldCorners) {
-				vVertices.emplace_back(corner[0], corner[1], corner[2]);
+				m_vKdTreeVertices.emplace_back(corner[0], corner[1], corner[2]);
 			}
+/*				USE ALL CORNERS?
 */
 		}
 

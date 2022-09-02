@@ -23,19 +23,13 @@ namespace Ice
         struct leaf_node;
         struct branch_node;
         using node_t = std::variant<branch_node, leaf_node>;
-        struct branch_node {
-            float m_fLocation{}; 
-            node_t* m_pLeft{}, *m_pRight{};
-        };
         struct leaf_node {
             std::vector<T> m_vObjects;
         };
-        struct node_info {
-            node_t* m_pNode{};
-            AABB m_box = AABB::unboundedBox();
-            int m_nAxis{-1};
+        struct branch_node : leaf_node {
+            float m_fLocation{}; 
+            node_t* m_pLeft{}, *m_pRight{};
         };
-
    public:
         KdTree() = default;
         KdTree(std::vector<glm::vec3> vPoints);
@@ -47,13 +41,15 @@ namespace Ice
             int nAxis{};
             while (pCurNode) {
                 std::visit(visitor{ 
-                    [&p,&pCurNode,nAxis](const branch_node& branch) {
+                    [&p,&pCurNode,nAxis,obj=std::forward<U>(u)](branch_node& branch) {
+                        if (std::ranges::none_of(branch.m_vObjects, [obj=std::forward<U>(obj)](auto&& v) { return v == obj; }))
+                            branch.m_vObjects.emplace_back(std::forward<U>(obj));
                         pCurNode = p[nAxis] <= branch.m_fLocation ? branch.m_pLeft : branch.m_pRight;
                     },
                     [obj=std::forward<U>(u),&pCurNode](leaf_node& branch) {
                         if (std::ranges::none_of(branch.m_vObjects, [obj=std::forward<U>(obj)](auto&& v) { return v == obj; }))
                             branch.m_vObjects.emplace_back(std::forward<U>(obj));
-                        pCurNode = nullptr;
+                       pCurNode = nullptr;
                     }
                 }, *pCurNode);
                 nAxis = (nAxis + 1) % 3;

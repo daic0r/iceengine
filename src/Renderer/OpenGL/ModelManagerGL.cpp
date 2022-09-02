@@ -25,7 +25,7 @@ void ModelManagerGL::registerModel(const Model* pModel) noexcept {
 	//}
 
     auto glModel = RenderToolsGL::createRenderObjectAndLoadVBOsFromMesh(*pModel->pMesh);
-	auto n = glModel->createEmptyVBO(1000 * 16);
+	auto n = glModel->createEmptyVBO(10000 * 16);
 	RenderToolsGL::addInstanceVertexAttribute(n, 3, 4, 16, 0);
 	RenderToolsGL::addInstanceVertexAttribute(n, 4, 4, 16, 4);
 	RenderToolsGL::addInstanceVertexAttribute(n, 5, 4, 16, 8);
