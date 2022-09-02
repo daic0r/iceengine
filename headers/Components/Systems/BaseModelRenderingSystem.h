@@ -51,6 +51,7 @@ protected:
 	void onEntityAdded(Entity e) noexcept {
 		auto& transf = entityManager.getSharedComponentOr<TransformComponent>(e);
 		auto iter = m_vEntity2ModelStruct.emplace(m_vEntity2ModelStruct.end(), e, std::make_pair(makeModelStruct(e), ModelInstanceType{}));
+		std::ranges::sort(m_vEntity2ModelStruct, [e](const auto& a, const auto& b) { return a.first < b.first; });
 		iter->second.second.pTransform = &transf;
 		
 		if (std::ranges::none_of(m_vInstances, [iter](const auto& kvp) { return kvp.first.pMesh == iter->second.first.pMesh; })) {
@@ -74,10 +75,11 @@ protected:
 	}
 
 	bool update(float fDeltaTime, const std::set<Entity>& ents) noexcept {
-		if (m_nFramesSinceNoKdRefresh++ % KDTREE_REFRESH_INTERVAL == 0) {
+		if (m_nFramesSinceNoKdRefresh % KDTREE_REFRESH_INTERVAL == 0) {
 			buildKdTree();	
 			m_nFramesSinceNoKdRefresh %= KDTREE_REFRESH_INTERVAL;
 			m_nFramesSinceNoKdRefresh = 1;
+			std::cout << "Bauta\n";
 		}
 		m_vFrustumEnts.clear();
 		//m_vVisibleEnts.clear();
@@ -86,7 +88,10 @@ protected:
 			/*ScopedTimeMeasurement m([](std::chrono::nanoseconds d) {
 				std::cout << d.count() << " ns\n";	
 			});*/
+			// PROFILING: SUPER FAST
+			// #DONOTOPTIMIZE
 			m_kdTree.getVisibleObjects(&frustum, m_vFrustumEnts);
+			std::ranges::sort(m_vFrustumEnts);
 			//std::cout << "Have " << m_vVisibleEnts.size() << " elements\n";
 		}
 		//m_kdTree.getVisibleObjects(&frustum, m_vVisibleEnts);
@@ -123,14 +128,31 @@ protected:
 		for (auto& kvp : m_vInstances) {
 			kvp.second.clear();
 		}
+		// This loop makes framerate drop from 500 to 200 fps
+		// #OPTIMIZE
+		auto iter = m_vEntity2ModelStruct.begin();
 		for (auto e : ents) {
 			if (!isEntityEligibleForRendering(e))
 				continue;
 
-			auto& [model, inst] = std::ranges::find_if(m_vEntity2ModelStruct, [e](const auto& kvp) { return e == kvp.first; })->second;
+			//auto& [model, inst] = std::ranges::find_if(m_vEntity2ModelStruct, [e](const auto& kvp) { return e == kvp.first; })->second;
+			auto end_bound = m_vEntity2ModelStruct.end();
+			auto start_bound = iter;
+			while (iter->first != e) {
+				std::advance(iter, std::distance(iter, end_bound) / 2);
+				if (iter->first > e) {
+					end_bound = iter;
+				} else if (iter->first < e) {
+					start_bound = iter;
+				} else {
+					break;
+				}
+				iter = start_bound;
+			}
+			auto& [model, inst] = iter->second;
 			extendedUpdateInstanceFunc(e, inst);
-			auto iter = std::ranges::find_if(m_vInstances, [&model](const auto& kvp) { return kvp.first.pMesh == model.pMesh; });
-			iter->second.push_back(&inst);
+			auto iter2 = std::ranges::find_if(m_vInstances, [&model](const auto& kvp) { return kvp.first.pMesh == model.pMesh; });
+			iter2->second.push_back(&inst);
 		}
 		if (m_pShadowRenderer)
 			m_pShadowRenderer->render(env, m_vInstances);
