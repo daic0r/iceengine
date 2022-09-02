@@ -25,6 +25,7 @@ class IModelRenderer;
 template<typename ModelStructType, typename ModelInstanceType>
 class BaseModelRenderingSystem {
 	static inline constexpr auto KDTREE_REFRESH_INTERVAL = 10;
+	static inline constexpr auto FRUSTUM_REFRESH_INTERVAL = 10;
 protected:
 	std::vector<std::pair<Model, std::vector<ModelInstance*>>> m_vInstances;
 	//std::vector<std::pair<Entity, std::pair<ModelStructType, ModelInstanceType>>> m_vEntity2ModelStruct;
@@ -36,7 +37,7 @@ protected:
 	IGraphicsSystem* m_pGraphicsSystem{};
 	KdTree<Entity> m_kdTree{};
 	std::vector<Entity> m_vVisibleEnts{};
-	int m_nFramesSinceNoKdRefresh{};
+	int m_nFramesSinceNoKdRefresh{}, m_nFramesSinceFrustumRefresh{};
 	std::vector<glm::vec3> m_vKdTreeVertices;
 
 	virtual ModelStructType makeModelStruct(Entity) const = 0;
@@ -82,81 +83,39 @@ protected:
 			m_nFramesSinceNoKdRefresh = 1;
 			std::cout << "Bauta\n";
 		}
-		m_vFrustumEnts.clear();
-		//m_vVisibleEnts.clear();
-		const auto& frustum = m_pCameraControllerSystem->frustum();
-		{
-			/*ScopedTimeMeasurement m([](std::chrono::nanoseconds d) {
-				std::cout << d.count() << " ns\n";	
-			});*/
+		if (m_nFramesSinceFrustumRefresh % FRUSTUM_REFRESH_INTERVAL == 0) {
+			m_vFrustumEnts.clear();
+			const auto& frustum = m_pCameraControllerSystem->frustum();
 			// PROFILING: SUPER FAST
 			// #DONOTOPTIMIZE
 			m_kdTree.getVisibleObjects(&frustum, m_vFrustumEnts);
-			//std::ranges::sort(m_vFrustumEnts);
-			//std::cout << "Have " << m_vVisibleEnts.size() << " elements\n";
 		}
-		//m_kdTree.getVisibleObjects(&frustum, m_vVisibleEnts);
-		//std::move(m_vVisibleEnts.begin(), m_vVisibleEnts.end(), std::inserter( m_sFrustumEnts, m_sFrustumEnts.end()));
-	/*
-		for (auto e : ents) {
-			if (!isEntityEligibleForFrustumCulling(e))
-				continue;
-
-			auto& transf = entityManager.getSharedComponentOr<TransformComponent>(e);
-			const auto& refComp = entityManager.getComponent<ModelReferenceComponent>(e);
-			const auto& meshComp = entityManager.getComponent<MeshComponent>(refComp.m_entity);
-			// Frustum culling before anything elee
-			const auto minWorld = meshComp.extents().minPoint;
-			const auto maxWorld = meshComp.extents().maxPoint;
-			//minWorld = transf.m_transform * glm::vec4{ minWorld, 1.0f };
-			//maxWorld = transf.m_transform * glm::vec4{ maxWorld, 1.0f };
-			const auto frustum = m_pCameraControllerSystem->transformedFrustum(glm::inverse(transf.m_transform));
-			//if (frustum.checkMinMaxBounds(minWorld, maxWorld, false) || frustum.checkMinMaxBounds(minWorld, maxWorld, true)) {
-			if (frustum.intersects(minWorld, maxWorld, false) != FrustumAABBIntersectionType::NO_INTERSECTION) {
-				m_sFrustumEnts.insert(e);
-			}
-		}
-		std::cout << "Han " << m_sFrustumEnts.size() << " elements\n";
-		*/
 		return true;
 	}
 
 	void render(const RenderEnvironment& env, const std::function<void(Entity, ModelInstanceType&)>& extendedUpdateInstanceFunc) noexcept {
-		const auto& ents = entitiesInFrustum();
-    
-		// Clear all the contained vectors but don't destruct them to prevent
-		// having to reallocate memory
-		for (auto& kvp : m_vInstances) {
-			kvp.second.clear();
-		}
-		// This loop makes framerate drop from 500 to 200 fps
-		// #OPTIMIZE
-		auto iter = m_vEntity2ModelStruct.begin();
-		for (auto e : ents) {
-			if (!isEntityEligibleForRendering(e))
-				continue;
-
-			//auto& [model, inst] = std::ranges::find_if(m_vEntity2ModelStruct, [e](const auto& kvp) { return e == kvp.first; })->second;
-			/*
-			auto end_bound = m_vEntity2ModelStruct.end();
-			auto start_bound = iter;
-			while (iter->first != e) {
-				std::advance(iter, std::distance(iter, end_bound) / 2);
-				if (iter->first > e) {
-					end_bound = iter;
-				} else if (iter->first < e) {
-					start_bound = iter;
-				} else {
-					break;
-				}
-				iter = start_bound;
+		if (m_nFramesSinceFrustumRefresh % FRUSTUM_REFRESH_INTERVAL == 0) {
+			const auto& ents = entitiesInFrustum();
+		
+			// Clear all the contained vectors but don't destruct them to prevent
+			// having to reallocate memory
+			for (auto& kvp : m_vInstances) {
+				kvp.second.clear();
 			}
-			auto& [model, inst] = iter->second;
-			*/
-			auto& [model, inst] = m_vEntity2ModelStruct.find(e)->second;
-			extendedUpdateInstanceFunc(e, inst);
-			auto iter2 = std::ranges::find_if(m_vInstances, [&model](const auto& kvp) { return kvp.first.pMesh == model.pMesh; });
-			iter2->second.push_back(&inst);
+			// This loop makes framerate drop from 500 to 200 fps
+			// #OPTIMIZE
+			for (auto e : ents) {
+				if (!isEntityEligibleForRendering(e))
+					continue;
+
+				auto& [model, inst] = m_vEntity2ModelStruct.find(e)->second;
+				extendedUpdateInstanceFunc(e, inst);
+				auto iter2 = std::ranges::find_if(m_vInstances, [&model](const auto& kvp) { return kvp.first.pMesh == model.pMesh; });
+				iter2->second.push_back(&inst);
+			}
+			m_nFramesSinceFrustumRefresh = 1;
+		} else {
+			++m_nFramesSinceFrustumRefresh;
 		}
 		if (m_pShadowRenderer)
 			m_pShadowRenderer->render(env, m_vInstances);
