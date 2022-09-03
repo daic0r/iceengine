@@ -44,7 +44,7 @@
 #include <Components/Systems/TerrainSystem.h>
 #include <chrono>
 #include <GUI/WidgetManager.h>
-#include <System/ThreadPool.h>
+#include <Utils/ScopedTimeMeasurement.h>
 
 //class Scene;
 
@@ -182,10 +182,9 @@ bool Engine::run() {
     bool is_running = true;
     m_nLastTicks = SDL_GetTicks();
     
-    //std::chrono::time_point<std::chrono::steady_clock> lastTime = std::chrono::steady_clock::now();
-    //int nFps{ 0 };
+    std::chrono::time_point<std::chrono::steady_clock> lastTime = std::chrono::steady_clock::now();
+    int nFps{ 0 };
     while (is_running) {
-
         float nCurrentTicks = SDL_GetTicks();
         float fDeltaTime = (float)(nCurrentTicks - m_nLastTicks) / 1000.0f;
         m_nLastTicks = nCurrentTicks;
@@ -221,16 +220,14 @@ bool Engine::run() {
 
         systemServices.getWidgetManager().update(fDeltaTime); // <-- Update widget manager AFTER the inputs have been processed so we can handle input here
         //SDL_GL_SwapWindow(MasterRendererGL::instance().window());
-        
-        /*
+
         ++nFps;
         auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - lastTime);
-        if (dur.count() > 5000) {
-            std::cout << std::dec << nFps / 5 << " fps\n";
+        if (dur.count() > 3000) {
+            std::cout << std::dec << nFps / 3 << " fps\n";
             nFps = 0;
             lastTime = std::chrono::steady_clock::now();
         }
-        */
     }
     
     return true;

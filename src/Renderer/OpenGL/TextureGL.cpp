@@ -11,6 +11,7 @@
 #include <SDL2_image/SDL_image.h>
 #include <vector>
 #include <iostream>
+#include <utility>
 #include <Utils/SDLTools.h>
 
 namespace Ice {
@@ -23,8 +24,7 @@ TextureGL::TextureGL(TextureGL&& other) {
 }
 
 TextureGL& TextureGL::operator=(TextureGL&& other) {
-    m_textureId = other.m_textureId;
-    other.m_textureId = 0;
+    m_textureId = std::exchange(other.m_textureId, 0);
     return *this;
 }
 
