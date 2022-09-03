@@ -41,6 +41,7 @@ if (NOT uuid)
 	message(FATAL_ERROR "uuid not found")
 endif()
 
+target_compile_options(${PROJECT_NAME} PRIVATE -g)
 target_link_directories(${PROJECT_NAME} PRIVATE /usr/local/lib PRIVATE /usr/lib)
 target_include_directories(${PROJECT_NAME} PUBLIC ../../iceengine/headers PUBLIC ../../iceengine/external/inc PUBLIC ../,,/iceengine/external/inc/SDL2 PUBLIC .)
 target_link_libraries(${PROJECT_NAME} iceengine crossguid uuid)

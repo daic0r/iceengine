@@ -12,6 +12,7 @@ add_library(iceengine SHARED
 Utils/FinalAction.cpp
 Utils/SDLTools.cpp
 Utils/ScopedTimeMeasurement.cpp
+Utils/MeshGeneration/LowPolyWaterMeshGenerator.cpp
 ShadersGL/ModelShaderConfigurator.cpp
 ShadersGL/SkyboxShaderConfigurator.cpp
 ShadersGL/LightShaderConfigurator.cpp
@@ -64,6 +65,7 @@ Renderer/PostProcessing/PostProcessingEffectFactory.cpp
 Renderer/PostProcessing/OpenGL/BasePostProcessorGL.cpp
 Renderer/PostProcessing/OpenGL/ContrastChangerGL.cpp
 Renderer/PostProcessing/OpenGL/OriginalCanvasGL.cpp
+Renderer/PostProcessing/OpenGL/GaussianBlurGL.cpp
 Renderer/Frustum.cpp
 Renderer/CubeTexture.cpp
 Events/EventQueue.cpp
@@ -93,6 +95,7 @@ Components/Systems/ToolTipSystem.cpp
 Components/Systems/AnimatedModelRenderingSystem.cpp
 Components/Systems/DayNightCycleSystem.cpp
 Components/Systems/TerrainSystem.cpp
+Components/Systems/WaterRenderingSystem.cpp
 Components/TerrainComponent.cpp
 Engine.cpp
 Particles/Particle.cpp
