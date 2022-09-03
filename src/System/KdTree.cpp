@@ -11,8 +11,8 @@
 
 namespace Ice
 {
-    template<typename T>
-    typename KdTree<T>::node_t* KdTree<T>::subdivide(std::vector<glm::vec3> vPoint3, int nAxis, int nLevel) {
+    template<typename T, typename ModelType, typename ModelInstanceType>
+    typename KdTree<T, ModelType, ModelInstanceType>::node_t* KdTree<T, ModelType, ModelInstanceType>::subdivide(std::vector<glm::vec3> vPoint3, int nAxis, int nLevel) {
         if (vPoint3.empty()) {
             m_vNodes.emplace_back(leaf_node{});
             return &m_vNodes.back();
@@ -84,13 +84,13 @@ namespace Ice
         return pRet;
     }
     
-    template<typename T>
-    KdTree<T>::KdTree(std::vector<glm::vec3> vPoints) {
+    template<typename T, typename ModelType, typename ModelInstanceType>
+    KdTree<T, ModelType, ModelInstanceType>::KdTree(std::vector<glm::vec3> vPoints) {
         construct(std::move(vPoints));
     } 
 
-    template<typename T>
-    void KdTree<T>::construct(std::vector<glm::vec3> vPoints) {
+    template<typename T, typename ModelType, typename ModelInstanceType>
+    void KdTree<T, ModelType, ModelInstanceType>::construct(std::vector<glm::vec3> vPoints) {
         if (!m_vNodes.empty())
             m_vNodes.clear();
         m_vNodes.reserve(2 * vPoints.size() + 1);
@@ -100,8 +100,8 @@ namespace Ice
 #endif
      }
 
-    template<typename T>
-    void KdTree<T>::print(typename KdTree<T>::node_t* pNode, int nAxis) {
+    template<typename T, typename ModelType, typename ModelInstanceType>
+    void KdTree<T, ModelType, ModelInstanceType>::print(typename KdTree<T, ModelType, ModelInstanceType>::node_t* pNode, int nAxis) {
         if (pNode == nullptr)
             pNode = m_pRoot;
         
@@ -130,24 +130,24 @@ namespace Ice
         }, *pNode);
     }
 
-    template<typename T>
-    void KdTree<T>::getVisibleObjects(const Frustum* pFrustum, std::vector<T>& vRet, std::unordered_map<Model, std::vector<ModelInstance*>>& mOut) const {
-        getVisibleObjects_impl(pFrustum, m_outerBox, vRet, mOut, nullptr, 0);
+    template<typename T, typename ModelType, typename ModelInstanceType>
+    void KdTree<T, ModelType, ModelInstanceType>::getVisibleObjects(const Frustum* pFrustum, std::vector<T>& vRet, std::unordered_map<ModelType, std::vector<ModelInstanceType*>>& mOut) const {
+        getVisibleObjects_impl(pFrustum, m_outerBox, nullptr, 0, vRet, mOut);
     }
 
-    template<typename T>
-    void KdTree<T>::getVisibleObjects_impl(const Frustum* pFrustum, 
+    template<typename T, typename ModelType, typename ModelInstanceType>
+    void KdTree<T, ModelType, ModelInstanceType>::getVisibleObjects_impl(const Frustum* pFrustum, 
         const AABB& box,
-        std::vector<T>& vRet, 
-        std::unordered_map<Model, std::vector<ModelInstance*>>& mOut,
         node_t* pCurNode,
-        int nAxis
+        int nAxis,
+        std::vector<T>& vRet, 
+        std::unordered_map<ModelType, std::vector<ModelInstanceType*>>& mOut
     ) const {
         if (pCurNode == nullptr)
             pCurNode = m_pRoot;
         std::visit(visitor{ 
             [&box,&vRet,&mOut,pFrustum,this,nAxis,pCurNode](const branch_node& branch) mutable {
-                static const auto traverse = [](const KdTree* pThis, const branch_node& branch, const Frustum* pFrustum, AABB nextBox, int nAxis, std::vector<T>& vRet, std::unordered_map<Model, std::vector<ModelInstance*>>& mOut, node_t* pCurNode, bool bIsLeft) {
+                static const auto traverse = [](const KdTree* pThis, const branch_node& branch, const Frustum* pFrustum, AABB nextBox, int nAxis, std::vector<T>& vRet, std::unordered_map<ModelType, std::vector<ModelInstanceType*>>& mOut, node_t* pCurNode, bool bIsLeft) {
                     const auto pNextNode = bIsLeft ? branch.m_pLeft : branch.m_pRight;
                     auto& pointToModify = bIsLeft ? nextBox.maxVertex() : nextBox.minVertex();
                     pointToModify[nAxis] = branch.m_fLocation;
@@ -161,7 +161,7 @@ namespace Ice
                                 }
                             }, *pNextNode);
                         } else {
-                            pThis->getVisibleObjects_impl(pFrustum, nextBox, vRet, mOut, pNextNode, (nAxis + 1) % 3);
+                            pThis->getVisibleObjects_impl(pFrustum, nextBox, pNextNode, (nAxis + 1) % 3, vRet, mOut);
                         }
                     }
             };
@@ -178,8 +178,8 @@ namespace Ice
         }, *pCurNode);
     }
 
-    template<typename T>
-    bool KdTree<T>::intersects(const Ray& r, node_t* pCurNode, const AABB& box, int nAxis, std::vector<T>& vOut) const {
+    template<typename T, typename ModelType, typename ModelInstanceType>
+    bool KdTree<T, ModelType, ModelInstanceType>::intersects(const Ray& r, node_t* pCurNode, const AABB& box, int nAxis, std::vector<T>& vOut) const {
         if (!pCurNode)
             return false;
         std::visit(visitor{ 
@@ -206,8 +206,8 @@ namespace Ice
         return !vOut.empty();
     }
 
-    template<typename T>
-    bool KdTree<T>::intersects(const Ray& r, std::vector<T>& vOut) const {
+    template<typename T, typename ModelType, typename ModelInstanceType>
+    bool KdTree<T, ModelType, ModelInstanceType>::intersects(const Ray& r, std::vector<T>& vOut) const {
         return intersects(r, m_pRoot, m_outerBox, 0, vOut);
     }
 

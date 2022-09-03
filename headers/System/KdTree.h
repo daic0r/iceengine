@@ -19,7 +19,7 @@ namespace Ice
     class Frustum;
     class Ray;
 
-    template<typename T>
+    template<typename T, typename ModelType = Model, typename ModelInstanceType = ModelInstance>
     class KdTree {
     public:
         struct leaf_node;
@@ -27,7 +27,7 @@ namespace Ice
         using node_t = std::variant<branch_node, leaf_node>;
         struct leaf_node {
             std::vector<T> m_vObjects;
-            std::unordered_map<Model, std::vector<ModelInstance*>> m_mModels;
+            std::unordered_map<ModelType, std::vector<ModelInstanceType*>> m_mModels;
         };
         struct branch_node : leaf_node {
             float m_fLocation{}; 
@@ -39,7 +39,7 @@ namespace Ice
         void construct(std::vector<glm::vec3> vPoints);
         void print(node_t* pNode = nullptr, int nAxis = 0);
         template<typename U = T>
-        void emplace(const glm::vec3& p, U&& u, Model m, ModelInstance* pInst) {
+        void emplace(const glm::vec3& p, U&& u, const ModelType& m, ModelInstanceType* pInst) {
             auto pCurNode = m_pRoot;
             int nAxis{};
             while (pCurNode) {
@@ -63,12 +63,12 @@ namespace Ice
             }
          }
 
-        void getVisibleObjects(const Frustum*, std::vector<T>&, std::unordered_map<Model, std::vector<ModelInstance*>>&) const;
+        void getVisibleObjects(const Frustum*, std::vector<T>&, std::unordered_map<ModelType, std::vector<ModelInstanceType*>>&) const;
         bool intersects(const Ray&, std::vector<T>& vOut) const;
         const auto& boundingBox() const noexcept { return m_outerBox; }
    private:
         node_t* subdivide(std::vector<glm::vec3>, int nAxis, int nLevel = 0);
-        void getVisibleObjects_impl(const Frustum*, const AABB& box, std::vector<T>& vRet, std::unordered_map<Model, std::vector<ModelInstance*>>& mOut, node_t* pCurNode = nullptr, int nAxis = 0) const;
+        void getVisibleObjects_impl(const Frustum*, const AABB& box, node_t* pCurNode, int nAxis, std::vector<T>& vRet, std::unordered_map<ModelType, std::vector<ModelInstanceType*>>& mOut) const;
         bool intersects(const Ray&, node_t* pCurNode, const AABB& box, int nAxis, std::vector<T>& vOut) const;
 
         node_t* m_pRoot{};
