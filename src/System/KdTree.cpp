@@ -131,38 +131,49 @@ namespace Ice
     }
 
     template<typename T>
-    void KdTree<T>::getVisibleObjects(const Frustum* pFrustum, std::vector<T>& vRet) const {
-        getVisibleObjects_impl(pFrustum, m_outerBox, vRet, nullptr, 0);
+    void KdTree<T>::getVisibleObjects(const Frustum* pFrustum, std::vector<T>& vRet, std::unordered_map<Model, std::vector<ModelInstance*>>& mOut) const {
+        getVisibleObjects_impl(pFrustum, m_outerBox, vRet, mOut, nullptr, 0);
     }
 
     template<typename T>
     void KdTree<T>::getVisibleObjects_impl(const Frustum* pFrustum, 
         const AABB& box,
         std::vector<T>& vRet, 
+        std::unordered_map<Model, std::vector<ModelInstance*>>& mOut,
         node_t* pCurNode,
         int nAxis
     ) const {
         if (pCurNode == nullptr)
             pCurNode = m_pRoot;
         std::visit(visitor{ 
-            [&box,&vRet,pFrustum,this,nAxis,pCurNode](const branch_node& branch) mutable {
-                static const auto traverse = [](const KdTree* pThis, const branch_node& branch, const Frustum* pFrustum, AABB nextBox, int nAxis, std::vector<T>& vRet, node_t* pCurNode, bool bIsLeft) {
+            [&box,&vRet,&mOut,pFrustum,this,nAxis,pCurNode](const branch_node& branch) mutable {
+                static const auto traverse = [](const KdTree* pThis, const branch_node& branch, const Frustum* pFrustum, AABB nextBox, int nAxis, std::vector<T>& vRet, std::unordered_map<Model, std::vector<ModelInstance*>>& mOut, node_t* pCurNode, bool bIsLeft) {
                     const auto pNextNode = bIsLeft ? branch.m_pLeft : branch.m_pRight;
                     auto& pointToModify = bIsLeft ? nextBox.maxVertex() : nextBox.minVertex();
                     pointToModify[nAxis] = branch.m_fLocation;
                     if (const auto intersectRes = pFrustum->intersects(nextBox, true); intersectRes != FrustumAABBIntersectionType::NO_INTERSECTION) {
                         if (intersectRes == FrustumAABBIntersectionType::CONTAINED) {
-                            vRet.insert(vRet.end(), branch.m_vObjects.begin(), branch.m_vObjects.end());
+                            std::visit([&mOut,&vRet](auto&& next_node) {
+                                vRet.insert(vRet.end(), next_node.m_vObjects.begin(), next_node.m_vObjects.end());
+                                for (const auto& [model, vInst] : next_node.m_mModels) {
+                                    auto& v = mOut[model];
+                                    v.insert(v.end(), vInst.begin(), vInst.end());
+                                }
+                            }, *pNextNode);
                         } else {
-                            pThis->getVisibleObjects_impl(pFrustum, nextBox, vRet, pNextNode, (nAxis + 1) % 3);
+                            pThis->getVisibleObjects_impl(pFrustum, nextBox, vRet, mOut, pNextNode, (nAxis + 1) % 3);
                         }
                     }
             };
-            traverse(this, branch, pFrustum, box, nAxis, vRet, pCurNode, true);
-            traverse(this, branch, pFrustum, box, nAxis, vRet, pCurNode, false);
+            traverse(this, branch, pFrustum, box, nAxis, vRet, mOut, pCurNode, true);
+            traverse(this, branch, pFrustum, box, nAxis, vRet, mOut, pCurNode, false);
         },
-            [&vRet](const leaf_node& branch) {
+            [&vRet,&mOut](const leaf_node& branch) {
                 vRet.insert(vRet.end(), branch.m_vObjects.begin(), branch.m_vObjects.end());
+                for (const auto& [model, vInst] : branch.m_mModels) {
+                    auto& v = mOut[model];
+                    v.insert(v.end(), vInst.begin(), vInst.end());
+                }
             }
         }, *pCurNode);
     }

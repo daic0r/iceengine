@@ -25,9 +25,10 @@ class IModelRenderer;
 template<typename ModelStructType, typename ModelInstanceType>
 class BaseModelRenderingSystem {
 	static inline constexpr auto KDTREE_REFRESH_INTERVAL = 10;
-	static inline constexpr auto FRUSTUM_REFRESH_INTERVAL = 10;
+	static inline constexpr auto FRUSTUM_REFRESH_INTERVAL = 30;
 protected:
-	std::vector<std::pair<Model, std::vector<ModelInstance*>>> m_vInstances;
+	//std::vector<std::pair<Model, std::vector<ModelInstance*>>> m_vInstances;
+	std::unordered_map<Model, std::vector<ModelInstance*>> m_vInstances;
 	//std::vector<std::pair<Entity, std::pair<ModelStructType, ModelInstanceType>>> m_vEntity2ModelStruct;
 	std::unordered_map<Entity, std::pair<ModelStructType, ModelInstanceType>> m_vEntity2ModelStruct;
 	std::vector<Entity> m_vFrustumEnts;
@@ -57,7 +58,7 @@ protected:
 		iter->second.second.pTransform = &transf;
 		
 		if (std::ranges::none_of(m_vInstances, [iter](const auto& kvp) { return kvp.first.pMesh == iter->second.first.pMesh; })) {
-			m_vInstances.emplace_back(iter->second.first, std::vector<ModelInstance*>{});
+			m_vInstances.emplace(iter->second.first, std::vector<ModelInstance*>{});
 		}
 		if (m_pShadowRenderer == nullptr)
 			m_pShadowRenderer = systemServices.getShadowMapRenderer();
@@ -88,12 +89,19 @@ protected:
 			const auto& frustum = m_pCameraControllerSystem->frustum();
 			// PROFILING: SUPER FAST
 			// #DONOTOPTIMIZE
-			m_kdTree.getVisibleObjects(&frustum, m_vFrustumEnts);
+			for (auto& kvp : m_vInstances) {
+				kvp.second.clear();
+			}
+			m_kdTree.getVisibleObjects(&frustum, m_vFrustumEnts, m_vInstances);
+			m_nFramesSinceFrustumRefresh = 1;
+		} else {
+			++m_nFramesSinceFrustumRefresh;
 		}
 		return true;
 	}
 
 	void render(const RenderEnvironment& env, const std::function<void(Entity, ModelInstanceType&)>& extendedUpdateInstanceFunc) noexcept {
+		/*
 		if (m_nFramesSinceFrustumRefresh % FRUSTUM_REFRESH_INTERVAL == 0) {
 			const auto& ents = entitiesInFrustum();
 		
@@ -117,6 +125,7 @@ protected:
 		} else {
 			++m_nFramesSinceFrustumRefresh;
 		}
+		*/
 		if (m_pShadowRenderer)
 			m_pShadowRenderer->render(env, m_vInstances);
 	}
@@ -153,8 +162,8 @@ public:
 			*/
 			m_kdTree.construct(std::move(m_vKdTreeVertices));
 		}
-		for (const auto& [ent, modelInstPair] : m_vEntity2ModelStruct) {
-			m_kdTree.emplace(glm::vec3{ modelInstPair.second.pTransform->m_transform * glm::vec4{ 0.0f, 0.0f, 0.0f, 1.0f } }, ent);
+		for (auto& [ent, modelInstPair] : m_vEntity2ModelStruct) {
+			m_kdTree.emplace(glm::vec3{ modelInstPair.second.pTransform->m_transform * glm::vec4{ 0.0f, 0.0f, 0.0f, 1.0f } }, ent, modelInstPair.first, &modelInstPair.second);
 		}
 	}
 };

@@ -22,7 +22,7 @@ class IModelRenderer {
 public:
     //virtual void registerModel(Model* pModel) noexcept = 0;
     //virtual void prepareRendering(const RenderEnvironment&) noexcept = 0;
-    virtual void render(const RenderEnvironment&, const std::vector<std::pair<Model, std::vector<ModelInstance*>>>&) noexcept = 0;
+    virtual void render(const RenderEnvironment&, const std::unordered_map<Model, std::vector<ModelInstance*>>&) noexcept = 0;
     //virtual void finishRendering() noexcept = 0;
 	//virtual void renderShadowDepthTexture() const noexcept = 0;
     virtual ~IModelRenderer() = default; 

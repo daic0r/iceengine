@@ -11,6 +11,7 @@
 
 #include <Components/MeshComponent.h>
 #include <Components/RenderMaterialsComponent.h>
+#include <functional>
 
 namespace Ice {
 
@@ -20,7 +21,21 @@ struct Model {
     
     MeshComponent* pMesh{ nullptr };
     RenderMaterialsComponent* pMaterials{ nullptr };
+
+    bool operator==(const Model& other) const { return pMesh == other.pMesh; }
 };
+
+}
+
+namespace std {
+    template<>
+    struct hash<Ice::Model> {
+        size_t operator()(const Ice::Model& m) const {
+            return std::hash<Ice::MeshComponent*>{}(m.pMesh);
+        }
+    };
+}
+
 
 //class Model {
 //    using CoordType = float;
@@ -96,7 +111,5 @@ struct Model {
 //
 //    void clearBuffers();
 //};
-
-}
 
 #endif /* Model_h */

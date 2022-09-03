@@ -54,7 +54,7 @@ void ModelRendererGL::prepareRendering(const RenderEnvironment&) noexcept {
 	glCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 }
 
-void ModelRendererGL::render(const RenderEnvironment& env, const std::vector<std::pair<Model, std::vector<ModelInstance*>>>& instances) noexcept {
+void ModelRendererGL::render(const RenderEnvironment& env, const std::unordered_map<Model, std::vector<ModelInstance*>>& instances) noexcept {
 
     prepareRendering(env);
 	_render(env, instances);
@@ -117,7 +117,7 @@ void ModelRendererGL::setRenderMaterial(const RenderMaterial& mat, ModelShaderCo
 //	glCall(glBindVertexArray(0));
 //}
 
-void ModelRendererGL::_render(const RenderEnvironment& env, const std::vector<std::pair<Model, std::vector<ModelInstance*>>>& instances) noexcept {
+void ModelRendererGL::_render(const RenderEnvironment& env, const std::unordered_map<Model, std::vector<ModelInstance*>>& instances) noexcept {
     [[maybe_unused]] int nCount{ 0 };
 
     // Render model instances, opaque first
