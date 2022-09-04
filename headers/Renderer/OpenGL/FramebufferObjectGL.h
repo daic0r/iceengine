@@ -19,7 +19,7 @@ class FramebufferObjectGL {
     GLuint m_nTexAttachment{ 0 };
     GLuint m_nDepthAttachment{ 0 };
 	GLuint m_nDepthTextureAttachment{ 0 };
-    GLsizei m_nWidth{ 0 }, m_nHeight{ 0 };
+    GLsizei m_nWidth{ -1 }, m_nHeight{ -1 };
     GLsizei m_nOldWidth{ -1 }, m_nOldHeight{ -1 };
     GLint m_nLastFBO{};
     
@@ -38,8 +38,8 @@ public:
     
     auto width() const noexcept { return m_nWidth; }
     auto height() const noexcept { return m_nHeight; }
-	void setWidth(std::uint16_t w) noexcept { m_nWidth = w; }
-	void setHeight(std::uint16_t h) noexcept { m_nHeight = h; }
+	void setWidth(GLsizei w) noexcept { m_nWidth = w; }
+	void setHeight(GLsizei h) noexcept { m_nHeight = h; }
     auto textureAttachmentId() const noexcept { return m_nTexAttachment; }
     void setTextureAttachmentId(GLuint id) noexcept { m_nTexAttachment = id; }
     auto depthAttachmentId() const noexcept { return m_nDepthAttachment; }
@@ -63,6 +63,9 @@ public:
     friend void swap(FramebufferObjectGL& a, FramebufferObjectGL& b) noexcept {
         a.swap(b);
     }
+
+private:
+    void cleanup();
 };
 
 

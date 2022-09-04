@@ -22,6 +22,10 @@ FramebufferObjectGL::FramebufferObjectGL(GLsizei w, GLsizei h, bool bCreate) noe
 }
 
 FramebufferObjectGL::~FramebufferObjectGL() {
+    cleanup();
+}
+
+void FramebufferObjectGL::cleanup() {
     if (m_nFramebuffer != 0)
         glCall(glDeleteFramebuffers(1, &m_nFramebuffer));
     if (m_nTexAttachment != 0)
@@ -89,7 +93,7 @@ void FramebufferObjectGL::resize(GLsizei nWidth, GLsizei nHeight) noexcept {
     const auto bTexture = m_nTexAttachment != 0;
     const auto bDepth = m_nDepthAttachment != 0;
     const auto bDepthTexture = m_nDepthTextureAttachment != 0;
-    this->~FramebufferObjectGL();
+    cleanup();
     setWidth(nWidth);
     setHeight(nHeight);
     create();
