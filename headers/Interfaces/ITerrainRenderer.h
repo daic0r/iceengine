@@ -10,8 +10,15 @@
 #define ITerrainRenderer_h
 
 #include <vector>
+#include <optional>
 
 namespace Ice {
+
+enum class TerrainClipMode {
+    NONE,
+    BELOW_WATER = 1,
+    ABOVE_WATER = -1
+};
 
 struct Terrain;
 struct RenderEnvironment;
@@ -19,7 +26,7 @@ struct RenderEnvironment;
 class ITerrainRenderer {
 public:
     virtual void prepareRendering(const RenderEnvironment&, const std::vector<Terrain>&) noexcept = 0;
-    virtual void render(const RenderEnvironment&, const std::vector<Terrain>&) noexcept = 0;
+    virtual void render(const RenderEnvironment&, const std::vector<Terrain>&, std::optional<float> fWaterLevel = std::nullopt, TerrainClipMode clipMode = TerrainClipMode::NONE) noexcept = 0;
     virtual void finishRendering() noexcept = 0;
     virtual ~ITerrainRenderer() {}
 };

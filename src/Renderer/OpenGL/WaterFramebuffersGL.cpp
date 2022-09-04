@@ -15,10 +15,10 @@
 namespace Ice {
 
 WaterFramebuffersGL::~WaterFramebuffersGL() {
-    cleanUp();
+    cleanup();
 }
 
-void WaterFramebuffersGL::cleanUp() noexcept {
+void WaterFramebuffersGL::cleanup() noexcept {
     if (m_nReflectionFramebuffer != 0)
         glCall(glDeleteFramebuffers(1, &m_nReflectionFramebuffer));
     if (m_nReflectionTexture != 0)
@@ -31,33 +31,40 @@ void WaterFramebuffersGL::cleanUp() noexcept {
         glCall(glDeleteTextures(1, &m_nRefractionTexture));
     if (m_nRefractionDepthTexture != 0)
         glCall(glDeleteTextures(1, &m_nRefractionDepthTexture));
+    m_nReflectionFramebuffer = m_nReflectionTexture = m_nReflectionDepthBuffer = m_nRefractionFramebuffer = m_nRefractionTexture = m_nRefractionDepthTexture = 0;
 }
 
-WaterFramebuffersGL::WaterFramebuffersGL() {
+WaterFramebuffersGL::WaterFramebuffersGL(GLsizei nReflectionWidth, GLsizei nReflectionHeight, GLsizei nRefractionWidth, GLsizei nRefractionHeight)
+    : m_nReflectionWidth{ nReflectionWidth },
+    m_nReflectionHeight{ nReflectionHeight },
+    m_nRefractionWidth{ nRefractionWidth },
+    m_nRefractionHeight{ nRefractionHeight }
+{
+    
     initReflectionFramebuffer();
     initRefractionFramebuffer();
 }
 
 void WaterFramebuffersGL::initReflectionFramebuffer() noexcept {
     m_nReflectionFramebuffer = RenderToolsGL::createFramebuffer();
-    m_nReflectionTexture = RenderToolsGL::createTextureFramebufferAttachment(REFLECTION_WIDTH, REFLECTION_HEIGHT);
-    m_nReflectionDepthBuffer = RenderToolsGL::createDepthBufferFramebufferAttachment(REFLECTION_WIDTH, REFLECTION_HEIGHT);
+    m_nReflectionTexture = RenderToolsGL::createTextureFramebufferAttachment(m_nReflectionWidth, m_nReflectionHeight);
+    m_nReflectionDepthBuffer = RenderToolsGL::createDepthBufferFramebufferAttachment(m_nReflectionWidth, m_nReflectionHeight);
     RenderToolsGL::unbindCurrentFramebuffer();
 }
 
 void WaterFramebuffersGL::initRefractionFramebuffer() noexcept {
     m_nRefractionFramebuffer = RenderToolsGL::createFramebuffer();
-    m_nRefractionTexture = RenderToolsGL::createTextureFramebufferAttachment(REFRACTION_WIDTH, REFRACTION_HEIGHT);
-    m_nRefractionDepthTexture = RenderToolsGL::createDepthTextureFramebufferAttachment(REFRACTION_WIDTH, REFRACTION_HEIGHT);
+    m_nRefractionTexture = RenderToolsGL::createTextureFramebufferAttachment(m_nRefractionWidth, m_nRefractionHeight);
+    m_nRefractionDepthTexture = RenderToolsGL::createDepthTextureFramebufferAttachment(m_nRefractionWidth, m_nRefractionHeight);
     RenderToolsGL::unbindCurrentFramebuffer();
 }
 
 void WaterFramebuffersGL::bindReflectionFramebuffer() const noexcept {
-    RenderToolsGL::bindFramebuffer(m_nReflectionFramebuffer, REFLECTION_WIDTH, REFLECTION_HEIGHT);
+    RenderToolsGL::bindFramebuffer(m_nReflectionFramebuffer, m_nReflectionWidth, m_nReflectionHeight);
 }
 
 void WaterFramebuffersGL::bindRefractionFramebuffer() const noexcept {
-    RenderToolsGL::bindFramebuffer(m_nRefractionFramebuffer, REFRACTION_WIDTH, REFRACTION_HEIGHT);
+    RenderToolsGL::bindFramebuffer(m_nRefractionFramebuffer, m_nRefractionWidth, m_nRefractionHeight);
 }
 
 }

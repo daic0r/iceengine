@@ -69,8 +69,9 @@ void RenderObjectGL::addBuffer(GLuint nVbo) noexcept{
     m_vBuffers.emplace_back(nVbo);
 }
 
-void RenderObjectGL::addIndexBuffer(GLuint nIbo) noexcept {
+void RenderObjectGL::addIndexBuffer(GLuint nIbo, std::size_t nNumIndices) noexcept {
     m_vIndexBuffers.emplace_back(nIbo);
+    m_nNumIndices = nNumIndices;
 }
 
 GLuint RenderObjectGL::bufferAt(int nIndex) {

@@ -82,9 +82,11 @@ void Camera::zoom(float factor) noexcept {
     setDistance(newDistance);
     // 45 degrees = dist = 50
     // 10 degrees = dist = 10
+    /*
     setPitch(config().m_fMinPitch + 
         Math::map0to1Range(m_fDistance.target(), conf.m_fMinDistance, conf.m_fMaxDistance) * 
             (conf.m_fMaxPitch - conf.m_fMinPitch));
+    */
 
 }
 
@@ -142,6 +144,11 @@ void Camera::update(float fDeltaTime) {
     setPosition(newPos);
     setUp(up);
     setDirection(-glm::normalize(toCam));
+}
+
+void Camera::invertPitch() noexcept {
+    m_fPitch.force(-m_fPitch);
+    update(0.0f);
 }
 
 }

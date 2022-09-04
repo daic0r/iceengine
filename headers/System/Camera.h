@@ -57,6 +57,7 @@ public:
     void setYaw(float yaw) noexcept { m_fYaw = yaw; }
     void setPitch(float pitch) noexcept;
     void setDistance(float fDist) noexcept { m_fDistance = fDist; }
+    void invertPitch() noexcept;
     
     const glm::vec3& position() const noexcept;
     auto& position() noexcept { return m_position; }

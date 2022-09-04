@@ -15,12 +15,15 @@ namespace Ice {
 
 struct RenderEnvironment;
 class WaterTile;
+class IPostProcessingEffect;
 
 class IWaterRenderer {
 public:
     virtual void prepareRendering(const RenderEnvironment&) noexcept = 0;
     virtual void render(const RenderEnvironment&, const std::vector<WaterTile*>&) noexcept = 0;
     virtual void finishRendering() noexcept = 0;
+    virtual void setOriginalCanvas(IPostProcessingEffect* pCanvas) noexcept = 0;
+    virtual void setWaterLevel(float) noexcept = 0;
     virtual ~IWaterRenderer() {}
 };
 

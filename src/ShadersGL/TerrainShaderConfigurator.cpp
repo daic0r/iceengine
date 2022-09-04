@@ -13,10 +13,8 @@
 
 namespace Ice {
 
-const std::string TerrainShaderConfigurator::m_strShadowProjViewMatrixUniformName{ "shadowProjViewMatrix" };
 const std::string TerrainShaderConfigurator::m_strShadowMapTextureUniformName{ "shadowMap" };
-const std::string TerrainShaderConfigurator::m_strShadowDistanceUniformName{ "shadowDistance" };
-const std::string TerrainShaderConfigurator::m_strShadowMarginUniformName{ "shadowMargin" };
+const std::string TerrainShaderConfigurator::m_strWaterLevelClipPlaneYUniformName{ "waterLevelAndClipPlaneY" };
 
 void TerrainShaderConfigurator::bindAttributes() const noexcept {
     m_pShaderProgram->bindAttribute(0, "vertexPos");
@@ -30,12 +28,17 @@ void TerrainShaderConfigurator::getUniformLocations() noexcept {
 	glUniformBlockBinding(m_pShaderProgram->id(), m_nCommonMatricesUBOIndex, 0);
 	//m_nShadowProjViewMatrixUniformId = m_pShaderProgram->getUniformLocation(m_strShadowProjViewMatrixUniformName);
 	m_nShadowMapTextureUniformId = m_pShaderProgram->getUniformLocation(m_strShadowMapTextureUniformName);
+	m_nWaterLevelClipPlaneYUniformId = m_pShaderProgram->getUniformLocation(m_strWaterLevelClipPlaneYUniformName);
 	//// Use texture unit 1
 	m_pShaderProgram->use();
 	m_pShaderProgram->loadInt(m_nShadowMapTextureUniformId, 1);
 	m_pShaderProgram->unuse();
 	//m_nShadowDistanceUniformId = m_pShaderProgram->getUniformLocation(m_strShadowDistanceUniformName);
 	//m_nShadowMarginUniformId = m_pShaderProgram->getUniformLocation(m_strShadowMarginUniformName);
+}
+
+void TerrainShaderConfigurator::loadWaterLevelAndClipPlaneY(float fWaterLevel, int nClipPlaneY) noexcept {
+	m_pShaderProgram->loadVector2f(m_nWaterLevelClipPlaneYUniformId, glm::vec2{ fWaterLevel, nClipPlaneY });
 }
 
 //void TerrainShaderConfigurator::loadShadowProjViewMatrix(const glm::mat4& m) const noexcept {

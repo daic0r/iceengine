@@ -31,6 +31,9 @@
 #include <ranges>
 #include <algorithm>
 #include <Utils/MeshGeneration/LowPolyTerrainMeshGenerator.h>
+#include <Interfaces/IModelRenderer.h>
+#include <Interfaces/ITerrainRenderer.h>
+#include <Interfaces/IPostProcessingEffect.h>
 
 namespace Ice {
 
@@ -59,11 +62,46 @@ WaterRendererGL::WaterRendererGL() {
     m_nModelMatrixID = m_pShaderProgram->getUniformLocation("modelMatrix");
     m_pShaderProgram->unuse();
    
-    //m_pQuad = std::make_unique<RenderObjectGL>(RenderToolsGL::loadVerticesToVAO(m_vQuadVertices, 2));
-    //glEnableVertexAttribArray(0);
+    m_pQuad = std::make_unique<RenderObjectGL>(RenderToolsGL::loadVerticesToVAO(m_vQuadVertices, 2));
+    glEnableVertexAttribArray(0);
+
+    m_pPreviewShader = std::make_unique<ShaderProgramGL>();
+    m_pPreviewShader->fromSource(R"(
+#version 410
+
+in vec2 vertexPos;
+out vec2 texCoord;
+
+void main() {
+    gl_Position = vec4(0.25 * vertexPos.x, 0.25 * vertexPos.y, 0.0, 1.0) * 2.0 - 1.0;
+    texCoord = vec2(vertexPos.x, 1.0 - vertexPos.y);
+}
+    )",
+    R"(
+#version 410
+
+in vec2 texCoord;
+out vec4 outColor;
+
+uniform sampler2D tex;
+
+void main() {
+    outColor = texture(tex, texCoord);
+}
+    )"
+    );
+
+    GLint nTexLoc = m_pPreviewShader->getUniformLocation("tex");
+    m_pPreviewShader->loadInt(nTexLoc, 0);
+    m_pPreviewShader->unuse();
+
+    m_pModelRenderer = entityManager.getSystem<ObjectRenderingSystem, true>();
+    m_pTerrainRenderer = entityManager.getSystem<TerrainRenderingSystem, false>();
+    m_pGraphicsSystem = systemServices.getGraphicsSystem();
 }
 
 void WaterRendererGL::prepareRendering(const RenderEnvironment& env) noexcept {
+
     glCall(m_pShaderProgram->use());
 
     const auto perspectiveViewMatrix = env.projectionMatrix * env.viewMatrix;
@@ -93,13 +131,46 @@ void WaterRendererGL::prepareRendering(const RenderEnvironment& env) noexcept {
     */
     //glCall(glEnable(GL_BLEND));
     //glCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
-    glEnable(GL_DEPTH_TEST);
 #ifdef _DEBUG
     glPolygonMode(GL_FRONT_AND_BACK, env.bWireframe ? GL_LINE : GL_FILL);
 #endif
 }
 
 void WaterRendererGL::render(const RenderEnvironment& env, const std::vector<WaterTile*> &vTiles) noexcept {
+    GLint nLastFBO{-1};
+    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &nLastFBO);
+
+    auto myEnv = env;
+    Camera cam = *myEnv.pCamera;
+    cam.setHeightGetterFunc(nullptr);
+    cam.invertPitch();
+    myEnv.pCamera = &cam;
+    myEnv.viewMatrix = cam.matrix();
+
+    m_fbo.bindReflectionFramebuffer();
+    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+    m_pTerrainRenderer->render(myEnv, m_fWaterLevel, TerrainClipMode::BELOW_WATER);
+    //m_pModelRenderer->render(myEnv);
+    cam.invertPitch();
+    myEnv.viewMatrix = cam.matrix();
+    m_fbo.bindRefractionFramebuffer();
+    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+    m_pTerrainRenderer->render(myEnv, m_fWaterLevel, TerrainClipMode::ABOVE_WATER);
+ 
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, nLastFBO);
+    glViewport(0, 0, m_pGraphicsSystem->displayWidth(), m_pGraphicsSystem->displayHeight());
+
+    glDisable(GL_DEPTH_TEST);
+    glBindVertexArray(m_pQuad->vao());
+    m_pPreviewShader->use();
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, m_fbo.reflectionTexture());
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    m_pPreviewShader->unuse();
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindVertexArray(0);
+
+    glEnable(GL_DEPTH_TEST);
     prepareRendering(env);
     for (auto pTile : vTiles) {
         auto& renderObj = std::invoke([](WaterRendererGL* pRend, WaterTile* pTile) -> decltype(auto) {
@@ -118,7 +189,7 @@ void WaterRendererGL::render(const RenderEnvironment& env, const std::vector<Wat
         glCall(glDrawArrays(GL_TRIANGLE_STRIP, 0, m_vQuadVertices.size()));
         */
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderObj.indexBufferAt(0));
-        glDrawElements(GL_TRIANGLES, pTile->numTilesH() * pTile->numTilesV() * 2, GL_UNSIGNED_INT, (void*) 0);
+        glDrawElements(GL_TRIANGLES, renderObj.numIndices(), GL_UNSIGNED_INT, (void*) 0);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
     finishRendering();
@@ -190,7 +261,7 @@ RenderObjectGL& WaterRendererGL::registerWaterTile(WaterTile* pTile) {
 
     glCall(glBindVertexArray(0));
     auto [insert_iter, success ] = m_mTileObjects.emplace(pTile, RenderObjectGL{ nVao });
-    insert_iter->second.addIndexBuffer(buffers[1]);
+    insert_iter->second.addIndexBuffer(buffers[1], vIndices.size());
     return insert_iter->second;
 }
 

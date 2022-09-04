@@ -10,7 +10,6 @@
 #include <System/SystemServices.h>
 #include <Entities/EntityManager.h>
 #include <World/Terrain.h>
-#include <Interfaces/ITerrainRenderer.h>
 
 namespace Ice {
 
@@ -18,7 +17,7 @@ TerrainRenderingSystem::TerrainRenderingSystem() noexcept {
     m_pRenderer = systemServices.getTerrainRenderer();
 }
 
-void TerrainRenderingSystem::render(const RenderEnvironment& env) noexcept {
+void TerrainRenderingSystem::render(const RenderEnvironment& env, std::optional<float> fWaterLevel, TerrainClipMode clipMode) noexcept {
     std::vector<Terrain> vTerrains;
     for (Entity e : entities(entityManager.currentScene()))
     {
@@ -29,7 +28,7 @@ void TerrainRenderingSystem::render(const RenderEnvironment& env) noexcept {
         vTerrains.emplace_back(t);
     }
     
-    m_pRenderer->render(env, vTerrains);
+    m_pRenderer->render(env, vTerrains, fWaterLevel, clipMode);
 }
 
 }

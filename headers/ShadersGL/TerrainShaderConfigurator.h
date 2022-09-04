@@ -14,14 +14,13 @@
 namespace Ice {
 
 class TerrainShaderConfigurator : public Shader3dConfigurator {
-	static const std::string m_strShadowProjViewMatrixUniformName;
 	static const std::string m_strShadowMapTextureUniformName;
-	static const std::string m_strShadowDistanceUniformName;
-	static const std::string m_strShadowMarginUniformName;
+	static const std::string m_strWaterLevelClipPlaneYUniformName;
 
 	GLuint m_nCommonMatricesUBOIndex{ 0 };
 	//int m_nShadowProjViewMatrixUniformId{ -1 };
 	int m_nShadowMapTextureUniformId{ -1 };
+	int m_nWaterLevelClipPlaneYUniformId{ -1 };
 	//int m_nShadowDistanceUniformId{ -1 };
 	//int m_nShadowMarginUniformId{ -1 };
 
@@ -29,6 +28,7 @@ class TerrainShaderConfigurator : public Shader3dConfigurator {
 	void getUniformLocations() noexcept override;
 
 public:
+	void loadWaterLevelAndClipPlaneY(float fWaterLevel, int nClipPlaneY) noexcept;
 	//void loadShadowProjViewMatrix(const glm::mat4&) const noexcept;
 	//void loadShadowDistance(float) const noexcept;
 	//void loadShadowMargin(float) const noexcept;

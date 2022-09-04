@@ -56,6 +56,7 @@ public:
 	void onSystemsInitialized() noexcept override;
 
     IPostProcessingEffect* addPostProcessingEffect(PostProcessingEffect effect);
+    PostProcessingPipeline* postProcessingPipeline() const noexcept { return m_pPostProcessingPipeline.get(); }
 };
 
 }

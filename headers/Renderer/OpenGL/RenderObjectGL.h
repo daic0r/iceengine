@@ -28,6 +28,7 @@ class RenderObjectGL {
     std::vector<TextureGL*> m_vTextures;
     IShaderProgram *m_pShader{nullptr};
     IShaderConfigurator *m_pShaderConfig{nullptr};
+    std::size_t m_nNumIndices{};
     
 public:
 	RenderObjectGL() = default;
@@ -44,9 +45,10 @@ public:
     GLuint createEmptyVBO(int nNumFloats) noexcept;
     void addInstanceVertexAttribute(GLuint nVbo, int nAttribIndex, int nNumComponents, int nInstanceDataChunkLength, int nNumFloatsOffset) noexcept;
     void addBuffer(GLuint nVbo) noexcept;
-    void addIndexBuffer(GLuint nIbo) noexcept;
+    void addIndexBuffer(GLuint nIbo, std::size_t nNumIndices = 0) noexcept;
     GLuint bufferAt(int);
     GLuint indexBufferAt(int);
+    auto numIndices() const noexcept { return m_nNumIndices; }
     
     inline void setShaderProgram(IShaderProgram* pProgram) noexcept { m_pShader = pProgram; }
     inline void setShaderConfigurator(IShaderConfigurator* pShaderConfig) noexcept { m_pShaderConfig = pShaderConfig; }

@@ -18,6 +18,9 @@
 #include <Renderer/OpenGL/WaterFramebuffersGL.h>
 #include <Renderer/OpenGL/RenderObjectGL.h>
 #include <unordered_map>
+#include <Components/Systems/TerrainRenderingSystem.h>
+#include <Components/Systems/ObjectRenderingSystem.h>
+
 
 namespace Ice {
 
@@ -28,6 +31,8 @@ class WaterTile;
 struct RenderEnvironment;
 class WaterFramebuffersGL;
 class TextureGL;
+class IPostProcessingEffect;
+class IGraphicsSystem;
 
 class WaterRendererGL : public IWaterRenderer {
     static constexpr float WAVE_SPEED = 0.03;
@@ -35,6 +40,7 @@ class WaterRendererGL : public IWaterRenderer {
     static const std::vector<GLfloat> m_vQuadVertices;
     std::unique_ptr<RenderObjectGL> m_pQuad;
     std::unique_ptr<IShaderProgram> m_pShaderProgram{ nullptr };
+    std::unique_ptr<IShaderProgram> m_pPreviewShader{};
     /*WaterShaderConfigurator *m_pShaderConfig{ nullptr };
     TextureGL *m_pDuDvTexture{ nullptr }, *m_pNormalTexture{ nullptr };
     float m_fMoveFactor{ 0.0f };
@@ -42,12 +48,20 @@ class WaterRendererGL : public IWaterRenderer {
     */
     GLint m_nPersViewMatrixID{ -1 }, m_nModelMatrixID{ -1 };
     std::unordered_map<WaterTile*, RenderObjectGL> m_mTileObjects;
+    WaterFramebuffersGL m_fbo;
+    TerrainRenderingSystem *m_pTerrainRenderer{};
+    ObjectRenderingSystem* m_pModelRenderer{};
+    IPostProcessingEffect* m_pOriginalCanvas{};
+    IGraphicsSystem* m_pGraphicsSystem{};
+    float m_fWaterLevel{};
     
 public:
     WaterRendererGL();
     void prepareRendering(const RenderEnvironment&) noexcept override;
     void render(const RenderEnvironment&, const std::vector<WaterTile*>&) noexcept override;
     void finishRendering() noexcept override;
+    void setOriginalCanvas(IPostProcessingEffect* pCanvas) noexcept override { m_pOriginalCanvas = pCanvas; }
+    void setWaterLevel(float f) noexcept override { m_fWaterLevel = f; }
 
 private:
     RenderObjectGL& registerWaterTile(WaterTile*);

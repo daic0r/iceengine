@@ -59,10 +59,11 @@ TerrainRendererGL::TerrainRendererGL() {
 
 	m_pModelRenderer = dynamic_cast<ModelRendererGL*>(systemServices.getModelRenderer());
     m_pGraphicsSystem = dynamic_cast<GraphicsSystemGL*>(systemServices.getGraphicsSystem());
-	//m_pShaderProgram->use();
+	m_pShaderProgram->use();
+    m_pShaderConfig->loadWaterLevelAndClipPlaneY(0.0f, 0);
 	//m_pShaderConfig->loadShadowDistance(100.0f);
 	//m_pShaderConfig->loadShadowMargin(10.0f);
-	//m_pShaderProgram->unuse();
+	m_pShaderProgram->unuse();
 }
 
 TerrainRendererGL::~TerrainRendererGL() {
@@ -123,7 +124,7 @@ void TerrainRendererGL::prepareRendering(const RenderEnvironment& env, const std
 	//glCall(glBindTexture(GL_TEXTURE_2D, m_pModelRenderer->getShadowDepthTextureId()));
 }
 
-void TerrainRendererGL::render(const RenderEnvironment &env, const std::vector<Terrain>& vTerrains) noexcept {
+void TerrainRendererGL::render(const RenderEnvironment &env, const std::vector<Terrain>& vTerrains, std::optional<float> fWaterLevel, TerrainClipMode clipMode) noexcept {
     prepareRendering(env, vTerrains);
     for (const auto& terrain : vTerrains) {
         auto iter = m_mTerrains.find(terrain.pTerrain->m_terrain.terrainId());
@@ -135,7 +136,11 @@ void TerrainRendererGL::render(const RenderEnvironment &env, const std::vector<T
         
         glm::mat4 modelMatrix = glm::translate(glm::mat4{1.0f}, glm::vec3{ terrain.pTerrain->m_terrain.gridX(), 0.0f, terrain.pTerrain->m_terrain.gridZ() });
         m_pShaderConfig->loadModelMatrix(modelMatrix);
-        
+        if (fWaterLevel.has_value()) {
+            m_pShaderConfig->loadWaterLevelAndClipPlaneY(*fWaterLevel, static_cast<int>(clipMode));
+            glEnable(GL_CLIP_DISTANCE0);
+        }        
+
         glCall(glBindVertexArray(pGlModel->vao()));
         glCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, pGlModel->bufferAt(3)));
         
@@ -149,12 +154,17 @@ void TerrainRendererGL::render(const RenderEnvironment &env, const std::vector<T
         //    terrain.pTexture->texture()->unbind();
         
         glCall(glBindVertexArray(0));
-        
+        if (fWaterLevel.has_value()) {
+            m_pShaderConfig->loadWaterLevelAndClipPlaneY(0.0f, 0);
+            glDisable(GL_CLIP_DISTANCE0);
+        }        
+
+
+        /*
         glCall(glBindVertexArray(m_quadVAO));
         m_pTerrainHighlightShaderProgram->use();
         m_pTerrainHighlightShaderConfig->loadUniforms(env);
         
-        /*
         float fSize = 1.0f;
         auto tilePair = terrain.pTerrain->getSelectedTile(*env.pCamera, 1.0f, fSize);
 

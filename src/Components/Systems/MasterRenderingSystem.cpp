@@ -37,10 +37,10 @@ MasterRenderingSystem::MasterRenderingSystem() noexcept {
     entityManager.registerComponentSystem<true>(m_pAnimatedModelRenderingSystem.get());
     m_pSkyboxRenderingSystem = std::make_unique<SkyboxRenderingSystem>();
     entityManager.registerComponentSystem<true>(m_pSkyboxRenderingSystem.get());
-    m_pPathSegmentRenderingSystem = std::make_unique<PathSegmentRenderingSystem>();
-    entityManager.registerComponentSystem<false>(m_pPathSegmentRenderingSystem.get());
-	m_pParticleSystemSystem = std::make_unique<ParticleSystemSystem>();
-	entityManager.registerComponentSystem<true>(m_pParticleSystemSystem.get());
+    //m_pPathSegmentRenderingSystem = std::make_unique<PathSegmentRenderingSystem>();
+    //entityManager.registerComponentSystem<false>(m_pPathSegmentRenderingSystem.get());
+	//m_pParticleSystemSystem = std::make_unique<ParticleSystemSystem>();
+	//entityManager.registerComponentSystem<true>(m_pParticleSystemSystem.get());
 	m_pSunRenderingSystem = std::make_unique<SunRenderingSystem>();
 	entityManager.registerComponentSystem<false>(m_pSunRenderingSystem.get());
 	m_pWaterRenderingSystem = std::make_unique<WaterRenderingSystem>();
@@ -105,8 +105,8 @@ bool MasterRenderingSystem::update(float fDeltaTime) {
     m_pTerrainRenderingSystem->render(env);
     m_pWaterRenderingSystem->render(env);
 	m_pSunRenderingSystem->render(env);
-    m_pPathSegmentRenderingSystem->render(env);
-	m_pParticleSystemSystem->render(env);
+    //m_pPathSegmentRenderingSystem->render(env);
+	//m_pParticleSystemSystem->render(env);
     m_pPostProcessingPipeline->run();
 	//dynamic_cast<IShadowMapRenderer*>(systemServices.getShadowMapRenderer())->renderShadowDepthTexture();
 	//m_pObjectRenderingSystem->m_pRenderer->renderShadowDepthTexture();
@@ -120,6 +120,8 @@ bool MasterRenderingSystem::update(float fDeltaTime) {
 
 void MasterRenderingSystem::onSystemsInitialized() noexcept {
 	m_pCameraControllerSystem = entityManager.getSystem<CameraControllerSystem, true>();
+
+    m_pWaterRenderingSystem->setOriginalCanvas(m_pPostProcessingPipeline->originalCanvas());
 }
 
 IPostProcessingEffect* MasterRenderingSystem::addPostProcessingEffect(PostProcessingEffect effect)

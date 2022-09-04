@@ -16,11 +16,11 @@
 namespace Ice {
 
 class WaterFramebuffersGL {
-    static constexpr int REFLECTION_WIDTH = 320;
-    static constexpr int REFLECTION_HEIGHT = 200;
+    static constexpr GLsizei REFLECTION_WIDTH = 320;
+    static constexpr GLsizei REFLECTION_HEIGHT = 200;
     
-    static constexpr int REFRACTION_WIDTH = 1280;
-    static constexpr int REFRACTION_HEIGHT = 720;
+    static constexpr GLsizei REFRACTION_WIDTH = 1280;
+    static constexpr GLsizei REFRACTION_HEIGHT = 720;
     
     GLuint m_nReflectionFramebuffer{ 0 };
     GLuint m_nReflectionTexture{ 0 };
@@ -29,13 +29,16 @@ class WaterFramebuffersGL {
     GLuint m_nRefractionFramebuffer{ 0 };
     GLuint m_nRefractionTexture{ 0 };
     GLuint m_nRefractionDepthTexture{ 0 };
-    
-    void cleanUp() noexcept;
+
+    GLsizei m_nReflectionWidth{}, m_nReflectionHeight{};
+    GLsizei m_nRefractionWidth{}, m_nRefractionHeight{};
+
+    void cleanup() noexcept;
     void initReflectionFramebuffer() noexcept;
     void initRefractionFramebuffer() noexcept;
     
 public:
-    WaterFramebuffersGL();
+    WaterFramebuffersGL(GLsizei nReflectionWidth = REFLECTION_WIDTH, GLsizei nReflectionHeight = REFLECTION_HEIGHT, GLsizei nRefractionWidth = REFRACTION_WIDTH, GLsizei nRefractionHeight = REFRACTION_HEIGHT);
     ~WaterFramebuffersGL();
     
     void bindReflectionFramebuffer() const noexcept;

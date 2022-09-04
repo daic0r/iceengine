@@ -14,6 +14,8 @@
 #include <Components/MeshComponent.h>
 #include <Components/TextureComponent.h>
 #include <Renderer/RenderEnvironment.h>
+#include <optional>
+#include <Interfaces/ITerrainRenderer.h>
 
 namespace Ice {
 
@@ -26,7 +28,7 @@ class TerrainRenderingSystem : public EntityComponentSystem<TerrainComponent, Me
 public:
     TerrainRenderingSystem() noexcept;
     
-    void render(const RenderEnvironment&) noexcept;
+    void render(const RenderEnvironment&, std::optional<float> fWaterLevel = std::nullopt, TerrainClipMode clipMode = TerrainClipMode::NONE) noexcept;
 };
 
 }
