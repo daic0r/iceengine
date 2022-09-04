@@ -27,19 +27,25 @@ CameraControllerSystem::CameraControllerSystem() {
 	m_pGraphicsSystem = systemServices.getGraphicsSystem();
 }
 
+void CameraControllerSystem::onEntityAdded(Entity e) noexcept {
+    if (!m_pActiveCam) {
+        auto& camComp = entityManager.getComponent<CameraComponent>(e);
+        camComp.m_bPrimary = true;
+        m_pActiveCam = &camComp.m_camera;
+    }
+}
+
 bool CameraControllerSystem::update(float fDeltaTime) {
     static constexpr float fMargin = 30.0f;
 
-    Entity e = *entities(entityManager.currentScene()).begin();
-    auto &comp = entityManager.getComponent<CameraComponent>(e);
     int x, y;
     auto buttonState = SDL_GetRelativeMouseState(&x, &y);
     bool bMiddleButton = buttonState & SDL_BUTTON(SDL_BUTTON_MIDDLE);
     
-    auto& camera = comp.m_camera;
+    auto& camera = activeCam();
 
     if (bMiddleButton) {
-        camera.incYawAndPitch(x / 50.0f, 0.0f);
+        camera.incYawAndPitch(x / 50.0f, y / 50.0f);
     }
 
     while (auto pEvent = systemServices.getEventQueue()->peekInternalEvent()) {
@@ -89,7 +95,7 @@ bool CameraControllerSystem::update(float fDeltaTime) {
         m_pTerrainSystem = entityManager.getSystem<TerrainSystem, false>();
     if (!camera.hasHeightGetterFunc())
         camera.setHeightGetterFunc([this](float x, float z) {
-            return m_pTerrainSystem->getHeight(x, z).value_or(100.0f);
+            return m_pTerrainSystem->getHeight(x, z).value_or(36.0f);
         });
 	m_frustum = Frustum{ camera, m_pGraphicsSystem->distNearPlane(), m_pGraphicsSystem->distFarPlane(), glm::radians(m_pGraphicsSystem->fov()), m_pGraphicsSystem->aspectRatio() };
 

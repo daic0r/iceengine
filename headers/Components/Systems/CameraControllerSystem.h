@@ -21,6 +21,7 @@ class TerrainSystem;
 
 class CameraControllerSystem : public EntityComponentSystem<CameraComponent, TerrainComponent> {
   
+	Camera* m_pActiveCam{};
     int nLastX{}, nLastY{};
     bool bFirstMouse{ true };
 	Frustum m_frustum;
@@ -35,6 +36,9 @@ public:
 	const Frustum& frustum(Entity e = INVALID_ENTITY_ID) const noexcept { return m_frustum; }
 	Frustum transformedFrustum(const glm::mat4& m, Entity e = INVALID_ENTITY_ID) const noexcept;
 	int executionOrder() const noexcept override { return 0; }
+
+    void onEntityAdded(Entity) noexcept override;
+	Camera& activeCam() noexcept { return *m_pActiveCam; }
 };
 
 }
