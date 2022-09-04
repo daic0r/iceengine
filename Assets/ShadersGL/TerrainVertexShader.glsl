@@ -39,7 +39,7 @@ void main(void) {
 	vec4 worldPos = model * vec4(vertexPos, 1.0f);
     gl_Position = projection * view * worldPos;
 	if (waterLevelAndClipPlaneY.y != 0)
-		gl_ClipDistance[0] = dot(worldPos.xyz, vec3(0, waterLevelAndClipPlaneY.y, 0)) + (-1.0 * waterLevelAndClipPlaneY.x * waterLevelAndClipPlaneY.y);
+		gl_ClipDistance[0] = dot(worldPos, vec4(0, waterLevelAndClipPlaneY.y, 0, -1.0 * waterLevelAndClipPlaneY.x * waterLevelAndClipPlaneY.y));
     vsNormal = normal;
     toLight = normalize(sunPosition.xyz - worldPos.xyz);
     //fragTexCoord = texCoord;

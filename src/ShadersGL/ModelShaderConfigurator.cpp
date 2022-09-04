@@ -33,6 +33,7 @@ const std::string ModelShaderConfigurator::m_strShadowMapTextureUniformName{ "sh
 const std::string ModelShaderConfigurator::m_strShadowDistanceUniformName{ "shadowDistance" };
 const std::string ModelShaderConfigurator::m_strShadowMarginUniformName{ "shadowMargin" };
 
+const std::string ModelShaderConfigurator::m_strWaterLevelClipPlaneYUniformName{ "waterLevelAndClipPlaneY" };
 
 //sunPosition
 // sunColor
@@ -82,17 +83,20 @@ void ModelShaderConfigurator::getUniformLocations() noexcept {
     m_nMaterialAlphaUniformId = m_pShaderProgram->getUniformLocation(m_strMaterialAlphaUniformName);
     m_nMaterialRefractionIndexUniformId = m_pShaderProgram->getUniformLocation(m_strMaterialRefractionIndexUniformName);
     m_nMaterialHasTextureUniformId = m_pShaderProgram->getUniformLocation(m_strMaterialHasTextureUniformName);
+	m_nWaterLevelClipPlaneYUniformId = m_pShaderProgram->getUniformLocation(m_strWaterLevelClipPlaneYUniformName);
 
 	m_nCommonMatricesUBOIndex = glGetUniformBlockIndex(m_pShaderProgram->id(), "CommonMatrices");
 	glCall(glUniformBlockBinding(m_pShaderProgram->id(), m_nCommonMatricesUBOIndex, 0));
 	//m_nShadowProjViewMatrixUniformId = m_pShaderProgram->getUniformLocation(m_strShadowProjViewMatrixUniformName);
 	m_nShadowMapTextureUniformId = m_pShaderProgram->getUniformLocation(m_strShadowMapTextureUniformName);
+
+    m_pShaderProgram->use();
 	// Use texture unit 1
 	if (m_nShadowMapTextureUniformId != 1) {
-		m_pShaderProgram->use();
 		m_pShaderProgram->loadInt(m_nShadowMapTextureUniformId, 1);
-		m_pShaderProgram->unuse();
 	}
+    loadWaterLevelAndClipPlaneY(0.0f, 0);
+    m_pShaderProgram->unuse();
 	//m_nShadowDistanceUniformId = m_pShaderProgram->getUniformLocation(m_strShadowDistanceUniformName);
 	//m_nShadowMarginUniformId = m_pShaderProgram->getUniformLocation(m_strShadowMarginUniformName);
 
@@ -155,6 +159,10 @@ void ModelShaderConfigurator::loadTextureUnit(GLuint nUnit) const noexcept {
     if (m_nTextureUniformId != -1) {
         m_pShaderProgram->loadInt(m_nTextureUniformId, nUnit);
     }
+}
+
+void ModelShaderConfigurator::loadWaterLevelAndClipPlaneY(float fWaterLevel, int nClipPlaneY) noexcept {
+	m_pShaderProgram->loadVector2f(m_nWaterLevelClipPlaneYUniformId, glm::vec2{ fWaterLevel, nClipPlaneY });
 }
 
 /*

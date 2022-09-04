@@ -29,9 +29,9 @@ public:
 
 private:
 	void prepareRendering(const RenderEnvironment&) noexcept override;
-    void finishRendering() noexcept override;
+    void finishRendering(const RenderEnvironment&) noexcept override;
 	void prepareShader(RenderObjectGL* pModel, const RenderEnvironment& env) noexcept override;
-	void unbindShader(RenderObjectGL* pModel) noexcept override;
+	void unbindShader(RenderObjectGL* pModel, const RenderEnvironment& env) noexcept override;
 	void setRenderMaterial(const RenderMaterial&, ModelShaderConfigurator* pConfig) noexcept override;
 };
 

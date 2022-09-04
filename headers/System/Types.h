@@ -82,6 +82,12 @@ using TBlockFaces = std::array<TFace, 6>;
 static constexpr int HeightMapDim = 256;
 using HeightMap = std::array<std::array<float, HeightMapDim>, HeightMapDim>;
 
+enum class TerrainClipMode {
+    NONE,
+    BELOW_WATER = 1,
+    ABOVE_WATER = -1
+};
+
 }
 
 #endif /* Types_h */

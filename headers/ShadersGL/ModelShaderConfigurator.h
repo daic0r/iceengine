@@ -40,6 +40,8 @@ class ModelShaderConfigurator : public IShaderConfigurator {
 	static const std::string m_strShadowDistanceUniformName;
 	static const std::string m_strShadowMarginUniformName;
 
+	static const std::string m_strWaterLevelClipPlaneYUniformName;
+
 //    static const std::vector<const GLchar*> MaterialUBOVarNames;
     
     GLint m_nProjectMatrixUniformId{ -1 };
@@ -59,6 +61,7 @@ class ModelShaderConfigurator : public IShaderConfigurator {
 	GLint m_nShadowMapTextureUniformId{ -1 };
 	//GLint m_nShadowDistanceUniformId{ -1 };
 	//GLint m_nShadowMarginUniformId{ -1 };
+	GLint m_nWaterLevelClipPlaneYUniformId{ -1 };
 
 	
 //    std::vector<GLuint> m_vMaterialUBOVarOffsets;
@@ -87,6 +90,7 @@ public:
     void getUniformLocations() noexcept override;
     void setRenderMaterial(const RenderMaterial&) noexcept;
     void loadTextureUnit(GLuint nUnit) const noexcept;
+	void loadWaterLevelAndClipPlaneY(float fWaterLevel, int nClipPlaneY) noexcept;
 	//void loadShadowProjViewMatrix(const glm::mat4&) const noexcept;
 	//void loadShadowDistance(float) const noexcept;
 	//void loadShadowMargin(float) const noexcept;

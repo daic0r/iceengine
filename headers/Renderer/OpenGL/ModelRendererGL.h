@@ -62,10 +62,10 @@ public:
 private:
     virtual void prepareRendering(const RenderEnvironment&) noexcept;
 	void _render(const RenderEnvironment&, const std::unordered_map<Model, std::vector<ModelInstance*>>&) noexcept;
-    virtual void finishRendering() noexcept;
+    virtual void finishRendering(const RenderEnvironment&) noexcept;
 
 	virtual void prepareShader(RenderObjectGL* pModel, const RenderEnvironment& env) noexcept;
-	virtual void unbindShader(RenderObjectGL* pModel) noexcept;
+	virtual void unbindShader(RenderObjectGL* pModel, const RenderEnvironment& env) noexcept;
 	virtual void setRenderMaterial(const RenderMaterial&, ModelShaderConfigurator* pConfig) noexcept;
 
 };

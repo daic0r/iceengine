@@ -17,7 +17,7 @@ TerrainRenderingSystem::TerrainRenderingSystem() noexcept {
     m_pRenderer = systemServices.getTerrainRenderer();
 }
 
-void TerrainRenderingSystem::render(const RenderEnvironment& env, std::optional<float> fWaterLevel, TerrainClipMode clipMode) noexcept {
+void TerrainRenderingSystem::render(const RenderEnvironment& env) noexcept {
     std::vector<Terrain> vTerrains;
     for (Entity e : entities(entityManager.currentScene()))
     {
@@ -28,7 +28,7 @@ void TerrainRenderingSystem::render(const RenderEnvironment& env, std::optional<
         vTerrains.emplace_back(t);
     }
     
-    m_pRenderer->render(env, vTerrains, fWaterLevel, clipMode);
+    m_pRenderer->render(env, vTerrains);
 }
 
 }

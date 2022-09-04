@@ -11,9 +11,15 @@ out vec3 outNormal;
 out vec2 shadowMapCoord;
 out float distToLight;
 out float distFromCam;
+out float visibility;
+
+const float density = 0.002;
+const float gradient = 3.5;
 
 uniform mat4 projection;
 uniform mat4 view;
+// x = waterLevel, y = clip plane y component
+uniform vec2 waterLevelAndClipPlaneY;
 //uniform mat4 shadowProjViewMatrix;
 layout(std140) uniform CommonMatrices
 {
@@ -35,6 +41,8 @@ void main(void) {
     //gl_ClipDistance[0] = dot(worldPosition, plane);
     
     gl_Position = projection * view * worldPosition;
+	if (waterLevelAndClipPlaneY.y != 0)
+		gl_ClipDistance[0] = dot(worldPosition, vec4(0, waterLevelAndClipPlaneY.y, 0, -1.0 * waterLevelAndClipPlaneY.x * waterLevelAndClipPlaneY.y));
     
     toLight = normalize(sunPosition - worldPosition.xyz);
 	outNormal = normalize((worldTransform * vec4(normal, 0.0)).xyz);
@@ -43,4 +51,5 @@ void main(void) {
 	shadowMapCoord = shadowMapVec.xy;
 	distToLight = shadowMapVec.z;
 	distFromCam = length((view * worldPosition).xyz);
+	visibility = exp(-pow(distFromCam * density, gradient));
 }

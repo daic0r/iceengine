@@ -58,21 +58,27 @@ void ModelRendererGL::render(const RenderEnvironment& env, const std::unordered_
 
     prepareRendering(env);
 	_render(env, instances);
-    finishRendering();
+    finishRendering(env);
 }
 
-void ModelRendererGL::finishRendering() noexcept {
+void ModelRendererGL::finishRendering(const RenderEnvironment& env) noexcept {
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glCall(glBindVertexArray(0));
 
 	glCall(glDisable(GL_CULL_FACE));
 	glCall(glDisable(GL_BLEND));
 	glCall(glDisable(GL_DEPTH_TEST));
+	if (env.fWaterLevel.has_value())
+		glCall(glDisable(GL_CLIP_DISTANCE0));
 }
 
 void ModelRendererGL::prepareShader(RenderObjectGL* pModel, const RenderEnvironment& env) noexcept {
 	pModel->shaderProgram()->use();
 	pModel->shaderConfigurator()->loadUniforms(env);
+	if (env.fWaterLevel.has_value()) {
+		pModel->shaderConfigurator()->loadWaterLevelAndClipPlaneY(*env.fWaterLevel, static_cast<int>(env.clipMode));
+		glEnable(GL_CLIP_DISTANCE0);
+	}        
 	glCall(glActiveTexture(GL_TEXTURE1));
 	auto nId = dynamic_cast<ShadowMapRendererGL*>(systemServices.getShadowMapRenderer())->getShadowDepthTextureId();
 	glCall(glBindTexture(GL_TEXTURE_2D, nId));
@@ -90,7 +96,11 @@ void ModelRendererGL::prepareShader(RenderObjectGL* pModel, const RenderEnvironm
 	}
 }
 
-void ModelRendererGL::unbindShader(RenderObjectGL* pModel) noexcept {
+void ModelRendererGL::unbindShader(RenderObjectGL* pModel, const RenderEnvironment& env) noexcept {
+	if (env.fWaterLevel.has_value()) {
+		pModel->shaderConfigurator()->loadWaterLevelAndClipPlaneY(0.0f, 0);
+		glDisable(GL_CLIP_DISTANCE0);
+	}        
 	pModel->shaderProgram()->unuse();
 }
 
@@ -192,7 +202,7 @@ void ModelRendererGL::_render(const RenderEnvironment& env, const std::unordered
 //            std::cout << "Rendering model " << nCount++ << std::endl;
 		}
 
-		unbindShader(pModel);
+		unbindShader(pModel, env);
     }
 //    auto vpMat = env.projectionMatrix * env.viewMatrix;
 //

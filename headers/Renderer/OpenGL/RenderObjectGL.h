@@ -18,7 +18,7 @@
 
 namespace Ice {
 
-class IShaderConfigurator;
+class ModelShaderConfigurator;
 class TextureGL;
 
 class RenderObjectGL {
@@ -27,7 +27,7 @@ class RenderObjectGL {
     std::vector<GLuint> m_vIndexBuffers;
     std::vector<TextureGL*> m_vTextures;
     IShaderProgram *m_pShader{nullptr};
-    IShaderConfigurator *m_pShaderConfig{nullptr};
+    ModelShaderConfigurator *m_pShaderConfig{nullptr};
     std::size_t m_nNumIndices{};
     
 public:
@@ -51,7 +51,7 @@ public:
     auto numIndices() const noexcept { return m_nNumIndices; }
     
     inline void setShaderProgram(IShaderProgram* pProgram) noexcept { m_pShader = pProgram; }
-    inline void setShaderConfigurator(IShaderConfigurator* pShaderConfig) noexcept { m_pShaderConfig = pShaderConfig; }
+    inline void setShaderConfigurator(ModelShaderConfigurator* pShaderConfig) noexcept { m_pShaderConfig = pShaderConfig; }
     
     inline auto shaderProgram() const noexcept { return m_pShader; }
     inline auto shaderConfigurator() const noexcept { return m_pShaderConfig; }

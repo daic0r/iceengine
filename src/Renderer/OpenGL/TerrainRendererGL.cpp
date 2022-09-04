@@ -124,7 +124,7 @@ void TerrainRendererGL::prepareRendering(const RenderEnvironment& env, const std
 	//glCall(glBindTexture(GL_TEXTURE_2D, m_pModelRenderer->getShadowDepthTextureId()));
 }
 
-void TerrainRendererGL::render(const RenderEnvironment &env, const std::vector<Terrain>& vTerrains, std::optional<float> fWaterLevel, TerrainClipMode clipMode) noexcept {
+void TerrainRendererGL::render(const RenderEnvironment &env, const std::vector<Terrain>& vTerrains) noexcept {
     prepareRendering(env, vTerrains);
     for (const auto& terrain : vTerrains) {
         auto iter = m_mTerrains.find(terrain.pTerrain->m_terrain.terrainId());
@@ -136,8 +136,8 @@ void TerrainRendererGL::render(const RenderEnvironment &env, const std::vector<T
         
         glm::mat4 modelMatrix = glm::translate(glm::mat4{1.0f}, glm::vec3{ terrain.pTerrain->m_terrain.gridX(), 0.0f, terrain.pTerrain->m_terrain.gridZ() });
         m_pShaderConfig->loadModelMatrix(modelMatrix);
-        if (fWaterLevel.has_value()) {
-            m_pShaderConfig->loadWaterLevelAndClipPlaneY(*fWaterLevel, static_cast<int>(clipMode));
+        if (env.fWaterLevel.has_value()) {
+            m_pShaderConfig->loadWaterLevelAndClipPlaneY(*env.fWaterLevel, static_cast<int>(env.clipMode));
             glEnable(GL_CLIP_DISTANCE0);
         }        
 
@@ -154,7 +154,7 @@ void TerrainRendererGL::render(const RenderEnvironment &env, const std::vector<T
         //    terrain.pTexture->texture()->unbind();
         
         glCall(glBindVertexArray(0));
-        if (fWaterLevel.has_value()) {
+        if (env.fWaterLevel.has_value()) {
             m_pShaderConfig->loadWaterLevelAndClipPlaneY(0.0f, 0);
             glDisable(GL_CLIP_DISTANCE0);
         }        

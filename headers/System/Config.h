@@ -30,6 +30,7 @@ class ICEENGINE_API Config {
     int m_nWidth{ 1024 }, m_nHeight{ 768 };
     int m_nWindowPosX{ -1 }, m_nWindowPosY{ -1 };
     bool m_bFullScreen{ false };
+    float m_fWaterLevel;
 
     CameraConfig m_camera;
     

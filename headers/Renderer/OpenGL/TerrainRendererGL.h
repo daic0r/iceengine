@@ -53,7 +53,7 @@ public:
     ~TerrainRendererGL();
     
     void prepareRendering(const RenderEnvironment&, const std::vector<Terrain>&) noexcept override;
-    void render(const RenderEnvironment&, const std::vector<Terrain>&, std::optional<float> fWaterLevel = std::nullopt, TerrainClipMode clipMode = TerrainClipMode::NONE) noexcept override;
+    void render(const RenderEnvironment&, const std::vector<Terrain>&) noexcept override;
     void finishRendering() noexcept override;
 };
 

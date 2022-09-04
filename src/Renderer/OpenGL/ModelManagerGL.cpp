@@ -66,7 +66,7 @@ void ModelManagerGL::registerModel(const Model* pModel) noexcept {
         shaderIter = p.first;
     }
     glModel->setShaderProgram(shaderIter->second.get());
-    glModel->setShaderConfigurator(shaderIter->second->configurator());
+    glModel->setShaderConfigurator(static_cast<ModelShaderConfigurator*>(shaderIter->second->configurator()));
     
     for (const auto& [strMaterialName, material] : pModel->pMaterials->materials()) {
         
@@ -74,7 +74,7 @@ void ModelManagerGL::registerModel(const Model* pModel) noexcept {
         if (!strTextureFile.empty()) {
 			auto [pTex, bInserted] = RenderToolsGL::registerTextureFromFile(strTextureFile, m_mTextures);
 			if (bInserted) {
-				auto pShaderConfig = static_cast<ModelShaderConfigurator*>(glModel->shaderConfigurator());
+				auto pShaderConfig = glModel->shaderConfigurator();
                 glModel->shaderProgram()->use();
                 pShaderConfig->loadTextureUnit(0);
 				//pShaderConfig->loadShadowDistance(100.0f);
@@ -88,7 +88,7 @@ void ModelManagerGL::registerModel(const Model* pModel) noexcept {
 				pTex->setMinMagFilter(MinMagFilter::NEAREST);
                 pTex->loadFromFile(strTextureFile);
                 
-                auto pShaderConfig = static_cast<ModelShaderConfigurator*>(glModel->shaderConfigurator());
+                auto pShaderConfig = glModel->shaderConfigurator();
                 glModel->shaderProgram()->use();
                 pShaderConfig->loadTextureUnit(0);
                 glModel->shaderProgram()->unuse();

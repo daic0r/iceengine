@@ -146,16 +146,21 @@ void WaterRendererGL::render(const RenderEnvironment& env, const std::vector<Wat
     cam.invertPitch();
     myEnv.pCamera = &cam;
     myEnv.viewMatrix = cam.matrix();
+    myEnv.fWaterLevel = m_fWaterLevel;
+    myEnv.clipMode = TerrainClipMode::BELOW_WATER;
 
     m_fbo.bindReflectionFramebuffer();
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-    m_pTerrainRenderer->render(myEnv, m_fWaterLevel, TerrainClipMode::BELOW_WATER);
-    //m_pModelRenderer->render(myEnv);
+    m_pModelRenderer->render(myEnv);
+    m_pTerrainRenderer->render(myEnv);
+
     cam.invertPitch();
     myEnv.viewMatrix = cam.matrix();
+    myEnv.clipMode = TerrainClipMode::ABOVE_WATER;
     m_fbo.bindRefractionFramebuffer();
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-    m_pTerrainRenderer->render(myEnv, m_fWaterLevel, TerrainClipMode::ABOVE_WATER);
+    m_pModelRenderer->render(myEnv);
+    m_pTerrainRenderer->render(myEnv);
  
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, nLastFBO);
     glViewport(0, 0, m_pGraphicsSystem->displayWidth(), m_pGraphicsSystem->displayHeight());
@@ -164,7 +169,7 @@ void WaterRendererGL::render(const RenderEnvironment& env, const std::vector<Wat
     glBindVertexArray(m_pQuad->vao());
     m_pPreviewShader->use();
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, m_fbo.reflectionTexture());
+    glBindTexture(GL_TEXTURE_2D, m_fbo.refractionTexture());
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     m_pPreviewShader->unuse();
     glBindTexture(GL_TEXTURE_2D, 0);

@@ -12,6 +12,8 @@
 #include <vector>
 #include <glm/mat4x4.hpp>
 #include <glm/vec4.hpp>
+#include <optional>
+#include <System/Types.h>
 
 namespace Ice {
 
@@ -35,6 +37,9 @@ struct RenderEnvironment {
 
     float fAspectRatio{ 0.0f };
     bool bWireframe{};
+
+    std::optional<float> fWaterLevel = std::nullopt; 
+    TerrainClipMode clipMode = TerrainClipMode::NONE;
 };
 
 }

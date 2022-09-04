@@ -53,7 +53,7 @@ void ShadowMapRendererGL::prepareRendering(const RenderEnvironment&) noexcept {
 	//glCall(glClear(GL_DEPTH_BUFFER_BIT));
 }
 
-void ShadowMapRendererGL::finishRendering() noexcept {
+void ShadowMapRendererGL::finishRendering(const RenderEnvironment&) noexcept {
 	m_shadowFbo.unbind();
 	glCall(glDisable(GL_DEPTH_TEST));
 }
@@ -74,7 +74,7 @@ void ShadowMapRendererGL::prepareShader(RenderObjectGL* pModel, const RenderEnvi
 	m_pGraphicsSystem->commonUBO().unbind();
 }
 
-void ShadowMapRendererGL::unbindShader(RenderObjectGL* pModel) noexcept {
+void ShadowMapRendererGL::unbindShader(RenderObjectGL* pModel, const RenderEnvironment&) noexcept {
 	glCall(m_pShadowProgram->unuse());
 }
 
