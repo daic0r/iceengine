@@ -64,6 +64,7 @@ WaterRendererGL::WaterRendererGL() {
     m_nReflectionTextureID = m_pShaderProgram->getUniformLocation("reflectionTexture");
     m_nRefractionTextureID = m_pShaderProgram->getUniformLocation("refractionTexture");
     m_nWaterLevelID = m_pShaderProgram->getUniformLocation("waterLevel");
+    m_nCameraPosID = m_pShaderProgram->getUniformLocation("cameraPos");
     m_pShaderProgram->loadInt(m_nReflectionTextureID, 0);
     m_pShaderProgram->loadInt(m_nRefractionTextureID, 1);
     m_pShaderProgram->unuse();
@@ -119,6 +120,7 @@ void WaterRendererGL::prepareRendering(const RenderEnvironment& env) noexcept {
 
     const auto perspectiveViewMatrix = env.projectionMatrix * env.viewMatrix;
     m_pShaderProgram->loadMatrix4f(m_nPersViewMatrixID, perspectiveViewMatrix);
+    m_pShaderProgram->loadVector3f(m_nCameraPosID, env.pCamera->position());
     /*
     m_pShaderConfig->loadUniforms(env);
     m_fMoveFactor += WAVE_SPEED * env.fDeltaTime;
@@ -157,7 +159,7 @@ void WaterRendererGL::render(const RenderEnvironment& env, const std::vector<Wat
     Camera cam = *myEnv.pCamera;
     cam.setHeightGetterFunc(nullptr);
 
-    myEnv.fWaterLevel = m_fWaterLevel + 1.0f;
+    myEnv.fWaterLevel = m_fWaterLevel + 0.4f;
     const auto t = (myEnv.fWaterLevel.value() - cam.position().y) / cam.direction().y;
     cam.m_lookAt.force(cam.position() + t * cam.direction());
     cam.m_fDistance.force(glm::length(cam.lookAt() - cam.position()));
@@ -181,6 +183,7 @@ void WaterRendererGL::render(const RenderEnvironment& env, const std::vector<Wat
     myEnv.pCamera = env.pCamera;
     myEnv.viewMatrix = env.pCamera->matrix();
     myEnv.clipMode = TerrainClipMode::ABOVE_WATER;
+    myEnv.fWaterLevel = m_fWaterLevel + 1.0f;
     m_fbo.bindRefractionFramebuffer();
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     m_pModelRenderer->render(myEnv);
@@ -250,13 +253,17 @@ const char* WaterRendererGL::getVertexShaderSource() noexcept {
 layout(location = 0) in vec3 vertexPos;
 
 out vec4 clipSpace;
+out float fresnelFactor;
 
+uniform vec3 cameraPos;
 uniform float waterLevel;
 uniform mat4 modelMatrix;
 uniform mat4 perspectiveViewMatrix;
 
 void main() {
-    clipSpace = perspectiveViewMatrix * modelMatrix * vec4(vertexPos.x, waterLevel, vertexPos.z, 1);
+    vec4 worldPos = modelMatrix * vec4(vertexPos.x, waterLevel, vertexPos.z, 1);
+    fresnelFactor = dot(vec3(0, 1, 0), normalize(cameraPos - worldPos.xyz));
+    clipSpace = perspectiveViewMatrix * worldPos;
     gl_Position = clipSpace;
 }
 
@@ -268,6 +275,7 @@ const char* WaterRendererGL::getFragmentShaderSource() noexcept {
 #version 410
 
 in vec4 clipSpace;
+in float fresnelFactor;
 out vec4 outColor;
 
 uniform sampler2D reflectionTexture;
@@ -277,7 +285,7 @@ void main() {
     vec2 ndc = (clipSpace.xy / clipSpace.w) * 0.5 + 0.5;
     vec4 reflectionColor = texture(reflectionTexture, vec2(ndc.x, 1.0 - ndc.y));
     vec4 refractionColor = texture(refractionTexture, ndc);
-    outColor = mix(reflectionColor, refractionColor, 0.5);
+    outColor = mix(reflectionColor, refractionColor, fresnelFactor);
 }
 
 )";
