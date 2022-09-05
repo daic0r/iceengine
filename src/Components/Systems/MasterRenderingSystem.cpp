@@ -85,11 +85,13 @@ bool MasterRenderingSystem::update(float fDeltaTime) {
 	//Frustum f{ cam.m_camera, m_pGraphicsSystem->distNearPlane(), m_pGraphicsSystem->distFarPlane(), glm::radians(m_pGraphicsSystem->fov()), m_pGraphicsSystem->aspectRatio() };
     RenderEnvironment env;
     env.pCamera = &pCam->m_camera;
+    env.fWaterLevel = std::nullopt;
+    env.frustum = Frustum{ pCam->m_camera, m_pGraphicsSystem->distNearPlane(), m_pGraphicsSystem->distFarPlane(), glm::radians(m_pGraphicsSystem->fov()), m_pGraphicsSystem->aspectRatio() };
     env.viewMatrix = pCam->m_camera.matrix();
     env.projectionMatrix = m_pGraphicsSystem->projectionMatrix();
-	env.pFrustum = &m_pCameraControllerSystem->frustum();
     env.fAspectRatio = m_pGraphicsSystem->aspectRatio();
     env.bWireframe = m_pGraphicsSystem->wireframe();
+    env.bMainRenderPass = true;
 
 	if (m_pDayNightSystem == nullptr)
 		m_pDayNightSystem = entityManager.getSystem<DayNightCycleSystem, true>();

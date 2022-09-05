@@ -14,12 +14,6 @@ namespace Ice
         m_pRenderer->setOriginalCanvas(pOriginalCanvas); 
     }
 
-    void WaterRenderingSystem::onEntityAdded(Entity e) noexcept {
-        auto& comp = entityManager.getComponent<WaterTileComponent>(e);
-        if (!comp.m_tile.isHeightSet())
-            comp.m_tile.setHeight(waterLevel());
-    }
-
     void WaterRenderingSystem::setWaterLevel(float f) noexcept{
         m_fWaterLevel = f;
         m_pRenderer->setWaterLevel(f);

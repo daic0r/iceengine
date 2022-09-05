@@ -84,19 +84,6 @@ protected:
 			m_nFramesSinceNoKdRefresh = 1;
 			std::cout << "Bauta\n";
 		}
-		if (m_nFramesSinceFrustumRefresh % FRUSTUM_REFRESH_INTERVAL == 0) {
-			m_vFrustumEnts.clear();
-			const auto& frustum = m_pCameraControllerSystem->frustum();
-			// PROFILING: SUPER FAST
-			// #DONOTOPTIMIZE
-			for (auto& kvp : m_vInstances) {
-				kvp.second.clear();
-			}
-			m_kdTree.getVisibleObjects(&frustum, m_vFrustumEnts, m_vInstances);
-			m_nFramesSinceFrustumRefresh = 1;
-		} else {
-			++m_nFramesSinceFrustumRefresh;
-		}
 		return true;
 	}
 
@@ -126,8 +113,23 @@ protected:
 			++m_nFramesSinceFrustumRefresh;
 		}
 		*/
-		if (m_pShadowRenderer)
-			m_pShadowRenderer->render(env, m_vInstances);
+		if (env.bMainRenderPass) {
+			if (m_nFramesSinceFrustumRefresh % FRUSTUM_REFRESH_INTERVAL == 0) {
+				m_vFrustumEnts.clear();
+				// PROFILING: SUPER FAST
+				// #DONOTOPTIMIZE
+				for (auto& kvp : m_vInstances) {
+					kvp.second.clear();
+				}
+				m_kdTree.getVisibleObjects(&env.frustum, m_vFrustumEnts, m_vInstances);
+				m_nFramesSinceFrustumRefresh = 1;
+			} else {
+				++m_nFramesSinceFrustumRefresh;
+			}
+	
+			if (m_pShadowRenderer)
+				m_pShadowRenderer->render(env, m_vInstances);
+		}
 	}
 
 public:

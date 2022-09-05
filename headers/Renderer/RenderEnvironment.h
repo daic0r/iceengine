@@ -14,12 +14,12 @@
 #include <glm/vec4.hpp>
 #include <optional>
 #include <System/Types.h>
+#include <Renderer/Frustum.h>
 
 namespace Ice {
 
 class PointLight;
 class Camera;
-class Frustum;
 
 struct RenderEnvironment {
     glm::mat4 projectionMatrix;
@@ -29,7 +29,7 @@ struct RenderEnvironment {
 	PointLight* pSun{ nullptr };
     
     Camera *pCamera{ nullptr };
-    const Frustum *pFrustum{ nullptr };
+    Frustum frustum;
     
     void* pMiscData{ nullptr };
     
@@ -37,6 +37,7 @@ struct RenderEnvironment {
 
     float fAspectRatio{ 0.0f };
     bool bWireframe{};
+    bool bMainRenderPass{true};
 
     std::optional<float> fWaterLevel = std::nullopt; 
     TerrainClipMode clipMode = TerrainClipMode::NONE;

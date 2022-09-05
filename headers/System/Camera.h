@@ -21,7 +21,7 @@
 namespace Ice {
 
 class ICEENGINE_API Camera {
-    friend class Controller;
+    friend class WaterRendererGL;
     
     glm::vec3 m_position;
     glm::vec3 m_dir; 
@@ -49,6 +49,7 @@ public:
 
     void setUp(const glm::vec3& up) noexcept { m_up = glm::normalize(up); }
     void setDirection(const glm::vec3& dir) { m_dir = dir; }
+    void setPosition(const glm::vec3& pos) noexcept;
     // User configurables
     void setFoV(float fov) noexcept { m_fFoV = fov; }
     void setYawAndPitch(float yaw, float pitch);
@@ -82,7 +83,6 @@ public:
     void update(float fDeltaTime);
 
 private:
-    void setPosition(const glm::vec3& pos) noexcept;
 
 };
 

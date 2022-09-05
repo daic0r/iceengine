@@ -19,7 +19,6 @@ namespace Ice
     public:
         void render(const RenderEnvironment&) noexcept;
         void onSystemsInitialized() noexcept override;
-        void onEntityAdded(Entity) noexcept override;
         void setOriginalCanvas(IPostProcessingEffect* pOriginalCanvas) noexcept;
 
         void setWaterLevel(float f) noexcept;

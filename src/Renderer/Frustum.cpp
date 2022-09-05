@@ -16,12 +16,13 @@
 
 namespace Ice {
 
-Frustum::Frustum(const Camera& cam, float fDistNear, float fDistFar, float fovV, float fAspectRatio) {
-    m_position = cam.position();
-    m_direction = cam.direction();
-    m_right = glm::normalize(glm::cross(cam.direction(), cam.up()));
-    m_up = glm::normalize(glm::cross(m_right, m_direction));
-    //m_right = glm::cross(cam.lookAt(), cam.up());
+Frustum::Frustum(const Camera& cam, float fDistNear, float fDistFar, float fovV, float fAspectRatio) 
+    : m_position{ cam.position() },
+    m_direction{ cam.direction() },
+    m_right{ glm::normalize(glm::cross(cam.direction(), cam.up())) },
+    m_up { glm::normalize(glm::cross(m_right, m_direction)) }
+{
+   //m_right = glm::cross(cam.lookAt(), cam.up());
     const float fovH = fovV * fAspectRatio;
     const float fTanFovH2 = tan(fovH / 2.0f);
     const float fTanFovV2 = tan(fovV / 2.0f);

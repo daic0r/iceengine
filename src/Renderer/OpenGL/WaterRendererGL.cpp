@@ -34,6 +34,7 @@
 #include <Interfaces/IModelRenderer.h>
 #include <Interfaces/ITerrainRenderer.h>
 #include <Interfaces/IPostProcessingEffect.h>
+#include <glm/gtc/matrix_transform.hpp>
 
 namespace Ice {
 
@@ -60,6 +61,11 @@ WaterRendererGL::WaterRendererGL() {
     m_pShaderProgram->use();
     m_nPersViewMatrixID = m_pShaderProgram->getUniformLocation("perspectiveViewMatrix");
     m_nModelMatrixID = m_pShaderProgram->getUniformLocation("modelMatrix");
+    m_nReflectionTextureID = m_pShaderProgram->getUniformLocation("reflectionTexture");
+    m_nRefractionTextureID = m_pShaderProgram->getUniformLocation("refractionTexture");
+    m_nWaterLevelID = m_pShaderProgram->getUniformLocation("waterLevel");
+    m_pShaderProgram->loadInt(m_nReflectionTextureID, 0);
+    m_pShaderProgram->loadInt(m_nRefractionTextureID, 1);
     m_pShaderProgram->unuse();
    
     m_pQuad = std::make_unique<RenderObjectGL>(RenderToolsGL::loadVerticesToVAO(m_vQuadVertices, 2));
@@ -74,7 +80,7 @@ out vec2 texCoord;
 
 void main() {
     gl_Position = vec4(0.25 * vertexPos.x, 0.25 * vertexPos.y, 0.0, 1.0) * 2.0 - 1.0;
-    texCoord = vec2(vertexPos.x, 1.0 - vertexPos.y);
+    texCoord = vec2(vertexPos.x, vertexPos.y);
 }
     )",
     R"(
@@ -98,6 +104,13 @@ void main() {
     m_pModelRenderer = entityManager.getSystem<ObjectRenderingSystem, true>();
     m_pTerrainRenderer = entityManager.getSystem<TerrainRenderingSystem, false>();
     m_pGraphicsSystem = systemServices.getGraphicsSystem();
+}
+
+void WaterRendererGL::setWaterLevel(float f) noexcept {
+    m_fWaterLevel = f;
+    m_pShaderProgram->use();
+    m_pShaderProgram->loadFloat(m_nWaterLevelID, m_fWaterLevel);
+    m_pShaderProgram->unuse();
 }
 
 void WaterRendererGL::prepareRendering(const RenderEnvironment& env) noexcept {
@@ -143,28 +156,40 @@ void WaterRendererGL::render(const RenderEnvironment& env, const std::vector<Wat
     auto myEnv = env;
     Camera cam = *myEnv.pCamera;
     cam.setHeightGetterFunc(nullptr);
-    cam.invertPitch();
+
+    myEnv.fWaterLevel = m_fWaterLevel + 1.0f;
+    const auto t = (myEnv.fWaterLevel.value() - cam.position().y) / cam.direction().y;
+    cam.m_lookAt.force(cam.position() + t * cam.direction());
+    cam.m_fDistance.force(glm::length(cam.lookAt() - cam.position()));
+    cam.m_fPitch.force(-cam.pitch());
+    cam.update(0.0);
+
+    myEnv.bMainRenderPass = false;
     myEnv.pCamera = &cam;
     myEnv.viewMatrix = cam.matrix();
-    myEnv.fWaterLevel = m_fWaterLevel;
     myEnv.clipMode = TerrainClipMode::BELOW_WATER;
+    /*const auto shortFrustum =  Frustum{ cam, m_pGraphicsSystem->distNearPlane(), m_pGraphicsSystem->distNearPlane() + 150.0f, m_pGraphicsSystem->fov(), m_pGraphicsSystem->aspectRatio() };
+    const auto shortMatrix = glm::perspective(m_pGraphicsSystem->fov(), m_pGraphicsSystem->aspectRatio(), m_pGraphicsSystem->distNearPlane(), m_pGraphicsSystem->distNearPlane() + 150.0f);
+    myEnv.frustum = shortFrustum;
+    myEnv.projectionMatrix = shortMatrix;*/
 
     m_fbo.bindReflectionFramebuffer();
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     m_pModelRenderer->render(myEnv);
     m_pTerrainRenderer->render(myEnv);
 
-    cam.invertPitch();
-    myEnv.viewMatrix = cam.matrix();
+    myEnv.pCamera = env.pCamera;
+    myEnv.viewMatrix = env.pCamera->matrix();
     myEnv.clipMode = TerrainClipMode::ABOVE_WATER;
     m_fbo.bindRefractionFramebuffer();
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     m_pModelRenderer->render(myEnv);
     m_pTerrainRenderer->render(myEnv);
- 
+
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, nLastFBO);
     glViewport(0, 0, m_pGraphicsSystem->displayWidth(), m_pGraphicsSystem->displayHeight());
 
+/*
     glDisable(GL_DEPTH_TEST);
     glBindVertexArray(m_pQuad->vao());
     m_pPreviewShader->use();
@@ -174,10 +199,17 @@ void WaterRendererGL::render(const RenderEnvironment& env, const std::vector<Wat
     m_pPreviewShader->unuse();
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindVertexArray(0);
+*/
 
     glEnable(GL_DEPTH_TEST);
     prepareRendering(env);
-    for (auto pTile : vTiles) {
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, m_fbo.reflectionTexture()); 
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, m_fbo.refractionTexture()); 
+
+     for (auto pTile : vTiles) {
         auto& renderObj = std::invoke([](WaterRendererGL* pRend, WaterTile* pTile) -> decltype(auto) {
             auto iter = pRend->m_mTileObjects.find(pTile);
             if (iter != pRend->m_mTileObjects.end())
@@ -186,7 +218,7 @@ void WaterRendererGL::render(const RenderEnvironment& env, const std::vector<Wat
         }, this, pTile);
         glBindVertexArray(renderObj.vao());
 
-        auto modelMatrix = glm::translate(glm::mat4{1.0f}, glm::vec3{ pTile->position().x, pTile->height(), pTile->position().y });
+        auto modelMatrix = glm::translate(glm::mat4{1.0f}, glm::vec3{ pTile->position().x, 0.0, pTile->position().y });
         //modelMatrix = glm::scale(modelMatrix, glm::vec3{ pTile->size(), 1.0f, pTile->size() });
         m_pShaderProgram->loadMatrix4f(m_nModelMatrixID, modelMatrix);
         /*
@@ -217,11 +249,15 @@ const char* WaterRendererGL::getVertexShaderSource() noexcept {
 
 layout(location = 0) in vec3 vertexPos;
 
+out vec4 clipSpace;
+
+uniform float waterLevel;
 uniform mat4 modelMatrix;
 uniform mat4 perspectiveViewMatrix;
 
 void main() {
-    gl_Position =  perspectiveViewMatrix * modelMatrix * vec4(vertexPos.x, 0, vertexPos.z, 1);
+    clipSpace = perspectiveViewMatrix * modelMatrix * vec4(vertexPos.x, waterLevel, vertexPos.z, 1);
+    gl_Position = clipSpace;
 }
 
 )";
@@ -231,10 +267,17 @@ const char* WaterRendererGL::getFragmentShaderSource() noexcept {
     return R"(
 #version 410
 
+in vec4 clipSpace;
 out vec4 outColor;
 
+uniform sampler2D reflectionTexture;
+uniform sampler2D refractionTexture;
+
 void main() {
-    outColor = vec4(0,0,1,1);
+    vec2 ndc = (clipSpace.xy / clipSpace.w) * 0.5 + 0.5;
+    vec4 reflectionColor = texture(reflectionTexture, vec2(ndc.x, 1.0 - ndc.y));
+    vec4 refractionColor = texture(refractionTexture, ndc);
+    outColor = mix(reflectionColor, refractionColor, 0.5);
 }
 
 )";

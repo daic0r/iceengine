@@ -118,6 +118,10 @@ void TerrainRendererGL::prepareRendering(const RenderEnvironment& env, const std
         m_pGraphicsSystem->commonUBO().loadSunAmbient(env.pSun->ambient());
         m_pGraphicsSystem->commonUBO().unbind();
     }
+    if (env.fWaterLevel.has_value()) {
+        m_pShaderConfig->loadWaterLevelAndClipPlaneY(*env.fWaterLevel, static_cast<int>(env.clipMode));
+        glEnable(GL_CLIP_DISTANCE0);
+    }        
 
 	glCall(glActiveTexture(GL_TEXTURE1));
 	glCall(glBindTexture(GL_TEXTURE_2D, dynamic_cast<ShadowMapRendererGL*>(systemServices.getShadowMapRenderer())->getShadowDepthTextureId()));
@@ -136,10 +140,6 @@ void TerrainRendererGL::render(const RenderEnvironment &env, const std::vector<T
         
         glm::mat4 modelMatrix = glm::translate(glm::mat4{1.0f}, glm::vec3{ terrain.pTerrain->m_terrain.gridX(), 0.0f, terrain.pTerrain->m_terrain.gridZ() });
         m_pShaderConfig->loadModelMatrix(modelMatrix);
-        if (env.fWaterLevel.has_value()) {
-            m_pShaderConfig->loadWaterLevelAndClipPlaneY(*env.fWaterLevel, static_cast<int>(env.clipMode));
-            glEnable(GL_CLIP_DISTANCE0);
-        }        
 
         glCall(glBindVertexArray(pGlModel->vao()));
         glCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, pGlModel->bufferAt(3)));
@@ -154,10 +154,6 @@ void TerrainRendererGL::render(const RenderEnvironment &env, const std::vector<T
         //    terrain.pTexture->texture()->unbind();
         
         glCall(glBindVertexArray(0));
-        if (env.fWaterLevel.has_value()) {
-            m_pShaderConfig->loadWaterLevelAndClipPlaneY(0.0f, 0);
-            glDisable(GL_CLIP_DISTANCE0);
-        }        
 
 
         /*
@@ -191,10 +187,14 @@ void TerrainRendererGL::render(const RenderEnvironment &env, const std::vector<T
         */
     }
     
-    finishRendering();
+    finishRendering(env);
 }
 
-void TerrainRendererGL::finishRendering() noexcept {
+void TerrainRendererGL::finishRendering(const RenderEnvironment& env) noexcept {
+    if (env.fWaterLevel.has_value()) {
+        m_pShaderConfig->loadWaterLevelAndClipPlaneY(0.0f, 0);
+        glDisable(GL_CLIP_DISTANCE0);
+    }        
     m_pShaderProgram->unuse();
     //glCall(glDisable(GL_PRIMITIVE_RESTART));
     glCall(glDisable(GL_DEPTH_TEST));

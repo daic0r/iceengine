@@ -21,8 +21,8 @@ class ITerrainRenderer {
 public:
     virtual void prepareRendering(const RenderEnvironment&, const std::vector<Terrain>&) noexcept = 0;
     virtual void render(const RenderEnvironment&, const std::vector<Terrain>&) noexcept = 0;
-    virtual void finishRendering() noexcept = 0;
-    virtual ~ITerrainRenderer() {}
+    virtual void finishRendering(const RenderEnvironment&) noexcept = 0;
+    virtual ~ITerrainRenderer() = default;
 };
 
 }
