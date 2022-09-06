@@ -63,10 +63,13 @@ WaterRendererGL::WaterRendererGL() {
     m_nModelMatrixID = m_pShaderProgram->getUniformLocation("modelMatrix");
     m_nReflectionTextureID = m_pShaderProgram->getUniformLocation("reflectionTexture");
     m_nRefractionTextureID = m_pShaderProgram->getUniformLocation("refractionTexture");
+    m_nRefractionDepthTextureID = m_pShaderProgram->getUniformLocation("refractionDepthTexture");
     m_nWaterLevelID = m_pShaderProgram->getUniformLocation("waterLevel");
     m_nCameraPosID = m_pShaderProgram->getUniformLocation("cameraPos");
+    m_nDistPlanesID = m_pShaderProgram->getUniformLocation("distPlanes");
     m_pShaderProgram->loadInt(m_nReflectionTextureID, 0);
     m_pShaderProgram->loadInt(m_nRefractionTextureID, 1);
+    m_pShaderProgram->loadInt(m_nRefractionDepthTextureID, 2);
     m_pShaderProgram->unuse();
    
     m_pQuad = std::make_unique<RenderObjectGL>(RenderToolsGL::loadVerticesToVAO(m_vQuadVertices, 2));
@@ -91,20 +94,47 @@ in vec2 texCoord;
 out vec4 outColor;
 
 uniform sampler2D tex;
+uniform vec2 distPlanes; // near and far
 
+const float realnear = 1.0f;
+const float realfar = 1500.0f;
+
+float LinearizeDepth(float depth) 
+{
+    float near = realnear;
+    float far = realfar;
+    float z = depth * 2.0 - 1.0; // back to NDC 
+    float result = (2.0 * near * far) / (far + near - z * (far - near));
+    return result;
+}
+
+float toLinearDepth(float depth) 
+{
+    float distNearPlane = distPlanes.x;
+    float distFarPlane = distPlanes.y;
+    float z = depth * 2.0 - 1.0; // back to NDC 
+    float frustumDepth = distFarPlane - distNearPlane;
+    float result = (2.0 * distNearPlane * distFarPlane) / (distFarPlane + distNearPlane - z * (frustumDepth));
+    return (result - distNearPlane) / (frustumDepth);
+}
 void main() {
-    outColor = texture(tex, texCoord);
+    float c = (toLinearDepth(texture(tex, texCoord).r)); // - distPlanes.x) / (distPlanes.y - distPlanes.x);
+    outColor = vec4(c,c,c,1);
 }
     )"
     );
 
+    m_pGraphicsSystem = systemServices.getGraphicsSystem();
+
     GLint nTexLoc = m_pPreviewShader->getUniformLocation("tex");
+    GLint nDistPlanes = m_pPreviewShader->getUniformLocation("distPlanes");
+    m_pPreviewShader->use();
     m_pPreviewShader->loadInt(nTexLoc, 0);
+    m_pPreviewShader->loadVector2f(nDistPlanes, glm::vec2{ m_pGraphicsSystem->distNearPlane(), m_pGraphicsSystem->distFarPlane() });
     m_pPreviewShader->unuse();
 
     m_pModelRenderer = entityManager.getSystem<ObjectRenderingSystem, true>();
     m_pTerrainRenderer = entityManager.getSystem<TerrainRenderingSystem, false>();
-    m_pGraphicsSystem = systemServices.getGraphicsSystem();
 }
 
 void WaterRendererGL::setWaterLevel(float f) noexcept {
@@ -121,6 +151,7 @@ void WaterRendererGL::prepareRendering(const RenderEnvironment& env) noexcept {
     const auto perspectiveViewMatrix = env.projectionMatrix * env.viewMatrix;
     m_pShaderProgram->loadMatrix4f(m_nPersViewMatrixID, perspectiveViewMatrix);
     m_pShaderProgram->loadVector3f(m_nCameraPosID, env.pCamera->position());
+    m_pShaderProgram->loadVector2f(m_nDistPlanesID, glm::vec2{ m_pGraphicsSystem->distNearPlane(), m_pGraphicsSystem->distFarPlane() });
     /*
     m_pShaderConfig->loadUniforms(env);
     m_fMoveFactor += WAVE_SPEED * env.fDeltaTime;
@@ -144,7 +175,7 @@ void WaterRendererGL::prepareRendering(const RenderEnvironment& env) noexcept {
     glCall(glActiveTexture(GL_TEXTURE4));
     glCall(glBindTexture(GL_TEXTURE_2D, pFbo->refractionDepthTexture()));
     */
-    //glCall(glEnable(GL_BLEND));
+    glCall(glEnable(GL_BLEND));
     //glCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 #ifdef _DEBUG
     glPolygonMode(GL_FRONT_AND_BACK, env.bWireframe ? GL_LINE : GL_FILL);
@@ -192,25 +223,25 @@ void WaterRendererGL::render(const RenderEnvironment& env, const std::vector<Wat
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, nLastFBO);
     glViewport(0, 0, m_pGraphicsSystem->displayWidth(), m_pGraphicsSystem->displayHeight());
 
-/*
     glDisable(GL_DEPTH_TEST);
     glBindVertexArray(m_pQuad->vao());
     m_pPreviewShader->use();
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, m_fbo.refractionTexture());
+    glBindTexture(GL_TEXTURE_2D, m_fbo.refractionDepthTexture());
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     m_pPreviewShader->unuse();
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindVertexArray(0);
-*/
 
     glEnable(GL_DEPTH_TEST);
     prepareRendering(env);
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, m_fbo.reflectionTexture()); 
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, m_fbo.refractionTexture()); 
+    glCall(glActiveTexture(GL_TEXTURE0));
+    glCall(glBindTexture(GL_TEXTURE_2D, m_fbo.reflectionTexture()));
+    glCall(glActiveTexture(GL_TEXTURE1));
+    glCall(glBindTexture(GL_TEXTURE_2D, m_fbo.refractionTexture()));
+    glCall(glActiveTexture(GL_TEXTURE2));
+    glCall(glBindTexture(GL_TEXTURE_2D, m_fbo.refractionDepthTexture()));
 
      for (auto pTile : vTiles) {
         auto& renderObj = std::invoke([](WaterRendererGL* pRend, WaterTile* pTile) -> decltype(auto) {
@@ -236,7 +267,7 @@ void WaterRendererGL::render(const RenderEnvironment& env, const std::vector<Wat
 }
 
 void WaterRendererGL::finishRendering() noexcept {
-    //glCall(glDisable(GL_BLEND));
+    glCall(glDisable(GL_BLEND));
     glCall(glBindTexture(GL_TEXTURE_2D, 0));
     glCall(glBindVertexArray(0));
     glCall(glDisable(GL_DEPTH_TEST));
@@ -278,14 +309,40 @@ in vec4 clipSpace;
 in float fresnelFactor;
 out vec4 outColor;
 
+uniform vec2 distPlanes; // near and far
 uniform sampler2D reflectionTexture;
 uniform sampler2D refractionTexture;
+uniform sampler2D refractionDepthTexture;
+
+float toLinearDepth(float depth) 
+{
+    float distNearPlane = distPlanes.x;
+    float distFarPlane = distPlanes.y;
+    float z = depth * 2.0 - 1.0; // back to NDC 
+    float frustumDepth = distFarPlane - distNearPlane;
+    float result = (2.0 * distNearPlane * distFarPlane) / (distFarPlane + distNearPlane - z * frustumDepth);
+    return result;
+}
+
+float waterDepth(vec2 texCoord) {
+    float terrainDist = toLinearDepth(texture(refractionDepthTexture, texCoord).r);
+    float waterDist = toLinearDepth(gl_FragCoord.z);    // current depth (== distance to water)
+    return terrainDist - waterDist;
+}
 
 void main() {
+    const vec4 waterColor = vec4(0.607, 0.867, 0.851, 1.0);
+
     vec2 ndc = (clipSpace.xy / clipSpace.w) * 0.5 + 0.5;
     vec4 reflectionColor = texture(reflectionTexture, vec2(ndc.x, 1.0 - ndc.y));
     vec4 refractionColor = texture(refractionTexture, ndc);
+
+    float waterDepth = waterDepth(ndc);
+    float murkiness = smoothstep(0, 15, waterDepth);
+    refractionColor = mix(refractionColor, waterColor, murkiness);
+
     outColor = mix(reflectionColor, refractionColor, fresnelFactor);
+    outColor.a = clamp(waterDepth, 0.0, 1.0);
 }
 
 )";
@@ -299,6 +356,7 @@ RenderObjectGL& WaterRendererGL::registerWaterTile(WaterTile* pTile) {
     MeshGeneration::LowPolyTerrainMeshGenerator<> g{ pTile->numTilesH(), pTile->numTilesV() };// pTile->numTilesH(), pTile->numTilesV(), pTile->tileWidth(), pTile->tileHeight() };
     const auto vMesh = g.generateVertices(pTile->tileWidth(), pTile->tileHeight(), nullptr);
     const auto vIndices = g.generateIndices();
+    const auto vNormals = g.generateNormals(vMesh, vIndices);
 
     GLuint nVao;
     glCall(glCreateVertexArrays(1, &nVao));

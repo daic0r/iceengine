@@ -49,8 +49,10 @@ class WaterRendererGL : public IWaterRenderer {
     GLint m_nPersViewMatrixID{ -1 }, m_nModelMatrixID{ -1 };
     GLint m_nReflectionTextureID{ -1 };
     GLint m_nRefractionTextureID{ -1 };
+    GLint m_nRefractionDepthTextureID{ -1 };
     GLint m_nWaterLevelID{ -1 };
     GLint m_nCameraPosID{ -1 };
+    GLint m_nDistPlanesID{ -1 };
     std::unordered_map<WaterTile*, RenderObjectGL> m_mTileObjects;
     WaterFramebuffersGL m_fbo;
     TerrainRenderingSystem *m_pTerrainRenderer{};
