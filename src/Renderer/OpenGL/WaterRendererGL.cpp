@@ -69,6 +69,8 @@ WaterRendererGL::WaterRendererGL() {
     m_nDistPlanesID = m_pShaderProgram->getUniformLocation("distPlanes");
     m_nTimeID = m_pShaderProgram->getUniformLocation("time");
     m_nGridSizeID = m_pShaderProgram->getUniformLocation("gridSize");
+	m_nCommonMatricesUBOIndex = glGetUniformBlockIndex(m_pShaderProgram->id(), "CommonMatrices");
+	glUniformBlockBinding(m_pShaderProgram->id(), m_nCommonMatricesUBOIndex, 0);
     m_pShaderProgram->loadInt(m_nReflectionTextureID, 0);
     m_pShaderProgram->loadInt(m_nRefractionTextureID, 1);
     m_pShaderProgram->loadInt(m_nRefractionDepthTextureID, 2);
@@ -293,9 +295,14 @@ const char* WaterRendererGL::getVertexShaderSource() noexcept {
 #define M_PI 3.1415926535897932384626433832795
 
 layout(location = 0) in vec3 vertexPos;
+layout(location = 1) in vec4 indicators;
 
-out vec4 clipSpace;
+out vec4 clipSpace_real;
+out vec4 clipSpace_grid;
 out float fresnelFactor;
+out vec3 normal;
+out vec3 toLight;
+out vec4 diffuseColor;
 
 uniform vec3 cameraPos;
 uniform float waterLevel;
@@ -304,24 +311,57 @@ uniform float gridSize;
 uniform mat4 modelMatrix;
 uniform mat4 perspectiveViewMatrix;
 
+layout(std140) uniform CommonMatrices
+{
+	mat4 shadowProjViewMatrix;
+	float shadowDistance;
+	float shadowMargin;
+	float shadowTexelSize;
+	vec4 sunPosition;
+	vec4 sunColor;
+	vec4 sunAmbient;
+};
 
 vec3 applyDisplacement(vec3 vertex) {
     vec3 tmp = vertex;
     float x = vertex.x / gridSize;
     float z = vertex.z / gridSize;
     float multiplier = gridSize / 10.0f;
-    vertex.z = vertex.z + multiplier * sin(x * M_PI / 4.0 - time);
-    vertex.x = vertex.x + multiplier * cos(z * M_PI / 4.0 - time);
-    vertex.y = vertex.y + multiplier * sin(x * M_PI / 4.0 - time);
+    float arg1 = (z) * 2 * M_PI / 4.0 - time;
+    float arg2 = (x + z) * 2 * M_PI / 4.0 - time;
+    vertex.z = vertex.z + multiplier * (sin(arg1) + cos(arg1 * 3.0f)) * 2.0f;
+    vertex.x = vertex.x + multiplier * (sin(arg2 / 1.5f) + cos(arg1 * 11.0f)) / 3.0f;
+    vertex.y = vertex.y + multiplier * ((sin(arg1 * 1.34f) + cos(arg2 / 2.55f)) / 2);
     return vertex;
 }
 
+vec3 getNormal() {
+    vec3 v1 = applyDisplacement(vec3(vertexPos.x + indicators.x, waterLevel, vertexPos.z + indicators.z));
+    vec3 v2 = applyDisplacement(vec3(vertexPos.x + indicators.z, waterLevel, vertexPos.z + indicators.w));
+    return normalize(cross(v1, v2));
+}
+
+vec4 getDiffuseColor(vec3 toLightVec, vec3 normalVec) {
+    float brightness = max(dot(normalVec, toLightVec), 0.0f);
+    vec4 light = vec4(0,1,1,1);
+    return light * brightness;
+}
+
 void main() {
-    vec3 vertex = vec3(vertexPos.x, waterLevel, vertexPos.z);
-    vec4 worldPos = modelMatrix * vec4(applyDisplacement(vertex), 1);
-    fresnelFactor = dot(vec3(0, 1, 0), normalize(cameraPos - worldPos.xyz));
-    clipSpace = perspectiveViewMatrix * worldPos;
-    gl_Position = clipSpace;
+    vec3 vertex = applyDisplacement(vec3(vertexPos.x, waterLevel, vertexPos.z));
+    vec3 vertex1 = applyDisplacement(vec3(vertexPos.x + indicators.x, waterLevel, vertexPos.z + indicators.y));
+    vec3 vertex2 = applyDisplacement(vec3(vertexPos.x + indicators.z, waterLevel, vertexPos.z + indicators.w));
+
+    vec4 worldPos = modelMatrix * vec4(vertex, 1);
+
+    normal = normalize(cross(vertex1 - vertex, vertex2 - vertex));
+    toLight = normalize(sunPosition.xyz - worldPos.xyz);
+    diffuseColor = getDiffuseColor(toLight, normal);
+
+    fresnelFactor = dot(normal, normalize(cameraPos - worldPos.xyz));
+    clipSpace_real = perspectiveViewMatrix * worldPos;
+    clipSpace_grid = perspectiveViewMatrix * modelMatrix * vec4(vertexPos.x, waterLevel, vertexPos.z, 1);
+    gl_Position = clipSpace_real;
 }
 
 )";
@@ -331,8 +371,17 @@ const char* WaterRendererGL::getFragmentShaderSource() noexcept {
     return R"(
 #version 410
 
-in vec4 clipSpace;
+const float MURKY_DEPTH = 50.0f;
+const vec4 WATER_COLOR = vec4(0.607, 0.867, 0.851, 1.0);
+const float MIN_BLUENESS = 0.3f;
+const float MAX_BLUENESS = 0.75f;
+
+in vec4 clipSpace_real;
+in vec4 clipSpace_grid;
 in float fresnelFactor;
+in vec3 normal;
+in vec3 toLight;
+in vec4 diffuseColor;
 out vec4 outColor;
 
 uniform vec2 distPlanes; // near and far
@@ -356,18 +405,34 @@ float waterDepth(vec2 texCoord) {
     return terrainDist - waterDist;
 }
 
+vec2 clipSpaceToTexCoords(vec4 clipSpace) {
+    vec2 ndc = vec2(clipSpace.xy / clipSpace.w);
+    vec2 texCoords = ndc * 0.5 + 0.5;
+    texCoords = clamp(texCoords, 0.005, 0.995);
+    return texCoords;
+}
+
+vec4 applyMurkiness(vec4 refractionColor, float waterDepth) {
+    float murkyFactor = smoothstep(0, MURKY_DEPTH, waterDepth);
+    float murkiness = MIN_BLUENESS + murkyFactor * (MAX_BLUENESS - MIN_BLUENESS);
+    return mix(refractionColor, WATER_COLOR, murkiness);
+}
+
 void main() {
-    const vec4 waterColor = vec4(0.607, 0.867, 0.851, 1.0);
 
-    vec2 ndc = (clipSpace.xy / clipSpace.w) * 0.5 + 0.5;
-    vec4 reflectionColor = texture(reflectionTexture, vec2(ndc.x, 1.0 - ndc.y));
-    vec4 refractionColor = texture(refractionTexture, ndc);
+    vec2 ndc_grid = clipSpaceToTexCoords(clipSpace_grid);
+    vec2 ndc_real = clipSpaceToTexCoords(clipSpace_real);
+    vec4 reflectionColor = texture(reflectionTexture, vec2(ndc_grid.x, 1.0 - ndc_grid.y));
+    vec4 refractionColor = texture(refractionTexture, ndc_grid);
 
-    float waterDepth = waterDepth(ndc);
-    float murkiness = smoothstep(0, 15, waterDepth);
-    refractionColor = mix(refractionColor, waterColor, murkiness);
+    float waterDepth = waterDepth(ndc_real);
+    refractionColor = applyMurkiness(refractionColor, waterDepth);
+    reflectionColor = mix(reflectionColor, WATER_COLOR, MIN_BLUENESS);
 
     outColor = mix(reflectionColor, refractionColor, fresnelFactor);
+    outColor = diffuseColor * outColor;
+    //outColor = mix(vec4(1,0,0,1), vec4(0,0,1,1), abs(dot(normal, toLight)));
+    //outColor.a = 1.0f;
     outColor.a = clamp(waterDepth, 0.0, 1.0);
 }
 
@@ -382,26 +447,60 @@ RenderObjectGL& WaterRendererGL::registerWaterTile(WaterTile* pTile) {
     MeshGeneration::LowPolyTerrainMeshGenerator<> g{ pTile->numTilesH(), pTile->numTilesV() };// pTile->numTilesH(), pTile->numTilesV(), pTile->tileWidth(), pTile->tileHeight() };
     const auto vMesh = g.generateVertices(pTile->tileWidth(), pTile->tileHeight(), nullptr);
     const auto vIndices = g.generateIndices();
-    const auto vNormals = g.generateNormals(vMesh, vIndices);
+    std::vector<glm::vec4> vIndicators;
+    vIndicators.reserve(vMesh.size() / 3);
+
+    const auto indexAt = [&](std::size_t i) {
+        return vIndices.at(i);
+    };
+    for (std::size_t i = 0; i < vIndices.size(); i+=3) { // 3 indices at a time => 1 triangle
+        glm::vec3 lastCross{};
+        for (std::size_t j = 0; j < 3; ++j) {
+            std::array<glm::vec2, 2> arIndicators;
+            std::size_t nArWhere{};
+            glm::vec2 thisVec{ vMesh[3*indexAt(i + j)], vMesh[3*indexAt(i + j) + 2] };
+            for (std::size_t k = 0, l = j; k < 3; ++k, l = (l + 1) % 3) {
+                if (l == j)
+                    continue;
+                glm::vec2 otherVec{ vMesh[3*indexAt(i + l)], vMesh[3*indexAt(i + l) + 2] };
+                glm::vec2 indicator{ otherVec - thisVec };
+                arIndicators[nArWhere++] = indicator;
+            }
+            vIndicators.emplace_back(arIndicators[0].x, arIndicators[0].y, arIndicators[1].x, arIndicators[1].y);
+            auto thisCross = glm::normalize(glm::cross(glm::vec3{arIndicators[0].x, 0, arIndicators[0].y}, glm::vec3{arIndicators[1].x, 0, arIndicators[1].y}));
+            if (j > 0) {
+                assert(lastCross == thisCross);
+            }
+            lastCross = thisCross;
+        }
+
+    }
 
     GLuint nVao;
     glCall(glCreateVertexArrays(1, &nVao));
     glCall(glBindVertexArray(nVao));
     GLuint nVbo;
     
-    GLuint buffers[2]; 
-    glCall(glCreateBuffers(2, buffers));
+    GLuint buffers[3]; 
+    glCall(glCreateBuffers(3, buffers));
+
     glCall(glNamedBufferStorage(buffers[0], vMesh.size() * sizeof(glm::vec2), &vMesh[0], 0));
     glCall(glBindBuffer(GL_ARRAY_BUFFER, buffers[0]));
     glCall(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*) 0));
     glCall(glEnableVertexAttribArray(0));
+
+    glCall(glNamedBufferStorage(buffers[1], vIndicators.size() * sizeof(glm::vec4), &vIndicators[0], 0));
+    glCall(glBindBuffer(GL_ARRAY_BUFFER, buffers[1]));
+    glCall(glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (void*) 0));
+    glCall(glEnableVertexAttribArray(1));
+
     glCall(glBindBuffer(GL_ARRAY_BUFFER, 0));
 
-    glCall(glNamedBufferStorage(buffers[1], vIndices.size() * sizeof(unsigned int), &vIndices[0], 0));
+    glCall(glNamedBufferStorage(buffers[2], vIndices.size() * sizeof(unsigned int), &vIndices[0], 0));
 
     glCall(glBindVertexArray(0));
     auto [insert_iter, success ] = m_mTileObjects.emplace(pTile, RenderObjectGL{ nVao });
-    insert_iter->second.addIndexBuffer(buffers[1], vIndices.size());
+    insert_iter->second.addIndexBuffer(buffers[2], vIndices.size());
     return insert_iter->second;
 }
 

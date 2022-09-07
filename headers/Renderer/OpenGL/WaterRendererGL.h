@@ -25,7 +25,6 @@
 namespace Ice {
 
 class WaterShaderConfigurator;
-class IShaderProgram;
 class RenderObjectGL;
 class WaterTile;
 struct RenderEnvironment;
@@ -33,14 +32,15 @@ class WaterFramebuffersGL;
 class TextureGL;
 class IPostProcessingEffect;
 class IGraphicsSystem;
+class ShaderProgramGL;
 
 class WaterRendererGL : public IWaterRenderer {
     static constexpr float WAVE_SPEED = 0.03;
     
     static const std::vector<GLfloat> m_vQuadVertices;
     std::unique_ptr<RenderObjectGL> m_pQuad;
-    std::unique_ptr<IShaderProgram> m_pShaderProgram{ nullptr };
-    std::unique_ptr<IShaderProgram> m_pPreviewShader{};
+    std::unique_ptr<ShaderProgramGL> m_pShaderProgram{ nullptr };
+    std::unique_ptr<ShaderProgramGL> m_pPreviewShader{};
     /*WaterShaderConfigurator *m_pShaderConfig{ nullptr };
     TextureGL *m_pDuDvTexture{ nullptr }, *m_pNormalTexture{ nullptr };
     float m_fMoveFactor{ 0.0f };
@@ -55,6 +55,7 @@ class WaterRendererGL : public IWaterRenderer {
     GLint m_nDistPlanesID{ -1 };
     GLint m_nGridSizeID{ -1 };
     GLint m_nTimeID{ -1 };
+    GLuint m_nCommonMatricesUBOIndex{ 0 };
     float m_fWaveTime{};
 
     std::unordered_map<WaterTile*, RenderObjectGL> m_mTileObjects;
