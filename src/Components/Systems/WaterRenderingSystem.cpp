@@ -19,6 +19,10 @@ namespace Ice
         m_pRenderer->setWaterLevel(f);
     }
 
+    void WaterRenderingSystem::setGridSize(float f) noexcept {
+        m_pRenderer->setGridSize(f);
+    }
+
     void WaterRenderingSystem::render(const RenderEnvironment& env) noexcept {
         m_vTiles.clear();
         for (auto e : entities(entityManager.currentScene())) {
@@ -26,5 +30,10 @@ namespace Ice
             m_vTiles.push_back(&comp.m_tile);
         }
         m_pRenderer->render(env, m_vTiles);
+    }
+
+    bool WaterRenderingSystem::update(float fDeltaTime) noexcept {
+        m_pRenderer->incWaveTime(fDeltaTime);
+        return true;
     }
 } // namespace Ice

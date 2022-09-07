@@ -53,6 +53,10 @@ class WaterRendererGL : public IWaterRenderer {
     GLint m_nWaterLevelID{ -1 };
     GLint m_nCameraPosID{ -1 };
     GLint m_nDistPlanesID{ -1 };
+    GLint m_nGridSizeID{ -1 };
+    GLint m_nTimeID{ -1 };
+    float m_fWaveTime{};
+
     std::unordered_map<WaterTile*, RenderObjectGL> m_mTileObjects;
     WaterFramebuffersGL m_fbo;
     TerrainRenderingSystem *m_pTerrainRenderer{};
@@ -68,6 +72,8 @@ public:
     void finishRendering() noexcept override;
     void setOriginalCanvas(IPostProcessingEffect* pCanvas) noexcept override { m_pOriginalCanvas = pCanvas; }
     void setWaterLevel(float f) noexcept override;
+    void setGridSize(float f) noexcept override;
+    void incWaveTime(float f) noexcept override { m_fWaveTime += f; }
 
 private:
     RenderObjectGL& registerWaterTile(WaterTile*);

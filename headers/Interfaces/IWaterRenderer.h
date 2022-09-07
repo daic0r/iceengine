@@ -24,6 +24,8 @@ public:
     virtual void finishRendering() noexcept = 0;
     virtual void setOriginalCanvas(IPostProcessingEffect* pCanvas) noexcept = 0;
     virtual void setWaterLevel(float) noexcept = 0;
+    virtual void setGridSize(float) noexcept = 0;
+    virtual void incWaveTime(float f) noexcept = 0;
     virtual ~IWaterRenderer() {}
 };
 

@@ -44,7 +44,7 @@ MasterRenderingSystem::MasterRenderingSystem() noexcept {
 	m_pSunRenderingSystem = std::make_unique<SunRenderingSystem>();
 	entityManager.registerComponentSystem<false>(m_pSunRenderingSystem.get());
 	m_pWaterRenderingSystem = std::make_unique<WaterRenderingSystem>();
-	entityManager.registerComponentSystem<false>(m_pWaterRenderingSystem.get());
+	entityManager.registerComponentSystem<true>(m_pWaterRenderingSystem.get());
 
     m_pPostProcessingPipeline = std::make_unique<PostProcessingPipeline>();
 

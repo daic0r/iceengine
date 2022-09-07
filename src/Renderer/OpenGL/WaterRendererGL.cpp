@@ -67,6 +67,8 @@ WaterRendererGL::WaterRendererGL() {
     m_nWaterLevelID = m_pShaderProgram->getUniformLocation("waterLevel");
     m_nCameraPosID = m_pShaderProgram->getUniformLocation("cameraPos");
     m_nDistPlanesID = m_pShaderProgram->getUniformLocation("distPlanes");
+    m_nTimeID = m_pShaderProgram->getUniformLocation("time");
+    m_nGridSizeID = m_pShaderProgram->getUniformLocation("gridSize");
     m_pShaderProgram->loadInt(m_nReflectionTextureID, 0);
     m_pShaderProgram->loadInt(m_nRefractionTextureID, 1);
     m_pShaderProgram->loadInt(m_nRefractionDepthTextureID, 2);
@@ -144,6 +146,12 @@ void WaterRendererGL::setWaterLevel(float f) noexcept {
     m_pShaderProgram->unuse();
 }
 
+void WaterRendererGL::setGridSize(float f) noexcept {
+    m_pShaderProgram->use();
+    m_pShaderProgram->loadFloat(m_nGridSizeID, f);
+    m_pShaderProgram->unuse();
+}
+
 void WaterRendererGL::prepareRendering(const RenderEnvironment& env) noexcept {
 
     glCall(m_pShaderProgram->use());
@@ -152,6 +160,7 @@ void WaterRendererGL::prepareRendering(const RenderEnvironment& env) noexcept {
     m_pShaderProgram->loadMatrix4f(m_nPersViewMatrixID, perspectiveViewMatrix);
     m_pShaderProgram->loadVector3f(m_nCameraPosID, env.pCamera->position());
     m_pShaderProgram->loadVector2f(m_nDistPlanesID, glm::vec2{ m_pGraphicsSystem->distNearPlane(), m_pGraphicsSystem->distFarPlane() });
+    m_pShaderProgram->loadFloat(m_nTimeID, m_fWaveTime);
     /*
     m_pShaderConfig->loadUniforms(env);
     m_fMoveFactor += WAVE_SPEED * env.fDeltaTime;
@@ -281,6 +290,8 @@ const char* WaterRendererGL::getVertexShaderSource() noexcept {
     return R"(
 #version 410
 
+#define M_PI 3.1415926535897932384626433832795
+
 layout(location = 0) in vec3 vertexPos;
 
 out vec4 clipSpace;
@@ -288,11 +299,26 @@ out float fresnelFactor;
 
 uniform vec3 cameraPos;
 uniform float waterLevel;
+uniform float time;
+uniform float gridSize;
 uniform mat4 modelMatrix;
 uniform mat4 perspectiveViewMatrix;
 
+
+vec3 applyDisplacement(vec3 vertex) {
+    vec3 tmp = vertex;
+    float x = vertex.x / gridSize;
+    float z = vertex.z / gridSize;
+    float multiplier = gridSize / 10.0f;
+    vertex.z = vertex.z + multiplier * sin(x * M_PI / 4.0 - time);
+    vertex.x = vertex.x + multiplier * cos(z * M_PI / 4.0 - time);
+    vertex.y = vertex.y + multiplier * sin(x * M_PI / 4.0 - time);
+    return vertex;
+}
+
 void main() {
-    vec4 worldPos = modelMatrix * vec4(vertexPos.x, waterLevel, vertexPos.z, 1);
+    vec3 vertex = vec3(vertexPos.x, waterLevel, vertexPos.z);
+    vec4 worldPos = modelMatrix * vec4(applyDisplacement(vertex), 1);
     fresnelFactor = dot(vec3(0, 1, 0), normalize(cameraPos - worldPos.xyz));
     clipSpace = perspectiveViewMatrix * worldPos;
     gl_Position = clipSpace;
