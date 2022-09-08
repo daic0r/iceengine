@@ -187,6 +187,7 @@ void WaterRendererGL::prepareRendering(const RenderEnvironment& env) noexcept {
     glCall(glBindTexture(GL_TEXTURE_2D, pFbo->refractionDepthTexture()));
     */
     glCall(glEnable(GL_BLEND));
+    glProvokingVertex(GL_FIRST_VERTEX_CONVENTION);
     //glCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 #ifdef _DEBUG
     glPolygonMode(GL_FRONT_AND_BACK, env.bWireframe ? GL_LINE : GL_FILL);
@@ -300,9 +301,10 @@ layout(location = 1) in vec4 indicators;
 out vec4 clipSpace_real;
 out vec4 clipSpace_grid;
 out float fresnelFactor;
-out vec3 normal;
-out vec3 toLight;
-out vec4 diffuseColor;
+flat out vec3 normal;
+flat out vec3 toLight;
+flat out vec4 diffuseColor;
+flat out vec4 ambientColor;
 
 uniform vec3 cameraPos;
 uniform float waterLevel;
@@ -327,12 +329,12 @@ vec3 applyDisplacement(vec3 vertex) {
     float x = vertex.x / gridSize;
     float z = vertex.z / gridSize;
     float multiplier = gridSize / 10.0f;
-    float arg1 = (z) * 2 * M_PI / 4.0 - time;
+    float arg1 = (x) * 2 * M_PI / 4.0 - time;
     float arg2 = (x + z) * 2 * M_PI / 4.0 - time;
-    vertex.z = vertex.z + multiplier * (sin(arg1) + cos(arg1 * 3.0f)) * 2.0f;
-    vertex.x = vertex.x + multiplier * (sin(arg2 / 1.5f) + cos(arg1 * 11.0f)) / 3.0f;
-    vertex.y = vertex.y + multiplier * ((sin(arg1 * 1.34f) + cos(arg2 / 2.55f)) / 2);
-    return vertex;
+    tmp.x = vertex.x + multiplier * (sin(arg1) * cos(arg1 * 3.0f)) * 2.0f;
+    tmp.z = vertex.z + multiplier * (sin(arg2 / 1.5f) * cos(arg1 * 11.0f)) / 3.0f;
+    tmp.y = vertex.y + multiplier * (sin(z*x*M_PI/8-time) * cos(z*M_PI/4-time)) * 2;
+    return tmp;
 }
 
 vec3 getNormal() {
@@ -357,6 +359,7 @@ void main() {
     normal = normalize(cross(vertex1 - vertex, vertex2 - vertex));
     toLight = normalize(sunPosition.xyz - worldPos.xyz);
     diffuseColor = getDiffuseColor(toLight, normal);
+    ambientColor = sunAmbient;
 
     fresnelFactor = dot(normal, normalize(cameraPos - worldPos.xyz));
     clipSpace_real = perspectiveViewMatrix * worldPos;
@@ -379,9 +382,10 @@ const float MAX_BLUENESS = 0.75f;
 in vec4 clipSpace_real;
 in vec4 clipSpace_grid;
 in float fresnelFactor;
-in vec3 normal;
-in vec3 toLight;
-in vec4 diffuseColor;
+flat in vec3 normal;
+flat in vec3 toLight;
+flat in vec4 diffuseColor;
+flat in vec4 ambientColor;
 out vec4 outColor;
 
 uniform vec2 distPlanes; // near and far
@@ -430,7 +434,8 @@ void main() {
     reflectionColor = mix(reflectionColor, WATER_COLOR, MIN_BLUENESS);
 
     outColor = mix(reflectionColor, refractionColor, fresnelFactor);
-    outColor = diffuseColor * outColor;
+    //vec4 tmpColor = vec4(0.5,0.5,0.5,1);
+    outColor = diffuseColor * outColor + ambientColor;
     //outColor = mix(vec4(1,0,0,1), vec4(0,0,1,1), abs(dot(normal, toLight)));
     //outColor.a = 1.0f;
     outColor.a = clamp(waterDepth, 0.0, 1.0);
@@ -453,16 +458,24 @@ RenderObjectGL& WaterRendererGL::registerWaterTile(WaterTile* pTile) {
     const auto indexAt = [&](std::size_t i) {
         return vIndices.at(i);
     };
+    const auto vertexAt = [&](std::size_t idx) {
+        const auto nMeshArrayIndex = 3 * idx;
+        return glm::vec2{ vMesh.at(nMeshArrayIndex), vMesh.at(nMeshArrayIndex + 2) };
+    };
     for (std::size_t i = 0; i < vIndices.size(); i+=3) { // 3 indices at a time => 1 triangle
         glm::vec3 lastCross{};
         for (std::size_t j = 0; j < 3; ++j) {
             std::array<glm::vec2, 2> arIndicators;
             std::size_t nArWhere{};
-            glm::vec2 thisVec{ vMesh[3*indexAt(i + j)], vMesh[3*indexAt(i + j) + 2] };
+            assert(vMesh[3*indexAt(i + j) + 1] == 0.0f);
+            //glm::vec2 thisVec{ vMesh[3*indexAt(i + j)], vMesh[3*indexAt(i + j) + 2] };
+            const auto thisVec = vertexAt(indexAt(i + j));
             for (std::size_t k = 0, l = j; k < 3; ++k, l = (l + 1) % 3) {
                 if (l == j)
                     continue;
-                glm::vec2 otherVec{ vMesh[3*indexAt(i + l)], vMesh[3*indexAt(i + l) + 2] };
+                assert(vMesh[3*indexAt(i + l) + 1] == 0.0f);
+                //glm::vec2 otherVec{ vMesh[3*indexAt(i + l)], vMesh[3*indexAt(i + l) + 2] };
+                const auto otherVec = vertexAt(indexAt(i + l));
                 glm::vec2 indicator{ otherVec - thisVec };
                 arIndicators[nArWhere++] = indicator;
             }
