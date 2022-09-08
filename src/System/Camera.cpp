@@ -138,7 +138,10 @@ void Camera::update(float fDeltaTime) {
     if (m_getHeightFunc) {
         const auto fHeight = m_getHeightFunc(newPos.x, newPos.z);
         if (fHeight > newPos.y) {
-            newPos.y = fHeight + 1.0f;
+            newPos.y = fHeight + 10.0f;
+            const auto toCam = newPos - m_lookAt.target();
+            m_fDistance = glm::length(toCam);
+            m_fPitch = acosf(glm::dot(glm::normalize(toCam), glm::normalize(glm::vec3{ toCam.x, 0.0f, toCam.z })));
         }
     }
     setPosition(newPos);
