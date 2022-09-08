@@ -301,8 +301,6 @@ layout(location = 1) in vec4 indicators;
 out vec4 clipSpace_real;
 out vec4 clipSpace_grid;
 out float fresnelFactor;
-flat out vec3 normal;
-flat out vec3 toLight;
 flat out vec4 diffuseColor;
 flat out vec4 ambientColor;
 
@@ -331,9 +329,9 @@ vec3 applyDisplacement(vec3 vertex) {
     float multiplier = gridSize / 10.0f;
     float arg1 = (x) * 2 * M_PI / 4.0 - time;
     float arg2 = (x + z) * 2 * M_PI / 4.0 - time;
-    tmp.x = vertex.x + multiplier * (sin(arg1) * cos(arg1 * 3.0f)) * 2.0f;
-    tmp.z = vertex.z + multiplier * (sin(arg2 / 1.5f) * cos(arg1 * 11.0f)) / 3.0f;
-    tmp.y = vertex.y + multiplier * (sin(z*x*M_PI/8-time) * cos(z*M_PI/4-time)) * 2;
+    tmp.x = vertex.x; // + multiplier * (sin(arg1) * cos(arg1 * 3.0f)) / 3.0f;
+    tmp.z = vertex.z; // + multiplier * (sin(arg2 / 1.5f) * cos(arg1 * 11.0f)) / 3.0f;
+    tmp.y = vertex.y + multiplier * (sin(z*x*M_PI/8-time) * cos(z*M_PI/4-time)) * 1.5f;
     return tmp;
 }
 
@@ -345,8 +343,7 @@ vec3 getNormal() {
 
 vec4 getDiffuseColor(vec3 toLightVec, vec3 normalVec) {
     float brightness = max(dot(normalVec, toLightVec), 0.0f);
-    vec4 light = vec4(0,1,1,1);
-    return light * brightness;
+    return sunColor * brightness;
 }
 
 void main() {
@@ -356,10 +353,11 @@ void main() {
 
     vec4 worldPos = modelMatrix * vec4(vertex, 1);
 
-    normal = normalize(cross(vertex1 - vertex, vertex2 - vertex));
-    toLight = normalize(sunPosition.xyz - worldPos.xyz);
+    vec3 normal = normalize(cross(vertex1 - vertex, vertex2 - vertex));
+    vec3 toLight = normalize(sunPosition.xyz - worldPos.xyz);
     diffuseColor = getDiffuseColor(toLight, normal);
-    ambientColor = sunAmbient;
+    diffuseColor.a = 0.5;
+    ambientColor = vec4(sunAmbient.xyz, 0.5);
 
     fresnelFactor = dot(normal, normalize(cameraPos - worldPos.xyz));
     clipSpace_real = perspectiveViewMatrix * worldPos;
@@ -376,14 +374,12 @@ const char* WaterRendererGL::getFragmentShaderSource() noexcept {
 
 const float MURKY_DEPTH = 50.0f;
 const vec4 WATER_COLOR = vec4(0.607, 0.867, 0.851, 1.0);
-const float MIN_BLUENESS = 0.3f;
+const float MIN_BLUENESS = 0.01f;
 const float MAX_BLUENESS = 0.75f;
 
 in vec4 clipSpace_real;
 in vec4 clipSpace_grid;
 in float fresnelFactor;
-flat in vec3 normal;
-flat in vec3 toLight;
 flat in vec4 diffuseColor;
 flat in vec4 ambientColor;
 out vec4 outColor;
