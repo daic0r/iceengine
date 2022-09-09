@@ -59,7 +59,7 @@ public:
     float getHorizontalPixelScale() const noexcept override;
     float getVerticalPixelScale() const noexcept override;
 	float distNearPlane() const noexcept override { return 1.0f; }
-	float distFarPlane() const noexcept override { return 1500.0f; }
+	float distFarPlane() const noexcept override { return 1000.0f; }
 	float aspectRatio() const noexcept override { return static_cast<float>(m_nWidth) / static_cast<float>(m_nHeight); }
     void toggleWireframe() noexcept override;
     bool wireframe() const noexcept { return m_bWireframe; }
