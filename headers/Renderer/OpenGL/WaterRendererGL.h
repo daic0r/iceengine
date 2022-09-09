@@ -39,15 +39,9 @@ class WaterRendererGL : public IWaterRenderer {
     static constexpr float WAVE_SPEED = 0.03;
     
     IGraphicsSystem* m_pGraphicsSystem{};
-    static const std::vector<GLfloat> m_vQuadVertices;
-    std::unique_ptr<RenderObjectGL> m_pQuad;
     std::unique_ptr<ShaderProgramGL> m_pShaderProgram{ nullptr };
-    std::unique_ptr<ShaderProgramGL> m_pPreviewShader{};
-    /*WaterShaderConfigurator *m_pShaderConfig{ nullptr };
-    TextureGL *m_pDuDvTexture{ nullptr }, *m_pNormalTexture{ nullptr };
-    float m_fMoveFactor{ 0.0f };
-    std::unique_ptr<WaterFramebuffersGL> m_pFramebuffers;
-    */
+    ///////////////////////////////////////////////////////////
+    // Uniforms
     GLint m_nPersViewMatrixID{ -1 }, m_nModelMatrixID{ -1 };
     GLint m_nReflectionTextureID{ -1 };
     GLint m_nRefractionTextureID{ -1 };
@@ -58,14 +52,28 @@ class WaterRendererGL : public IWaterRenderer {
     GLint m_nGridSizeID{ -1 };
     GLint m_nTimeID{ -1 };
     GLuint m_nCommonMatricesUBOIndex{ 0 };
+    ///////////////////////////////////////////////////////////
     float m_fWaveTime{};
 
+    // The actual water tiles
     std::unordered_map<WaterTile*, RenderObjectGL> m_mTileObjects;
+    // Reflection and refraction framebuffers
     WaterFramebuffersGL m_fbo;
+    // For rendering the parts above the water with the camera below the terrain
     TerrainRenderingSystem *m_pTerrainRenderer{};
     ObjectRenderingSystem* m_pModelRenderer{};
+    
+    // Original drawing FBO canvas that the complete scene is rendered to
     OriginalCanvasGL* m_pOriginalCanvas{};
+
+    // Water height
     float m_fWaterLevel{};
+
+ #ifdef _DEBUG_WATER
+    std::unique_ptr<ShaderProgramGL> m_pPreviewShader{};
+    static const std::vector<GLfloat> m_vQuadVertices;
+    std::unique_ptr<RenderObjectGL> m_pQuad;
+#endif
     
 public:
     WaterRendererGL();

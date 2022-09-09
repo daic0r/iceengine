@@ -39,12 +39,14 @@
 
 namespace Ice {
 
+#ifdef _DEBUG_WATER
 const std::vector<GLfloat> WaterRendererGL::m_vQuadVertices {
     0.0f, 1.0f,
     0.0f, 0.0f,
     1.0f, 1.0f,
     1.0f, 0.0f
 };
+#endif
 
 WaterRendererGL::WaterRendererGL()
     : m_pGraphicsSystem{ systemServices.getGraphicsSystem() },
@@ -80,6 +82,7 @@ WaterRendererGL::WaterRendererGL()
     m_pShaderProgram->loadInt(m_nRefractionDepthTextureID, 2);
     m_pShaderProgram->unuse();
    
+#ifdef _DEBUG_WATER
     m_pQuad = std::make_unique<RenderObjectGL>(RenderToolsGL::loadVerticesToVAO(m_vQuadVertices, 2));
     glEnableVertexAttribArray(0);
 
@@ -139,6 +142,7 @@ void main() {
     m_pPreviewShader->loadInt(nTexLoc, 0);
     m_pPreviewShader->loadVector2f(nDistPlanes, glm::vec2{ m_pGraphicsSystem->distNearPlane(), m_pGraphicsSystem->distFarPlane() });
     m_pPreviewShader->unuse();
+#endif
 
     m_pModelRenderer = entityManager.getSystem<ObjectRenderingSystem, true>();
     m_pTerrainRenderer = entityManager.getSystem<TerrainRenderingSystem, false>();
@@ -208,6 +212,7 @@ void WaterRendererGL::render(const RenderEnvironment& env, const std::vector<Wat
 
     /*
     *   RENDER REFRACTION TEXTURE (EVERYTHING BELOW THE WATER)
+    *   NOW REPLACED BY BLITTING THE ORIGINAL CANVAS FBO TO THE REFRACTION ONE
     *
     myEnv.pCamera = env.pCamera;
     myEnv.viewMatrix = env.pCamera->matrix();
@@ -225,17 +230,16 @@ void WaterRendererGL::render(const RenderEnvironment& env, const std::vector<Wat
     // This already contains the rendered terrain and objects
     glBindFramebuffer(GL_READ_FRAMEBUFFER, m_pOriginalCanvas->fbo().fboId());
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo.refractionFramebuffer());
-    glCall(glBlitFramebuffer( 
+    glBlitFramebuffer( 
         0, 0, m_pOriginalCanvas->fbo().width(), m_pOriginalCanvas->fbo().height(),
         0, 0, m_fbo.refractionWidth(), m_fbo.refractionHeight(),
         GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT,
-        GL_NEAREST));
-
+        GL_NEAREST);
 
     glBindFramebuffer(GL_FRAMEBUFFER, nLastFBO);
     glViewport(0, 0, m_pGraphicsSystem->displayWidth(), m_pGraphicsSystem->displayHeight());
 
-    glDisable(GL_DEPTH_TEST);
+#ifdef _DEBUG_WATER
     glBindVertexArray(m_pQuad->vao());
     m_pPreviewShader->use();
     glActiveTexture(GL_TEXTURE0);
@@ -244,8 +248,8 @@ void WaterRendererGL::render(const RenderEnvironment& env, const std::vector<Wat
     m_pPreviewShader->unuse();
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindVertexArray(0);
+#endif
 
-    glEnable(GL_DEPTH_TEST);
     prepareRendering(env);
 
     glCall(glActiveTexture(GL_TEXTURE0));
@@ -293,7 +297,7 @@ const char* WaterRendererGL::getVertexShaderSource() noexcept {
     return R"(
 #version 410
 
-#define M_PI 3.1415926535897932384626433832795
+const float M_PI = 3.1415926535897932384626433832795;
 
 layout(location = 0) in vec3 vertexPos;
 layout(location = 1) in vec4 indicators;
@@ -372,7 +376,7 @@ const char* WaterRendererGL::getFragmentShaderSource() noexcept {
     return R"(
 #version 410
 
-const float MURKY_DEPTH = 10.0f;
+const float MURKY_DEPTH = 70.0f;
 const vec4 WATER_COLOR = vec4(0.607, 0.867, 0.851, 1.0);
 const float MIN_BLUENESS = 0.01f;
 const float MAX_BLUENESS = 0.75f;
@@ -426,7 +430,7 @@ void main() {
     vec4 refractionColor = texture(refractionTexture, ndc_grid);
 
     float waterDepth = waterDepth(ndc_real);
-    //refractionColor = applyMurkiness(refractionColor, waterDepth);
+    refractionColor = applyMurkiness(refractionColor, waterDepth);
     reflectionColor = mix(reflectionColor, WATER_COLOR, MIN_BLUENESS);
 
     outColor = mix(reflectionColor, refractionColor, fresnelFactor);
