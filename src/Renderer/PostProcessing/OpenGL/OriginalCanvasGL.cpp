@@ -6,7 +6,11 @@ namespace Ice
 {
     OriginalCanvasGL::OriginalCanvasGL(GLsizei nWidth, GLsizei nHeight)
         : BasePostProcessorGL{ nWidth, nHeight, true }
-    {}
+    {
+        m_fbo.bind();
+        m_fbo.createDepthTextureAttachment();
+        m_fbo.unbind();
+    }
 
     const char* OriginalCanvasGL::getFragmentShaderSource() const noexcept {
         return R"(

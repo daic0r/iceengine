@@ -34,6 +34,7 @@
 #include <Interfaces/IModelRenderer.h>
 #include <Interfaces/ITerrainRenderer.h>
 #include <Interfaces/IPostProcessingEffect.h>
+#include <Renderer/PostProcessing/OpenGL/OriginalCanvasGL.h>
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace Ice {
@@ -45,7 +46,10 @@ const std::vector<GLfloat> WaterRendererGL::m_vQuadVertices {
     1.0f, 0.0f
 };
 
-WaterRendererGL::WaterRendererGL() {
+WaterRendererGL::WaterRendererGL()
+    : m_pGraphicsSystem{ systemServices.getGraphicsSystem() },
+    m_fbo{ m_pGraphicsSystem->displayWidth() / 2, m_pGraphicsSystem->displayHeight() / 2, m_pGraphicsSystem->displayWidth(), m_pGraphicsSystem->displayHeight() }
+{
     /*
     m_pShaderProgram = RenderToolsGL::createShaderProgram("Water", std::make_unique<WaterShaderConfigurator>());
     m_pShaderConfig = dynamic_cast<WaterShaderConfigurator*>(m_pShaderProgram->configurator());
@@ -128,7 +132,6 @@ void main() {
     )"
     );
 
-    m_pGraphicsSystem = systemServices.getGraphicsSystem();
 
     GLint nTexLoc = m_pPreviewShader->getUniformLocation("tex");
     GLint nDistPlanes = m_pPreviewShader->getUniformLocation("distPlanes");
@@ -152,6 +155,10 @@ void WaterRendererGL::setGridSize(float f) noexcept {
     m_pShaderProgram->use();
     m_pShaderProgram->loadFloat(m_nGridSizeID, f);
     m_pShaderProgram->unuse();
+}
+
+void WaterRendererGL::setOriginalCanvas(IPostProcessingEffect* pCanvas) noexcept {
+    m_pOriginalCanvas = static_cast<OriginalCanvasGL*>(pCanvas);
 }
 
 void WaterRendererGL::prepareRendering(const RenderEnvironment& env) noexcept {
@@ -223,6 +230,8 @@ void WaterRendererGL::render(const RenderEnvironment& env, const std::vector<Wat
     m_pModelRenderer->render(myEnv);
     m_pTerrainRenderer->render(myEnv);
 
+
+    /*
     myEnv.pCamera = env.pCamera;
     myEnv.viewMatrix = env.pCamera->matrix();
     myEnv.clipMode = TerrainClipMode::ABOVE_WATER;
@@ -231,8 +240,19 @@ void WaterRendererGL::render(const RenderEnvironment& env, const std::vector<Wat
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     m_pModelRenderer->render(myEnv);
     m_pTerrainRenderer->render(myEnv);
+    */
 
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, nLastFBO);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, m_pOriginalCanvas->fbo().fboId());
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo.refractionFramebuffer());
+    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+    glCall(glBlitFramebuffer( 
+        0, 0, m_pOriginalCanvas->fbo().width(), m_pOriginalCanvas->fbo().height(),
+        0, 0, m_fbo.refractionWidth(), m_fbo.refractionHeight(),
+        GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT,
+        GL_NEAREST));
+
+
+    glBindFramebuffer(GL_FRAMEBUFFER, nLastFBO);
     glViewport(0, 0, m_pGraphicsSystem->displayWidth(), m_pGraphicsSystem->displayHeight());
 
     glDisable(GL_DEPTH_TEST);
@@ -372,7 +392,7 @@ const char* WaterRendererGL::getFragmentShaderSource() noexcept {
     return R"(
 #version 410
 
-const float MURKY_DEPTH = 50.0f;
+const float MURKY_DEPTH = 10.0f;
 const vec4 WATER_COLOR = vec4(0.607, 0.867, 0.851, 1.0);
 const float MIN_BLUENESS = 0.01f;
 const float MAX_BLUENESS = 0.75f;
@@ -426,14 +446,11 @@ void main() {
     vec4 refractionColor = texture(refractionTexture, ndc_grid);
 
     float waterDepth = waterDepth(ndc_real);
-    refractionColor = applyMurkiness(refractionColor, waterDepth);
+    //refractionColor = applyMurkiness(refractionColor, waterDepth);
     reflectionColor = mix(reflectionColor, WATER_COLOR, MIN_BLUENESS);
 
     outColor = mix(reflectionColor, refractionColor, fresnelFactor);
-    //vec4 tmpColor = vec4(0.5,0.5,0.5,1);
-    outColor = diffuseColor * outColor + ambientColor;
-    //outColor = mix(vec4(1,0,0,1), vec4(0,0,1,1), abs(dot(normal, toLight)));
-    //outColor.a = 1.0f;
+    outColor = (diffuseColor + ambientColor) * outColor;
     outColor.a = clamp(waterDepth, 0.0, 1.0);
 }
 

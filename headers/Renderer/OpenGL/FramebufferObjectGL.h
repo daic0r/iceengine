@@ -40,6 +40,7 @@ public:
     auto height() const noexcept { return m_nHeight; }
 	void setWidth(GLsizei w) noexcept { m_nWidth = w; }
 	void setHeight(GLsizei h) noexcept { m_nHeight = h; }
+    auto fboId() const noexcept { return m_nFramebuffer; }
     auto textureAttachmentId() const noexcept { return m_nTexAttachment; }
     void setTextureAttachmentId(GLuint id) noexcept { m_nTexAttachment = id; }
     auto depthAttachmentId() const noexcept { return m_nDepthAttachment; }

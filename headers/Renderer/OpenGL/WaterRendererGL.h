@@ -33,10 +33,12 @@ class TextureGL;
 class IPostProcessingEffect;
 class IGraphicsSystem;
 class ShaderProgramGL;
+class OriginalCanvasGL;
 
 class WaterRendererGL : public IWaterRenderer {
     static constexpr float WAVE_SPEED = 0.03;
     
+    IGraphicsSystem* m_pGraphicsSystem{};
     static const std::vector<GLfloat> m_vQuadVertices;
     std::unique_ptr<RenderObjectGL> m_pQuad;
     std::unique_ptr<ShaderProgramGL> m_pShaderProgram{ nullptr };
@@ -62,8 +64,7 @@ class WaterRendererGL : public IWaterRenderer {
     WaterFramebuffersGL m_fbo;
     TerrainRenderingSystem *m_pTerrainRenderer{};
     ObjectRenderingSystem* m_pModelRenderer{};
-    IPostProcessingEffect* m_pOriginalCanvas{};
-    IGraphicsSystem* m_pGraphicsSystem{};
+    OriginalCanvasGL* m_pOriginalCanvas{};
     float m_fWaterLevel{};
     
 public:
@@ -71,7 +72,7 @@ public:
     void prepareRendering(const RenderEnvironment&) noexcept override;
     void render(const RenderEnvironment&, const std::vector<WaterTile*>&) noexcept override;
     void finishRendering() noexcept override;
-    void setOriginalCanvas(IPostProcessingEffect* pCanvas) noexcept override { m_pOriginalCanvas = pCanvas; }
+    void setOriginalCanvas(IPostProcessingEffect* pCanvas) noexcept override;
     void setWaterLevel(float f) noexcept override;
     void setGridSize(float f) noexcept override;
     void incWaveTime(float f) noexcept override { m_fWaveTime += f; }

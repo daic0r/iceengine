@@ -44,9 +44,15 @@ public:
     void bindReflectionFramebuffer() const noexcept;
     void bindRefractionFramebuffer() const noexcept;
     
+    auto reflectionFramebuffer() const noexcept { return m_nReflectionFramebuffer; }
+    auto refractionFramebuffer() const noexcept { return m_nRefractionFramebuffer; }
     auto reflectionTexture() const noexcept { return m_nReflectionTexture; }
     auto refractionTexture() const noexcept { return m_nRefractionTexture; }
     auto refractionDepthTexture() const noexcept { return m_nRefractionDepthTexture; }
+    auto reflectionWidth() const noexcept { return m_nReflectionWidth; }
+    auto reflectionHeight() const noexcept { return m_nReflectionHeight; }
+    auto refractionWidth() const noexcept { return m_nRefractionWidth; }
+    auto refractionHeight() const noexcept { return m_nRefractionHeight; }
 };
 
 }
