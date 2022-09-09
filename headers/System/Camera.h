@@ -76,6 +76,7 @@ public:
     void moveForward(float) noexcept;
     void moveSideways(float) noexcept;
     void zoom(float) noexcept;
+    void mirrorAtHeight(float fHeight) noexcept;
 
     bool hasHeightGetterFunc() const noexcept { return (bool)m_getHeightFunc; }
     void setHeightGetterFunc(const std::function<float(float,float)>& func) { m_getHeightFunc = func; }

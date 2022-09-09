@@ -12,6 +12,7 @@
 #ifdef RENDERER_OPEN_GL
 
 #include <SDL2/SDL_opengl.h>
+#include <Renderer/OpenGL/FramebufferObjectGL.h>
 
 namespace Ice {
 
@@ -22,16 +23,7 @@ class WaterFramebuffersGL {
     static constexpr GLsizei REFRACTION_WIDTH = 1280;
     static constexpr GLsizei REFRACTION_HEIGHT = 720;
     
-    GLuint m_nReflectionFramebuffer{ 0 };
-    GLuint m_nReflectionTexture{ 0 };
-    GLuint m_nReflectionDepthBuffer{ 0 };
-
-    GLuint m_nRefractionFramebuffer{ 0 };
-    GLuint m_nRefractionTexture{ 0 };
-    GLuint m_nRefractionDepthTexture{ 0 };
-
-    GLsizei m_nReflectionWidth{}, m_nReflectionHeight{};
-    GLsizei m_nRefractionWidth{}, m_nRefractionHeight{};
+    FramebufferObjectGL m_reflectionFBO, m_refractionFBO;
 
     void cleanup() noexcept;
     void initReflectionFramebuffer() noexcept;
@@ -39,20 +31,21 @@ class WaterFramebuffersGL {
     
 public:
     WaterFramebuffersGL(GLsizei nReflectionWidth = REFLECTION_WIDTH, GLsizei nReflectionHeight = REFLECTION_HEIGHT, GLsizei nRefractionWidth = REFRACTION_WIDTH, GLsizei nRefractionHeight = REFRACTION_HEIGHT);
-    ~WaterFramebuffersGL();
     
-    void bindReflectionFramebuffer() const noexcept;
-    void bindRefractionFramebuffer() const noexcept;
+    void bindReflectionFramebuffer() noexcept;
+    void bindRefractionFramebuffer() noexcept;
+
+    void resize(GLsizei nWidth, GLsizei nHeight) noexcept;
     
-    auto reflectionFramebuffer() const noexcept { return m_nReflectionFramebuffer; }
-    auto refractionFramebuffer() const noexcept { return m_nRefractionFramebuffer; }
-    auto reflectionTexture() const noexcept { return m_nReflectionTexture; }
-    auto refractionTexture() const noexcept { return m_nRefractionTexture; }
-    auto refractionDepthTexture() const noexcept { return m_nRefractionDepthTexture; }
-    auto reflectionWidth() const noexcept { return m_nReflectionWidth; }
-    auto reflectionHeight() const noexcept { return m_nReflectionHeight; }
-    auto refractionWidth() const noexcept { return m_nRefractionWidth; }
-    auto refractionHeight() const noexcept { return m_nRefractionHeight; }
+    auto reflectionFramebuffer() const noexcept { return m_reflectionFBO.fboId(); }
+    auto refractionFramebuffer() const noexcept { return m_refractionFBO.fboId(); }
+    auto reflectionTexture() const noexcept { return m_reflectionFBO.textureAttachmentId(); }
+    auto refractionTexture() const noexcept { return m_refractionFBO.textureAttachmentId(); }
+    auto refractionDepthTexture() const noexcept { return m_refractionFBO.depthTextureAttachmentId(); }
+    auto reflectionWidth() const noexcept { return m_reflectionFBO.width(); }
+    auto reflectionHeight() const noexcept { return m_reflectionFBO.height(); }
+    auto refractionWidth() const noexcept { return m_refractionFBO.width(); }
+    auto refractionHeight() const noexcept { return m_refractionFBO.height(); }
 };
 
 }

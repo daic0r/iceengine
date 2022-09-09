@@ -149,9 +149,12 @@ void Camera::update(float fDeltaTime) {
     setDirection(-glm::normalize(toCam));
 }
 
-void Camera::invertPitch() noexcept {
-    m_fPitch.force(-m_fPitch);
-    update(0.0f);
+void Camera::mirrorAtHeight(float fHeight) noexcept {
+    const auto t = (fHeight - position().y) / direction().y;
+    m_lookAt.force(position() + t * direction());
+    m_fDistance.force(glm::length(lookAt() - position()));
+    m_fPitch.force(-pitch());
+    update(0.0);
 }
 
 }

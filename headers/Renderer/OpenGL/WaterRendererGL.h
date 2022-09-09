@@ -76,6 +76,8 @@ public:
     void setWaterLevel(float f) noexcept override;
     void setGridSize(float f) noexcept override;
     void incWaveTime(float f) noexcept override { m_fWaveTime += f; }
+    void resize(int nWidth, int nHeight) noexcept override;
+    void renderReflectionTexture(RenderEnvironment env) noexcept;
 
 private:
     RenderObjectGL& registerWaterTile(WaterTile*);

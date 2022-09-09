@@ -3,11 +3,14 @@
 #include <Interfaces/IWaterRenderer.h>
 #include <Renderer/RenderEnvironment.h>
 #include <Entities/EntityManager.h>
+#include <Events/EventQueue.h>
+#include <Events/WindowResizedEvent.h>
 
 namespace Ice
 {
     void WaterRenderingSystem::onSystemsInitialized() noexcept {
         m_pRenderer = systemServices.getWaterRenderer();
+        m_pEventQueue = systemServices.getEventQueue();
     }
 
     void WaterRenderingSystem::setOriginalCanvas(IPostProcessingEffect* pOriginalCanvas) noexcept {
@@ -24,6 +27,23 @@ namespace Ice
     }
 
     void WaterRenderingSystem::render(const RenderEnvironment& env) noexcept {
+        bool bDone{};
+        while (auto pEvent = m_pEventQueue->peekInternalEvent()) {
+            switch (pEvent->id()) {
+                case EventId::WINDOW_RESIZED_EVENT:
+                {
+                    const auto args = std::any_cast<WindowResizedEventArgs>(pEvent->args());
+                    m_pRenderer->resize(args.width(), args.height());
+                }
+                    bDone = true;
+                    break;
+                default:
+                    break;
+            }
+            if (bDone)
+                break;
+        }
+
         m_vTiles.clear();
         for (auto e : entities(entityManager.currentScene())) {
             auto& comp = entityManager.getComponent<WaterTileComponent>(e);

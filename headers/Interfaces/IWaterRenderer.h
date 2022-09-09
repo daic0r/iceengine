@@ -26,7 +26,8 @@ public:
     virtual void setWaterLevel(float) noexcept = 0;
     virtual void setGridSize(float) noexcept = 0;
     virtual void incWaveTime(float f) noexcept = 0;
-    virtual ~IWaterRenderer() {}
+    virtual void resize(int nWidth, int nHeight) noexcept = 0;
+    virtual ~IWaterRenderer() = default; 
 };
 
 }

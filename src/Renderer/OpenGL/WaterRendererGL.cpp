@@ -161,6 +161,29 @@ void WaterRendererGL::setOriginalCanvas(IPostProcessingEffect* pCanvas) noexcept
     m_pOriginalCanvas = static_cast<OriginalCanvasGL*>(pCanvas);
 }
 
+
+void WaterRendererGL::resize(int nWidth, int nHeight) noexcept {
+    m_fbo.resize(nWidth, nHeight);
+}
+
+void WaterRendererGL::renderReflectionTexture(RenderEnvironment env) noexcept {
+    Camera cam = *env.pCamera;
+    cam.setHeightGetterFunc(nullptr);
+
+    env.fWaterLevel = m_fWaterLevel + 0.4f;
+    cam.mirrorAtHeight(env.fWaterLevel.value());
+
+    env.bMainRenderPass = false;
+    env.pCamera = &cam;
+    env.viewMatrix = cam.matrix();
+    env.clipMode = TerrainClipMode::BELOW_WATER;
+
+    m_fbo.bindReflectionFramebuffer();
+    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+    m_pModelRenderer->render(env);
+    m_pTerrainRenderer->render(env);
+}
+
 void WaterRendererGL::prepareRendering(const RenderEnvironment& env) noexcept {
 
     glCall(m_pShaderProgram->use());
@@ -170,29 +193,7 @@ void WaterRendererGL::prepareRendering(const RenderEnvironment& env) noexcept {
     m_pShaderProgram->loadVector3f(m_nCameraPosID, env.pCamera->position());
     m_pShaderProgram->loadVector2f(m_nDistPlanesID, glm::vec2{ m_pGraphicsSystem->distNearPlane(), m_pGraphicsSystem->distFarPlane() });
     m_pShaderProgram->loadFloat(m_nTimeID, m_fWaveTime);
-    /*
-    m_pShaderConfig->loadUniforms(env);
-    m_fMoveFactor += WAVE_SPEED * env.fDeltaTime;
-    m_fMoveFactor = fmod(m_fMoveFactor, 1.0f);
-    m_pShaderConfig->loadMoveFactor(m_fMoveFactor);
-    m_pShaderConfig->loadCameraPosition(env.pCamera->position());
-    */
-    
-    //glCall(glBindVertexArray(m_pQuad->vao()));
 
-    /*
-    WaterFramebuffersGL* pFbo = m_pFramebuffers.get();  //reinterpret_cast<WaterFramebuffersGL*>(env.pMiscData);
-    glCall(glActiveTexture(GL_TEXTURE0));
-    glCall(glBindTexture(GL_TEXTURE_2D, pFbo->reflectionTexture()));
-    glCall(glActiveTexture(GL_TEXTURE1));
-    glCall(glBindTexture(GL_TEXTURE_2D, pFbo->refractionTexture()));
-    glCall(glActiveTexture(GL_TEXTURE2));
-    glCall(glBindTexture(GL_TEXTURE_2D, m_pDuDvTexture->textureId()));
-    glCall(glActiveTexture(GL_TEXTURE3));
-    glCall(glBindTexture(GL_TEXTURE_2D, m_pNormalTexture->textureId()));
-    glCall(glActiveTexture(GL_TEXTURE4));
-    glCall(glBindTexture(GL_TEXTURE_2D, pFbo->refractionDepthTexture()));
-    */
     glCall(glEnable(GL_BLEND));
     glProvokingVertex(GL_FIRST_VERTEX_CONVENTION);
     //glCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
@@ -205,33 +206,9 @@ void WaterRendererGL::render(const RenderEnvironment& env, const std::vector<Wat
     GLint nLastFBO{-1};
     glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &nLastFBO);
 
-    auto myEnv = env;
-    Camera cam = *myEnv.pCamera;
-    cam.setHeightGetterFunc(nullptr);
-
-    myEnv.fWaterLevel = m_fWaterLevel + 0.4f;
-    const auto t = (myEnv.fWaterLevel.value() - cam.position().y) / cam.direction().y;
-    cam.m_lookAt.force(cam.position() + t * cam.direction());
-    cam.m_fDistance.force(glm::length(cam.lookAt() - cam.position()));
-    cam.m_fPitch.force(-cam.pitch());
-    cam.update(0.0);
-
-    myEnv.bMainRenderPass = false;
-    myEnv.pCamera = &cam;
-    myEnv.viewMatrix = cam.matrix();
-    myEnv.clipMode = TerrainClipMode::BELOW_WATER;
-    /*const auto shortFrustum =  Frustum{ cam, m_pGraphicsSystem->distNearPlane(), m_pGraphicsSystem->distNearPlane() + 150.0f, m_pGraphicsSystem->fov(), m_pGraphicsSystem->aspectRatio() };
-    const auto shortMatrix = glm::perspective(m_pGraphicsSystem->fov(), m_pGraphicsSystem->aspectRatio(), m_pGraphicsSystem->distNearPlane(), m_pGraphicsSystem->distNearPlane() + 150.0f);
-    myEnv.frustum = shortFrustum;
-    myEnv.projectionMatrix = shortMatrix;*/
-
-    m_fbo.bindReflectionFramebuffer();
-    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-    m_pModelRenderer->render(myEnv);
-    m_pTerrainRenderer->render(myEnv);
-
-
     /*
+    *   RENDER REFRACTION TEXTURE (EVERYTHING BELOW THE WATER)
+    *
     myEnv.pCamera = env.pCamera;
     myEnv.viewMatrix = env.pCamera->matrix();
     myEnv.clipMode = TerrainClipMode::ABOVE_WATER;
@@ -242,9 +219,12 @@ void WaterRendererGL::render(const RenderEnvironment& env, const std::vector<Wat
     m_pTerrainRenderer->render(myEnv);
     */
 
+    renderReflectionTexture(env);
+
+    // Blit original canvas to refraction FBO
+    // This already contains the rendered terrain and objects
     glBindFramebuffer(GL_READ_FRAMEBUFFER, m_pOriginalCanvas->fbo().fboId());
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo.refractionFramebuffer());
-    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     glCall(glBlitFramebuffer( 
         0, 0, m_pOriginalCanvas->fbo().width(), m_pOriginalCanvas->fbo().height(),
         0, 0, m_fbo.refractionWidth(), m_fbo.refractionHeight(),

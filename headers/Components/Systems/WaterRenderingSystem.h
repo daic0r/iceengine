@@ -9,10 +9,13 @@ namespace Ice
     class IWaterRenderer;
     struct RenderEnvironment;
     class IPostProcessingEffect;
+    class IEventQueue;
 
     class WaterRenderingSystem : public EntityComponentSystem<WaterTileComponent> {
          
         IWaterRenderer *m_pRenderer;
+        IEventQueue* m_pEventQueue{};
+
         std::vector<WaterTile*> m_vTiles;
         float m_fWaterLevel;
         
