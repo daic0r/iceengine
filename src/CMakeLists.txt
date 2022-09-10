@@ -12,7 +12,6 @@ add_library(iceengine SHARED
 Utils/FinalAction.cpp
 Utils/SDLTools.cpp
 Utils/ScopedTimeMeasurement.cpp
-Utils/MeshGeneration/LowPolyWaterMeshGenerator.cpp
 ShadersGL/ModelShaderConfigurator.cpp
 ShadersGL/SkyboxShaderConfigurator.cpp
 ShadersGL/LightShaderConfigurator.cpp
@@ -60,6 +59,7 @@ Renderer/OpenGL/PathSegmentRendererGL.cpp
 Renderer/OpenGL/TextRendererGL.cpp
 Renderer/OpenGL/SunRendererGL.cpp
 Renderer/OpenGL/UniformBufferObjectGL.cpp
+Renderer/OpenGL/VertexAttributeGL.cpp
 Renderer/PostProcessing/PostProcessingPipeline.cpp
 Renderer/PostProcessing/PostProcessingEffectFactory.cpp
 Renderer/PostProcessing/OpenGL/BasePostProcessorGL.cpp
@@ -197,7 +197,7 @@ if (NOT profiler)
 	message(FATAL_ERROR "profiler not found")
 endif()
 
-target_compile_options(${PROJECT_NAME} PRIVATE -O1 -g -fPIC -Wno-non-template-friend)
+target_compile_options(${PROJECT_NAME} PRIVATE -O0 -g -fPIC -Wno-non-template-friend)
 target_link_options(${PROJECT_NAME} PRIVATE -Wl,--no-as-needed)
 target_compile_definitions(${PROJECT_NAME} PRIVATE RENDERER_OPEN_GL _DEBUG)
 #target_link_options(${PROJECT_NAME} PRIVATE -pg)

@@ -80,8 +80,16 @@ void TerrainRendererGL::prepareRendering(const RenderEnvironment& env, const std
         glProvokingVertex(GL_FIRST_VERTEX_CONVENTION);
         GLuint nVertexBuffer = RenderToolsGL::loadFloatBuffer(pGlObject->vao(), GL_ARRAY_BUFFER, terrain.pMesh->vertices(), GL_STATIC_DRAW);
         glCall(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, nullptr));
-        GLuint nColorBuffer = RenderToolsGL::loadFloatBuffer(pGlObject->vao(), GL_ARRAY_BUFFER, terrain.pMesh->colors(), GL_STATIC_DRAW);
-        glCall(glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 4, nullptr));
+        std::vector<glm::vec4> vColorBuf;
+        vColorBuf.reserve(terrain.pMesh->colors().size() / 4);
+        const auto& vInput = terrain.pMesh->colors();
+        for (std::size_t i{}; i < terrain.pMesh->colors().size(); i+=4) {
+            vColorBuf.emplace_back(vInput.at(i), vInput.at(i+1), vInput.at(i+2), vInput.at(i+3));
+        }
+        m_pVertexColors = std::make_unique<DynamicVertexAttributeGL<glm::vec4>>(1, std::move(vColorBuf));
+        m_pVertexColors->connect();
+        //GLuint nColorBuffer = RenderToolsGL::loadFloatBuffer(pGlObject->vao(), GL_ARRAY_BUFFER, terrain.pMesh->colors(), GL_STATIC_DRAW);
+        //glCall(glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 4, nullptr));
         GLuint nNormalBuffer = RenderToolsGL::loadFloatBuffer(pGlObject->vao(), GL_ARRAY_BUFFER, terrain.pMesh->normals(), GL_STATIC_DRAW);
         glCall(glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, nullptr));
         glCall(glEnableVertexAttribArray(0));
@@ -93,9 +101,9 @@ void TerrainRendererGL::prepareRendering(const RenderEnvironment& env, const std
         glCall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * terrain.pMesh->indices().size(), &(terrain.pMesh->indices()[0]), GL_STATIC_DRAW));
         
         pGlObject->addBuffer(nVertexBuffer);
-        pGlObject->addBuffer(nColorBuffer);
+        //pGlObject->addBuffer(nColorBuffer);
         pGlObject->addBuffer(nNormalBuffer);
-        pGlObject->addBuffer(nElementBuffer);
+        pGlObject->addIndexBuffer(nElementBuffer);
         
         glCall(glBindBuffer(GL_ARRAY_BUFFER, 0));
         glCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
@@ -103,6 +111,10 @@ void TerrainRendererGL::prepareRendering(const RenderEnvironment& env, const std
         
         m_mTerrains.emplace(terrain.pTerrain->id(), std::move(pGlObject));
     }
+
+    m_pVertexColors->update(1, glm::vec4{ 1.0f, 0.0f, 0.0f, 1.0f });
+    m_pVertexColors->update(2, glm::vec4{ 0.0f, 0.0f, 1.0f, 1.0f });
+    m_pVertexColors->commitUpdates();
     
     //glCall(glEnable(GL_PRIMITIVE_RESTART));
     glCall(glEnable(GL_DEPTH_TEST));
@@ -142,7 +154,7 @@ void TerrainRendererGL::render(const RenderEnvironment &env, const std::vector<T
         m_pShaderConfig->loadModelMatrix(modelMatrix);
 
         glCall(glBindVertexArray(pGlModel->vao()));
-        glCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, pGlModel->bufferAt(3)));
+        glCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, pGlModel->indexBufferAt(0)));
         
         //auto pTex = terrain.pTexture->texture();
         //if (pTex)

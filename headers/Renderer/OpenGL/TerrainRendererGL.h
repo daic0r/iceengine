@@ -14,6 +14,7 @@
 #include <Interfaces/ITerrainRenderer.h>
 #include <array>
 #include <memory>
+#include <Renderer/OpenGL/VertexAttributeGL.h>
 
 namespace Ice {
 
@@ -47,6 +48,9 @@ class TerrainRendererGL : public ITerrainRenderer {
 
 	ModelRendererGL* m_pModelRenderer{ nullptr };
     GraphicsSystemGL* m_pGraphicsSystem{};
+
+    std::unique_ptr<DynamicVertexAttributeGL<glm::vec4>> m_pVertexColors;
+
 
 public:
     TerrainRendererGL();
