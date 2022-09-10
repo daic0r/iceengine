@@ -76,22 +76,53 @@ void TerrainRendererGL::prepareRendering(const RenderEnvironment& env, const std
         if (m_mTerrains.find(terrain.pTerrain->m_terrain.terrainId()) != m_mTerrains.end())
             continue;
         
-        auto pGlObject = std::make_unique<RenderObjectGL>(RenderToolsGL::createVAO());
+        VAO vao;
+        vao.create();
+        vao.bind();
+        //auto pGlObject = std::make_unique<RenderObjectGL>(RenderToolsGL::createVAO());
         glProvokingVertex(GL_FIRST_VERTEX_CONVENTION);
-        GLuint nVertexBuffer = RenderToolsGL::loadFloatBuffer(pGlObject->vao(), GL_ARRAY_BUFFER, terrain.pMesh->vertices(), GL_STATIC_DRAW);
-        glCall(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, nullptr));
+        //GLuint nVertexBuffer = RenderToolsGL::loadFloatBuffer(vao, GL_ARRAY_BUFFER, terrain.pMesh->vertices(), GL_STATIC_DRAW);
+        //glCall(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, nullptr));
+        std::vector<glm::vec3> vVertices;
+        vVertices.reserve(terrain.pMesh->vertices().size() / 3);
+        const auto& vInpVertices = terrain.pMesh->vertices();
+        for (std::size_t i{}; i < vInpVertices.size(); i+=3) {
+            vVertices.emplace_back(vInpVertices.at(i), vInpVertices.at(i+1), vInpVertices.at(i+2));
+        }
+        vao.addStaticVertexAttribute<glm::vec3>(0);
+        vao.attribute(0).setData(std::move(vVertices));
+        vao.attribute(0).connect();
+        
         std::vector<glm::vec4> vColorBuf;
         vColorBuf.reserve(terrain.pMesh->colors().size() / 4);
-        const auto& vInput = terrain.pMesh->colors();
-        for (std::size_t i{}; i < terrain.pMesh->colors().size(); i+=4) {
-            vColorBuf.emplace_back(vInput.at(i), vInput.at(i+1), vInput.at(i+2), vInput.at(i+3));
+        const auto& vColors = terrain.pMesh->colors();
+        for (std::size_t i{}; i < vColors.size(); i+=4) {
+            vColorBuf.emplace_back(vColors.at(i), vColors.at(i+1), vColors.at(i+2), vColors.at(i+3));
         }
-        m_pVertexColors = std::make_unique<DynamicVertexAttributeGL<glm::vec4>>(1, std::move(vColorBuf));
-        m_pVertexColors->connect();
+        vao.addDynamicVertexAttribute<glm::vec4>(1);
+        vao.attribute(1).setData(std::move(vColorBuf));
+        vao.attribute(1).connect();
+
+        //m_pVertexColors = std::make_unique<DynamicVertexAttributeGL<glm::vec4>>(1);
+        //m_pVertexColors->setData(std::move(vColorBuf));
+        //m_pVertexColors->connect();
+        
+        std::vector<glm::vec3> vNormals;
+        vNormals.reserve(terrain.pMesh->normals().size() / 3);
+        const auto& vInpNormals = terrain.pMesh->normals();
+        for (std::size_t i{}; i < vInpNormals.size(); i+=3) {
+            vNormals.emplace_back(vInpNormals.at(i), vInpNormals.at(i+1), vInpNormals.at(i+2));
+        }
+        vao.addStaticVertexAttribute<glm::vec3>(2);
+        vao.attribute(2).setData(std::move(vNormals));
+        vao.attribute(2).connect();
+ 
+        glCall(glBindBuffer(GL_ARRAY_BUFFER, 0));
         //GLuint nColorBuffer = RenderToolsGL::loadFloatBuffer(pGlObject->vao(), GL_ARRAY_BUFFER, terrain.pMesh->colors(), GL_STATIC_DRAW);
         //glCall(glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 4, nullptr));
-        GLuint nNormalBuffer = RenderToolsGL::loadFloatBuffer(pGlObject->vao(), GL_ARRAY_BUFFER, terrain.pMesh->normals(), GL_STATIC_DRAW);
-        glCall(glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, nullptr));
+        //GLuint nNormalBuffer = RenderToolsGL::loadFloatBuffer(pGlObject->vao(), GL_ARRAY_BUFFER, terrain.pMesh->normals(), GL_STATIC_DRAW);
+        //glCall(glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, nullptr));
+        /*
         glCall(glEnableVertexAttribArray(0));
         glCall(glEnableVertexAttribArray(1));
         glCall(glEnableVertexAttribArray(2));
@@ -99,23 +130,27 @@ void TerrainRendererGL::prepareRendering(const RenderEnvironment& env, const std
         glCall(glGenBuffers(1, &nElementBuffer));
         glCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, nElementBuffer));
         glCall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * terrain.pMesh->indices().size(), &(terrain.pMesh->indices()[0]), GL_STATIC_DRAW));
-        
+        */ 
+        vao.setIndexBuffer(terrain.pMesh->indices());
+        /*
         pGlObject->addBuffer(nVertexBuffer);
         //pGlObject->addBuffer(nColorBuffer);
         pGlObject->addBuffer(nNormalBuffer);
         pGlObject->addIndexBuffer(nElementBuffer);
+        */
         
-        glCall(glBindBuffer(GL_ARRAY_BUFFER, 0));
         glCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
         glCall(glBindVertexArray(0));
         
-        m_mTerrains.emplace(terrain.pTerrain->id(), std::move(pGlObject));
+        //m_mTerrains.emplace(terrain.pTerrain->id(), std::move(pGlObject));
+        auto [iter, _] = m_mTerrains.emplace(terrain.pTerrain->id(), std::move(vao));
+        auto& attrib = dynamic_cast<DynamicVertexAttributeGL<glm::vec4>&>(iter->second.attribute(1));
+
+        attrib.update(1, glm::vec4{ 1.0f, 0.0f, 0.0f, 1.0f });
+        attrib.update(2, glm::vec4{ 0.0f, 0.0f, 1.0f, 1.0f });
+        attrib.commitUpdates();
     }
 
-    m_pVertexColors->update(1, glm::vec4{ 1.0f, 0.0f, 0.0f, 1.0f });
-    m_pVertexColors->update(2, glm::vec4{ 0.0f, 0.0f, 1.0f, 1.0f });
-    m_pVertexColors->commitUpdates();
-    
     //glCall(glEnable(GL_PRIMITIVE_RESTART));
     glCall(glEnable(GL_DEPTH_TEST));
     glCall(glEnable(GL_CULL_FACE));
@@ -148,24 +183,26 @@ void TerrainRendererGL::render(const RenderEnvironment &env, const std::vector<T
         if (iter == m_mTerrains.end())
             continue;
         
-        const auto& pGlModel = iter->second;
+        const auto& vao = iter->second;
         
         glm::mat4 modelMatrix = glm::translate(glm::mat4{1.0f}, glm::vec3{ terrain.pTerrain->m_terrain.gridX(), 0.0f, terrain.pTerrain->m_terrain.gridZ() });
         m_pShaderConfig->loadModelMatrix(modelMatrix);
 
-        glCall(glBindVertexArray(pGlModel->vao()));
-        glCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, pGlModel->indexBufferAt(0)));
+        vao.bind();
+        vao.bindIndexVBO();
         
         //auto pTex = terrain.pTexture->texture();
         //if (pTex)
         //    pTex->bind(m_pShaderConfig->textureUniformId());
 
-        glCall(glDrawElements(GL_TRIANGLES, terrain.pMesh->indices().size(), GL_UNSIGNED_INT, nullptr));
+        glCall(glDrawElements(GL_TRIANGLES, vao.indexBuffer().size(), GL_UNSIGNED_INT, nullptr));
 
         //if (pTex)
         //    terrain.pTexture->texture()->unbind();
         
-        glCall(glBindVertexArray(0));
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        vao.unbind();
+        //glCall(glBindVertexArray(0));
 
 
         /*

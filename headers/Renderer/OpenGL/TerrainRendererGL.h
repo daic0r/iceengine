@@ -15,6 +15,7 @@
 #include <array>
 #include <memory>
 #include <Renderer/OpenGL/VertexAttributeGL.h>
+#include <Renderer/OpenGL/VAO.h>
 
 namespace Ice {
 
@@ -38,7 +39,8 @@ class TerrainRendererGL : public ITerrainRenderer {
     GLuint m_quadVAO;
     GLuint m_quadVBO;
         
-    std::map<int, std::unique_ptr<RenderObjectGL>> m_mTerrains;
+    //std::map<int, std::unique_ptr<RenderObjectGL>> m_mTerrains;
+    std::map<int, VAO> m_mTerrains;
     
     std::unique_ptr<IShaderProgram> m_pShaderProgram{ nullptr };
     TerrainShaderConfigurator *m_pShaderConfig{ nullptr };

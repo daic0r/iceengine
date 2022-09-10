@@ -60,6 +60,8 @@ Renderer/OpenGL/TextRendererGL.cpp
 Renderer/OpenGL/SunRendererGL.cpp
 Renderer/OpenGL/UniformBufferObjectGL.cpp
 Renderer/OpenGL/VertexAttributeGL.cpp
+Renderer/OpenGL/VAO.cpp
+Renderer/OpenGL/VBO.cpp
 Renderer/PostProcessing/PostProcessingPipeline.cpp
 Renderer/PostProcessing/PostProcessingEffectFactory.cpp
 Renderer/PostProcessing/OpenGL/BasePostProcessorGL.cpp

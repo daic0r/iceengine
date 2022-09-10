@@ -9,14 +9,9 @@
 namespace Ice
 {
     template<typename ElementType>
-    VertexAttributeGL<ElementType>::~VertexAttributeGL() {
-        glCall(glDeleteBuffers(1, &m_nVBO));
-    }
-
-    template<typename ElementType>
     void VertexAttributeGL<ElementType>::connect() noexcept {
-        glCreateBuffers(1, &m_nVBO);
-        glNamedBufferStorage(m_nVBO, base_t::m_vBuffer.size() * sizeof(ElementType), &base_t::m_vBuffer[0], m_usageFlags | GL_MAP_WRITE_BIT);
+        m_VBO.create();
+        glNamedBufferStorage(m_VBO, buffer().size() * sizeof(ElementType), &buffer()[0], m_usageFlags | GL_MAP_WRITE_BIT);
 
         std::size_t nNumElements{};
         std::size_t nElementSize{};
@@ -35,19 +30,20 @@ namespace Ice
                 type = GL_FLOAT;
         }
 
-        glBindBuffer(GL_ARRAY_BUFFER, m_nVBO);
-        glVertexAttribPointer(base_t::index(), nNumElements, type, GL_FALSE, nElementSize * nNumElements, nullptr);
+        m_VBO.bind(GL_ARRAY_BUFFER);
+        glVertexAttribPointer(index(), nNumElements, type, GL_FALSE, nElementSize * nNumElements, nullptr);
+        enable();
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 
     template<typename ElementType>
     void VertexAttributeGL<ElementType>::enable() noexcept {
-        glEnableVertexAttribArray(base_t::index());
+        glEnableVertexAttribArray(index());
     }
 
     template<typename ElementType>
     void VertexAttributeGL<ElementType>::disable() noexcept {
-        glDisableVertexAttribArray(base_t::index());
+        glDisableVertexAttribArray(index());
     }
 
     template<typename ElementType>
@@ -58,16 +54,17 @@ namespace Ice
 
     template<typename ElementType>
     void DynamicVertexAttributeGL<ElementType>::beginUpdate() noexcept {
-        glBindBuffer(GL_ARRAY_BUFFER, VertexAttributeGL<ElementType>::m_nVBO);
+        VertexAttributeGL<ElementType>::m_VBO.bind(GL_ARRAY_BUFFER);
         m_pUpdateBuffer = static_cast<ElementType*>(glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY));
     }
     template<typename ElementType>
     void DynamicVertexAttributeGL<ElementType>::doUpdate(std::size_t nIndex) noexcept {
-        m_pUpdateBuffer[nIndex] = VertexAttribute<ElementType>::m_vBuffer.at(nIndex);
+        m_pUpdateBuffer[nIndex] = VertexAttributeGL<ElementType>::buffer().at(nIndex);
     }
     template<typename ElementType>
     void DynamicVertexAttributeGL<ElementType>::endUpdate() noexcept {
         glUnmapBuffer(GL_ARRAY_BUFFER);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
         m_pUpdateBuffer = nullptr;
     }
 

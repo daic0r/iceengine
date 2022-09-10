@@ -6,27 +6,31 @@
 #include <SDL2/SDL_opengl.h>
 #include <Renderer/VertexAttribute.h>
 #include <type_traits>
+#include <Renderer/OpenGL/VBO.h>
 
 namespace Ice
 {
     template<typename ElementType>
-    class VertexAttributeGL : virtual public VertexAttribute<ElementType> {
-        using base_t = VertexAttribute<ElementType>; 
+    class VertexAttributeGL : virtual public VertexAttribute {
     protected:
         GLenum m_usageFlags = 0;
-        GLuint m_nVBO{};
+        VBO m_VBO{};
 
     public:
-        using VertexAttribute<ElementType>::VertexAttribute;
-        virtual ~VertexAttributeGL();
+        using VertexAttribute::VertexAttribute;
+
+        auto operator<=>(const VertexAttributeGL&) const = default;
 
         void connect() noexcept override;
         void enable() noexcept override;
         void disable() noexcept override;
+        
+        const std::vector<ElementType>& buffer() const noexcept { return std::any_cast<const std::vector<ElementType>&>(m_vBuffer); }
     };
 
     template<typename ElementType>
-    class DynamicVertexAttributeGL : public VertexAttributeGL<ElementType>, public DynamicVertexAttribute<ElementType> {
+    class DynamicVertexAttributeGL : public VertexAttributeGL<ElementType>, public DynamicVertexAttribute {
+        
     public:
         using VertexAttributeGL<ElementType>::VertexAttributeGL;
 
