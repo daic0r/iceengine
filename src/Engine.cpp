@@ -42,6 +42,7 @@
 #include <Components/Systems/InfectionSystem.h>
 #include <Components/Systems/DayNightCycleSystem.h>
 #include <Components/Systems/TerrainSystem.h>
+#include <Components/Systems/BiomeSystem.h>
 #include <chrono>
 #include <GUI/WidgetManager.h>
 #include <Utils/ScopedTimeMeasurement.h>
@@ -64,6 +65,7 @@ static std::unique_ptr<MeshGroupSystem> _pMeshGroupSystem;
 static std::unique_ptr<InfectionSystem> _pInfectionSystem;
 static std::unique_ptr<DayNightCycleSystem> _pDayNightCycleSystem;
 static std::unique_ptr<TerrainSystem> _pTerrainSystem;
+static std::unique_ptr<BiomeSystem> _pBiomeSystem;
 
 bool Engine::init(const Config& config, ILoader *pLoader, std::unique_ptr<IGame> pGame) {
     systemServices.setConfig(config);
@@ -85,6 +87,7 @@ bool Engine::init(const Config& config, ILoader *pLoader, std::unique_ptr<IGame>
 	_pInfectionSystem = std::make_unique<InfectionSystem>();
 	_pDayNightCycleSystem = std::make_unique<DayNightCycleSystem>();
     _pTerrainSystem = std::make_unique<TerrainSystem>();
+    _pBiomeSystem = std::make_unique<BiomeSystem>();
 
     entityManager.registerComponentSystem<false>(_pModelManager.get());
     entityManager.registerComponentSystem<false>(_pAnimatedModelManager.get());
@@ -101,6 +104,7 @@ bool Engine::init(const Config& config, ILoader *pLoader, std::unique_ptr<IGame>
 	entityManager.registerComponentSystem<true>(_pInfectionSystem.get());
     entityManager.registerComponentSystem<true>(_pCamSystem.get());
 	entityManager.registerComponentSystem<true>(_pDayNightCycleSystem.get());
+    entityManager.registerComponentSystem<true>(_pBiomeSystem.get());
 
 	entityManager.notifySystemsInitialized();
 

@@ -52,17 +52,9 @@ namespace Ice::MeshGeneration
             return LowPolyTerrainQuadVariant2LastRowStrategy;
         } 
 
-    private:
-        constexpr std::size_t getNumRowVertices(int z) noexcept {
-            if (z >= Height - 2) {
-                return Width;
-            }
-            return 2 + 2 * (Width - 2);
-        }
-
         // bLeft specifies which of the duplicated vertices we want: the one
         // belonging to the left or the right quad
-        constexpr std::size_t getVertexIndex(int vertexX, int vertexZ, bool bLeft) noexcept {
+        constexpr std::size_t getVertexIndex(int vertexX, int vertexZ, bool bLeft) const noexcept {
             std::size_t nRetIdx{};
             for (auto z = 0; z < vertexZ; ++z) {
                 nRetIdx += getNumRowVertices(z);
@@ -77,6 +69,14 @@ namespace Ice::MeshGeneration
                 nRetIdx += 1;
 
             return nRetIdx;
+        }
+
+    private:
+        constexpr std::size_t getNumRowVertices(int z) const noexcept {
+            if (z >= Height - 2) {
+                return Width;
+            }
+            return 2 + 2 * (Width - 2);
         }
 
         constexpr void push_upper_left_triangle(int x, int z, IndexGeneratorContainerType& arIndices, std::size_t& idx) noexcept {

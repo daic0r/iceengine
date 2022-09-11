@@ -74,6 +74,7 @@ Events/EventQueue.cpp
 Components/ComponentManager.cpp
 Components/MeshComponent.cpp
 Components/RenderMaterialsComponent.cpp
+Components/Systems/BiomeSystem.cpp
 Components/Systems/ObjectRenderingSystem.cpp
 Components/Systems/ParticleSystemSystem.cpp
 Components/Systems/InfectionSystem.cpp

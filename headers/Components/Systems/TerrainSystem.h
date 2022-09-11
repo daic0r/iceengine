@@ -9,7 +9,8 @@ namespace Ice
 {
     class TerrainSystem : public EntityComponentSystem<TerrainComponent> {
     public:
-        std::optional<float> getHeight(float x, float z);
+        std::optional<float> getHeight(float x, float z) const;
+        TerrainComponent* getTerrainAt(float x, float z) const;
 
     };
     

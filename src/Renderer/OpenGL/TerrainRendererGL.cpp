@@ -73,8 +73,10 @@ TerrainRendererGL::~TerrainRendererGL() {
 
 void TerrainRendererGL::prepareRendering(const RenderEnvironment& env, const std::vector<Terrain>& vTerrains) noexcept {
     for (auto& terrain : vTerrains) {
-        if (m_mTerrains.find(terrain.pTerrain->m_terrain.terrainId()) != m_mTerrains.end())
+        if (auto iter = m_mTerrains.find(terrain.pTerrain->m_terrain.terrainId()); iter != m_mTerrains.end()) {
+            dynamic_cast<DynamicVertexAttributeGL<glm::vec4>&>(iter->second.attribute(1)).commitUpdates();
             continue;
+        }
         
         VAO vao;
         vao.create();
@@ -126,11 +128,17 @@ void TerrainRendererGL::prepareRendering(const RenderEnvironment& env, const std
         
         //m_mTerrains.emplace(terrain.pTerrain->id(), std::move(pGlObject));
         auto [iter, _] = m_mTerrains.emplace(terrain.pTerrain->id(), std::move(vao));
-        auto& attrib = dynamic_cast<DynamicVertexAttributeGL<glm::vec4>&>(iter->second.attribute(1));
 
+        ///////////////////////////////////////////////////////////////////
+        // Link up pointer
+        terrain.pTerrain->m_terrain.setColorVertexAttribute(dynamic_cast<DynamicVertexAttributeGL<glm::vec4>*>(&iter->second.attribute(1)));
+        ///////////////////////////////////////////////////////////////////
+
+        /*
         attrib.update(1, glm::vec4{ 1.0f, 0.0f, 0.0f, 1.0f });
         attrib.update(2, glm::vec4{ 0.0f, 0.0f, 1.0f, 1.0f });
         attrib.commitUpdates();
+        */
     }
 
     //glCall(glEnable(GL_PRIMITIVE_RESTART));
