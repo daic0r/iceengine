@@ -25,7 +25,7 @@ namespace Ice
         void enable() noexcept override;
         void disable() noexcept override;
         
-        const std::vector<ElementType>& buffer() const noexcept { return std::any_cast<const std::vector<ElementType>&>(m_vBuffer); }
+        const std::vector<ElementType>& buffer() const noexcept { return *static_cast<const std::vector<ElementType>*>(m_pvBuffer); }
     };
 
     template<typename ElementType>

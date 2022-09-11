@@ -1,7 +1,6 @@
 #ifndef VertexAttributeBuffer_h
 #define VertexAttributeBuffer_h
 
-#include <any>
 #include <vector>
 
 namespace Ice
@@ -11,12 +10,8 @@ namespace Ice
         constexpr VertexAttribute(std::size_t nAttribIdx) : m_nAttributeIdx{ nAttribIdx } {}
 
         template<typename ElementType>
-        void setData(const std::vector<ElementType>& vBuf) {
-            m_vBuffer = vBuf;
-        }
-        template<typename ElementType>
-        void setData(std::vector<ElementType>&& vBuf) {
-            m_vBuffer = std::move(vBuf);
+        void setData(std::vector<ElementType>* vBuf) {
+            m_pvBuffer = vBuf;
         }
         constexpr auto index() const noexcept { return m_nAttributeIdx; }
         constexpr bool operator<(const VertexAttribute& other) const noexcept { return m_nAttributeIdx < other.m_nAttributeIdx; }
@@ -28,7 +23,7 @@ namespace Ice
 
     protected:
         std::size_t m_nAttributeIdx{};
-        std::any m_vBuffer;
+        void* m_pvBuffer{};
     };
 
     class DynamicVertexAttribute : virtual public VertexAttribute {
@@ -41,7 +36,7 @@ namespace Ice
 
         template<typename T>
         constexpr void update(std::size_t nIndex, T&& value) { 
-            auto& buf = std::any_cast<std::vector<T>&>(m_vBuffer);
+            auto& buf = *static_cast<std::vector<T>*>(m_pvBuffer);
             buf.at(nIndex) = std::forward<T>(value);
             m_vUpdates.emplace_back(nIndex);
         }
