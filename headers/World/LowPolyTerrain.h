@@ -11,6 +11,8 @@
 namespace Ice {
 
     class LowPolyTerrain {
+        friend class TerrainSystem;
+
         static inline int NextId{ 0 };
     public:
         LowPolyTerrain(
@@ -47,12 +49,13 @@ namespace Ice {
         constexpr auto tileHeight() const noexcept { return m_fTileHeight; } 
         constexpr decltype(auto) heightMap() const noexcept { return (m_vHeightMap); }
         constexpr auto& indexGenerator() noexcept { return m_indexGen; }
+        constexpr const auto& indexGenerator() const noexcept { return m_indexGen; }
         
         constexpr void setColorVertexAttribute(DynamicVertexAttribute* pAttrib) noexcept { m_pColorAttrib = pAttrib; }
         constexpr auto colorVertexAttribute() noexcept { return m_pColorAttrib; }
 
-        std::optional<float> getHeight(float x, float z, glm::mat4* pMatrix = nullptr) const noexcept;
-        bool getCenterCoordsForTile(int x, int z, float& outX, float& outZ) const noexcept;
+        //std::optional<float> getHeight(float x, float z, glm::mat4* pMatrix = nullptr) const noexcept;
+        //bool getCenterCoordsForTile(int x, int z, float& outX, float& outZ) const noexcept;
 
         auto terrainId() const noexcept { return m_nId; }
 

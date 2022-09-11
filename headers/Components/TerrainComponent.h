@@ -10,7 +10,7 @@
 #define TerrainComponent_h
 
 #include <IceEngine.h>
-#include <glm/vec2.hpp>
+#include <glm/vec4.hpp>
 #include <string>
 #include <vector>
 #include <tuple>
@@ -29,6 +29,7 @@ struct ICEENGINE_API TerrainComponent {
 
     static constexpr EntityComponentId id() noexcept { return TERRAIN_COMPONENT; }
     LowPolyTerrain m_terrain;
+    std::vector<glm::vec4> m_vOriginalColorBuffer;
 /*
 public:
     

@@ -8,6 +8,7 @@
 namespace Ice
 {
     
+    /*
     std::optional<float> LowPolyTerrain::getHeight(float x, float z, glm::mat4* pMatrix) const noexcept {
         if ((x < 0.0f) || (x >= width()) || (z < 0.0f) || (z >= height()))
             return std::nullopt;
@@ -99,12 +100,7 @@ namespace Ice
     }
 
     bool LowPolyTerrain::getCenterCoordsForTile(int x, int z, float& outX, float& outZ) const noexcept {
-        /*const int nGridX = static_cast<int>(m_fWorldX / m_fSize);
-        const int nGridZ = static_cast<int>(m_fWorldZ / m_fSize);
-        if (x < nGridX || z < nGridZ || x > nGridX+m_nNumPartsPerDimension-1 || z > nGridZ+m_nNumPartsPerDimension-1)
-            return false;
-        */
-        if ((x < 0.0f) || (x >= width()) || (z < 0.0f) || (z >= height()))
+       if ((x < 0.0f) || (x >= width()) || (z < 0.0f) || (z >= height()))
             return false;
 
         outX = (x * tileWidth()) + (tileWidth() / 2.0f);
@@ -112,4 +108,5 @@ namespace Ice
 
         return true;
     }
+    */
 } // namespace Ice
