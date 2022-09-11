@@ -456,22 +456,18 @@ RenderObjectGL& WaterRendererGL::registerWaterTile(WaterTile* pTile) {
         return vIndices.at(i);
     };
     const auto vertexAt = [&](std::size_t idx) {
-        const auto nMeshArrayIndex = 3 * idx;
-        return glm::vec2{ vMesh.at(nMeshArrayIndex), vMesh.at(nMeshArrayIndex + 2) };
+        const auto nMeshArrayIndex = idx;
+        return glm::vec2{ vMesh.at(nMeshArrayIndex).x, vMesh.at(nMeshArrayIndex).z };
     };
     for (std::size_t i = 0; i < vIndices.size(); i+=3) { // 3 indices at a time => 1 triangle
         glm::vec3 lastCross{};
         for (std::size_t j = 0; j < 3; ++j) {
             std::array<glm::vec2, 2> arIndicators;
             std::size_t nArWhere{};
-            assert(vMesh[3*indexAt(i + j) + 1] == 0.0f);
-            //glm::vec2 thisVec{ vMesh[3*indexAt(i + j)], vMesh[3*indexAt(i + j) + 2] };
             const auto thisVec = vertexAt(indexAt(i + j));
             for (std::size_t k = 0, l = j; k < 3; ++k, l = (l + 1) % 3) {
                 if (l == j)
                     continue;
-                assert(vMesh[3*indexAt(i + l) + 1] == 0.0f);
-                //glm::vec2 otherVec{ vMesh[3*indexAt(i + l)], vMesh[3*indexAt(i + l) + 2] };
                 const auto otherVec = vertexAt(indexAt(i + l));
                 glm::vec2 indicator{ otherVec - thisVec };
                 arIndicators[nArWhere++] = indicator;

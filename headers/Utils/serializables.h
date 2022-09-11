@@ -100,6 +100,16 @@ ref_passer(T&) -> ref_passer<T>;
 }
 
 namespace glm {
+    inline void to_json(nlohmann::json& j, const vec<2, float, defaultp>& v) {
+        j["x"] = v.x;
+        j["y"] = v.y;
+    }
+
+    inline void from_json(const nlohmann::json& j, vec<2, float, defaultp>& v) {
+        v.x = j.at("x").template get<float>();
+        v.y = j.at("y").template get<float>();
+    }
+
     inline void to_json(nlohmann::json& j, const vec<3, float, defaultp>& v) {
         j["x"] = v.x;
         j["y"] = v.y;

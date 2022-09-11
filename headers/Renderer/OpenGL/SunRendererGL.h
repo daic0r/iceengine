@@ -11,7 +11,7 @@ class IShaderProgram;
 class IGraphicsSystem;
 
 class SunRendererGL : public ISunRenderer {
-	static const std::vector<GLfloat> PointVertex;
+	static const std::vector<glm::vec3> PointVertex;
 
 	std::unique_ptr<IShaderProgram> m_pShaderProgram;
 	SunShaderConfigurator* m_pShaderConfig{ nullptr };

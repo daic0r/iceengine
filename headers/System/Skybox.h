@@ -18,46 +18,46 @@ struct Skybox {
     friend class SkyboxRendererGL;
     
     // in NDC coords (Z pointing forward, ranging from -1 to 1 in all dimensions)
-    static constexpr std::array<float, 12> Front {
-        -1, -1, 1,
-        1, -1, 1,
-        1, 1, 1,
-        -1, 1, 1
+    static constexpr std::array<glm::vec3, 4> Front {
+        glm::vec3{ -1, -1, 1 },
+        glm::vec3{ 1, -1, 1 },
+        glm::vec3{ 1, 1, 1 },
+        glm::vec3{ -1, 1, 1 }
     };
     
-    static constexpr std::array<float, 12> Back {
-        1, -1, -1,
-        -1, -1, -1,
-        -1, 1, -1,
-        1, 1, -1
+    static constexpr std::array<glm::vec3, 4> Back {
+        glm::vec3{ 1, -1, -1 },
+        glm::vec3{ -1, -1, -1 },
+        glm::vec3{ -1, 1, -1 },
+        glm::vec3{ 1, 1, -1 }
     };
     
-    static constexpr std::array<float, 12> Left {
-        -1, -1, -1,
-        -1, -1, 1,
-        -1, 1, 1,
-        -1, 1, -1
+    static constexpr std::array<glm::vec3, 4> Left {
+        glm::vec3{ -1, -1, -1 },
+        glm::vec3{ -1, -1, 1 },
+        glm::vec3{ -1, 1, 1 },
+        glm::vec3{ -1, 1, -1 }
     };
         
-    static constexpr std::array<float, 12> Right {
-        1, -1, 1,
-        1, -1, -1,
-        1, 1, -1,
-        1, 1, 1
+    static constexpr std::array<glm::vec3, 4> Right {
+        glm::vec3{ 1, -1, 1 },
+        glm::vec3{ 1, -1, -1 },
+        glm::vec3{ 1, 1, -1 },
+        glm::vec3{ 1, 1, 1 }
     };
     
-    static constexpr std::array<float, 12> Top {
-        -1, 1, 1,
-        1, 1, 1,
-        1, 1, -1,
-        -1, 1, -1
+    static constexpr std::array<glm::vec3, 4> Top {
+        glm::vec3{ -1, 1, 1 },
+        glm::vec3{ 1, 1, 1 },
+        glm::vec3{ 1, 1, -1 },
+        glm::vec3{ -1, 1, -1 }
     };
     
-    static constexpr std::array<float, 12> Bottom {
-        -1, -1, -1,
-        1, -1, -1,
-        1, -1, 1,
-        -1, -1, 1
+    static constexpr std::array<glm::vec3, 4> Bottom {
+        glm::vec3{ -1, -1, -1 },
+        glm::vec3{ 1, -1, -1 },
+        glm::vec3{ 1, -1, 1 },
+        glm::vec3{ -1, -1, 1 }
     };
     
     static constexpr std::array<unsigned int, 6> Indices = {

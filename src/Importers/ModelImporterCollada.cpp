@@ -288,22 +288,20 @@ bool ModelImporterCollada::import(std::map<std::string, MeshComponent>& outMeshD
                             glm::vec4 vert{ pv.vertex[0], pv.vertex[1], pv.vertex[2], 1.0f };
                             vert = m_correctiveTransform * vert;
                             for (int i = 0; i < 3; ++i) {
-                                meshDataCurrentObject.vertices().emplace_back(vert[i]);
                                 if (vert[i] > meshDataCurrentObject.extents().maxPoint[i])
                                     meshDataCurrentObject.extents().maxPoint[i] = vert[i];
                                 if (vert[i] < meshDataCurrentObject.extents().minPoint[i])
                                     meshDataCurrentObject.extents().minPoint[i] = vert[i];
                             }
+                            meshDataCurrentObject.vertices().emplace_back(vert);
                         }
                         if (bHasTexCoord) {
-                            for (int i = 0; i < 2; ++i)
-                                meshDataCurrentObject.texCoords().emplace_back(pv.texCoord[i]);
+                            meshDataCurrentObject.texCoords().emplace_back(pv.texCoord[0], pv.texCoord[1]);
                         }
                         if (bHasNormals) {
                             glm::vec4 normal{ pv.normal[0], pv.normal[1], pv.normal[2], 0.0f };
                             normal = m_correctiveTransform * normal;
-                            for (int i = 0; i < 3; ++i)
-                                meshDataCurrentObject.normals().emplace_back(normal[i]);
+                            meshDataCurrentObject.normals().emplace_back(normal);
                         }
                         if (m_vJoints.size() > 0) {
                             meshDataAnimatedCurrentObject.m_vJointIds.emplace_back(jointIds);

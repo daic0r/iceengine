@@ -166,19 +166,18 @@ bool ModelImporterOBJ::import(std::map<std::string, MeshComponent>& outMeshData)
 				else
 				{
 					//vVertices.emplace_back(pv);
+					glm::vec3 outVertex;
 					for (int i = 0; i < 3; ++i) {
-						pMeshDataCurrentObject->vertices().emplace_back(pv.vertex[i]);
+						outVertex[i] = pv.vertex[i];
 
 						if (pv.vertex[i] > pMeshDataCurrentObject->extents().maxPoint[i])
 							pMeshDataCurrentObject->extents().maxPoint[i] = pv.vertex[i];
 						if (pv.vertex[i] < pMeshDataCurrentObject->extents().minPoint[i])
 							pMeshDataCurrentObject->extents().minPoint[i] = pv.vertex[i];
 					}
-					for (int i = 0; i < 2; ++i)
-						pMeshDataCurrentObject->texCoords().emplace_back(pv.texCoord[i]);
-					for (int i = 0; i < 3; ++i)
-						pMeshDataCurrentObject->normals().emplace_back(pv.normal[i]);
-
+					pMeshDataCurrentObject->vertices().push_back(outVertex);
+					pMeshDataCurrentObject->texCoords().emplace_back(pv.texCoord[0], pv.texCoord[1]);
+					pMeshDataCurrentObject->normals().emplace_back(pv.normal[0], pv.normal[1], pv.normal[2]);
 					pvIndicesCurrentMaterial->emplace_back(nNumVerts);
 					mVertices[pv] = nNumVerts;
 					++nNumVerts;

@@ -32,7 +32,7 @@ class ParticleRendererGL : public IParticleRenderer {
     static constexpr int MAX_PARTICLES = 10000;
     static bool m_bInstanced;
     
-    static const std::vector<GLfloat> m_vQuadVertices;
+    static const std::vector<glm::vec2> m_vQuadVertices;
     std::unique_ptr<RenderObjectGL> m_pQuad;
     std::unique_ptr<IShaderProgram> m_pShaderProgram{ nullptr };
     ParticleShaderConfigurator *m_pShaderConfig{ nullptr };

@@ -31,8 +31,9 @@ public:
     static GLuint createEmptyVBO(GLuint nVao, int nNumFloats, GLenum usage = GL_DYNAMIC_DRAW);
     static void addInstanceVertexAttribute(GLuint nVbo, int nAttribIndex, int nNumComponents, int nInstanceDataChunkLength, int nNumFloatsOffset, int nDivisor = 1);
     static void loadVBOData(GLuint nVbo, const std::vector<GLfloat>& vData);
-    static GLuint loadFloatBuffer(GLuint nVAO, GLenum nBufferType, const std::vector<GLfloat>& buffer, GLenum nUsage);
-    static RenderObjectGL loadVerticesToVAO(const std::vector<GLfloat>& buffer, int nDim);
+    static GLuint loadFloatBuffer(GLenum nBufferType, const GLfloat* buffer, std::size_t nNumElements, GLenum nUsage);
+    template<typename VertexType>
+    static RenderObjectGL loadVerticesToVAO(const std::vector<VertexType>& buffer);
     static std::unique_ptr<RenderObjectGL> createRenderObjectAndLoadVBOsFromMesh(const MeshComponent&);
     
     static GLuint createFramebuffer();

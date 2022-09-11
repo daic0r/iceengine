@@ -10,11 +10,11 @@
 
 namespace Ice {
 
-static const std::vector<GLfloat> vQuad{ 
-    -1.0f, 1.0f,
-    -1.0f, -1.0f,
-    1.0f, 1.0f,
-    1.0f, -1.0f
+static const std::vector<glm::vec2> vQuad{ 
+    glm::vec2{ -1.0f, 1.0f },
+    glm::vec2{ -1.0f, -1.0f },
+    glm::vec2{ 1.0f, 1.0f },
+    glm::vec2{ 1.0f, -1.0 }
 };
 
 RenderObjectGL BasePostProcessorGL::m_quad;
@@ -23,7 +23,7 @@ BasePostProcessorGL::BasePostProcessorGL(GLsizei nWidth, GLsizei nHeight, bool b
     : m_fbo{ nWidth < 0 ? systemServices.getGraphicsSystem()->displayWidth() : nWidth, nHeight < 0 ? systemServices.getGraphicsSystem()->displayHeight() : nHeight }
 {
     if (!bStaticInit) [[unlikely]] {
-        m_quad = RenderToolsGL::loadVerticesToVAO(vQuad, 2);
+        m_quad = RenderToolsGL::loadVerticesToVAO(vQuad);
         glEnableVertexAttribArray(0);
         glBindVertexArray(0);
 

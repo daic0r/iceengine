@@ -49,7 +49,7 @@ void PathSegmentRendererGL::render(const RenderEnvironment& env, const std::vect
                     vVerts.emplace_back(v[2]);
                 }
             }
-            pObj->addBuffer(RenderToolsGL::loadFloatBuffer(pObj->vao(), GL_ARRAY_BUFFER, vVerts, GL_STATIC_DRAW));
+            pObj->addBuffer(RenderToolsGL::loadFloatBuffer(GL_ARRAY_BUFFER, static_cast<GLfloat*>(&vVerts[0]), vVerts.size(), GL_STATIC_DRAW));
 
             glCall(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, nullptr));
             glCall(glEnableVertexAttribArray(0));

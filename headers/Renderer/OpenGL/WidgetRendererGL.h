@@ -42,11 +42,11 @@ namespace GUI {
 
 class WidgetRendererGL : public IWidgetRenderer {
     static inline bool m_bInstanced{ false };
-    static inline const std::vector<GLfloat> m_vQuadVertices{
-        0.0f, 0.0f,
-        0.0f, 1.0f,
-        1.0f, 0.0f,
-        1.0f, 1.0f
+    static inline const std::vector<glm::vec2> m_vQuadVertices{
+        glm::vec2{ 0.0f, 0.0f },
+        glm::vec2{ 0.0f, 1.0f },
+        glm::vec2{ 1.0f, 0.0f },
+        glm::vec2{ 1.0f, 1.0f }
     };
     
     std::unique_ptr<RenderObjectGL> m_pQuad;

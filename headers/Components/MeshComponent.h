@@ -23,10 +23,10 @@ namespace Ice {
 
 struct ICEENGINE_API MeshComponent {
 private:
-    std::vector<float> m_vVertices;
-    std::vector<float> m_vTexCoords;
-    std::vector<float> m_vColors;
-    std::vector<float> m_vNormals;
+    std::vector<glm::vec3> m_vVertices;
+    std::vector<glm::vec2> m_vTexCoords;
+    std::vector<glm::vec4> m_vColors;
+    std::vector<glm::vec3> m_vNormals;
     std::vector<unsigned int> m_vIndices;
     std::map<std::string, std::vector<unsigned int>> m_mMaterialIndices;
     std::string m_strShader;
@@ -49,23 +49,23 @@ public:
 
     std::string& textureAtlasId() noexcept { return m_strTextureAtlas; }
     std::string& shaderId() noexcept { return m_strShader; }
-    std::vector<float>& vertices() noexcept { return m_vVertices; }
-    std::vector<float>& texCoords() noexcept { return m_vTexCoords; }
-    std::vector<float>& colors() noexcept { return m_vColors; }
+    auto& vertices() noexcept { return m_vVertices; }
+    auto& texCoords() noexcept { return m_vTexCoords; }
+    auto& colors() noexcept { return m_vColors; }
     std::vector<unsigned int>& indices() noexcept { return m_vIndices; }
     std::map<std::string, std::vector<unsigned int>>& materialIndices() noexcept { return m_mMaterialIndices; }
-    std::vector<float>& normals() noexcept { return m_vNormals; }
+    auto& normals() noexcept { return m_vNormals; }
     Extents<glm::vec3>& extents() noexcept { return m_extents; }
     std::string& name() noexcept { return m_strName; }
 
     const std::string& textureAtlasId() const noexcept { return m_strTextureAtlas; }
     const std::string& shaderId() const noexcept { return m_strShader; }
-    const std::vector<float>& vertices() const noexcept { return m_vVertices; }
-    const std::vector<float>& texCoords() const noexcept { return m_vTexCoords; }
-    const std::vector<float>& colors() const noexcept { return m_vColors; }
+    const auto& vertices() const noexcept { return m_vVertices; }
+    const auto& texCoords() const noexcept { return m_vTexCoords; }
+    const auto& colors() const noexcept { return m_vColors; }
     const std::vector<unsigned int>& indices() const noexcept { return m_vIndices; }
     const std::map<std::string, std::vector<unsigned int>>& materialIndices() const noexcept { return m_mMaterialIndices; }
-    const std::vector<float>& normals() const noexcept { return m_vNormals; }
+    const auto& normals() const noexcept { return m_vNormals; }
     const Extents<glm::vec3>& extents() const noexcept { return m_extents; }
     const std::string& name() const noexcept { return m_strName; }
     

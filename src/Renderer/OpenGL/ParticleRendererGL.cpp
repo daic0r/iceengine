@@ -32,11 +32,11 @@
 
 namespace Ice {
 
-const std::vector<GLfloat> ParticleRendererGL::m_vQuadVertices {
-    -0.5f, 0.5f,
-    -0.5f, -0.5f,
-    0.5f, 0.5f,
-    0.5f, -0.5f
+const std::vector<glm::vec2> ParticleRendererGL::m_vQuadVertices {
+    glm::vec2{ -0.5f, 0.5f },
+    glm::vec2{ -0.5f, -0.5f },
+    glm::vec2{ 0.5f, 0.5f },
+    glm::vec2{ 0.5f, -0.5f }
 };
 
 bool ParticleRendererGL::m_bInstanced{ false };
@@ -57,7 +57,7 @@ ParticleRendererGL::ParticleRendererGL() {
     m_pShaderProgram = RenderToolsGL::createShaderProgram("Particle", std::make_unique<ParticleShaderConfigurator>());
     m_pShaderConfig = dynamic_cast<ParticleShaderConfigurator*>(m_pShaderProgram->configurator());
 
-    m_pQuad = std::make_unique<RenderObjectGL>(RenderToolsGL::loadVerticesToVAO(m_vQuadVertices, 2));
+    m_pQuad = std::make_unique<RenderObjectGL>(RenderToolsGL::loadVerticesToVAO(m_vQuadVertices));
     m_VBO = m_pQuad->createEmptyVBO(10 * MAX_PARTICLES);
     m_pQuad->addInstanceVertexAttribute(m_VBO, 1, 3, 10, 0);
     m_pQuad->addInstanceVertexAttribute(m_VBO, 2, 1, 10, 3);

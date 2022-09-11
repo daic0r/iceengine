@@ -37,7 +37,7 @@ WidgetRendererGL::WidgetRendererGL() {
     
     assert(m_bInstanced == false);
 
-    m_pQuad = std::make_unique<RenderObjectGL>(RenderToolsGL::loadVerticesToVAO(m_vQuadVertices, 2));
+    m_pQuad = std::make_unique<RenderObjectGL>(RenderToolsGL::loadVerticesToVAO(m_vQuadVertices));
     glCall(glEnableVertexAttribArray(0));
     glCall(glBindVertexArray(0));
 

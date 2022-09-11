@@ -23,12 +23,13 @@ ShadowMapRendererGL::ShadowMapRendererGL() {
 	glCall(glReadBuffer(GL_NONE));
 	m_shadowFbo.unbind();
 	
-	std::vector<GLfloat> arTexVerts = { 0.0f, 0.0f,
-		0.0f, 1.0f,
-		1.0f, 0.0f,
-		1.0f, 1.0f,
+	std::vector<glm::vec2> arTexVerts = { 
+		glm::vec2{ 0.0f, 0.0f },
+		glm::vec2{ 0.0f, 1.0f },
+		glm::vec2{ 1.0f, 0.0f },
+		glm::vec2{ 1.0f, 1.0f }
 	};
-	m_shadowTexObj = RenderToolsGL::loadVerticesToVAO(arTexVerts, 2);
+	m_shadowTexObj = RenderToolsGL::loadVerticesToVAO(arTexVerts);
 	glCall(glEnableVertexAttribArray(0));
 	glCall(glBindVertexArray(0));
 

@@ -29,9 +29,9 @@ namespace Ice::MeshGeneration
         constexpr static inline auto VERTEX_DIM = 3;
         constexpr static inline auto COLOR_DIM = 4;
 
-        using VertexContType = std::vector<float>;//, getNumVertices() * VERTEX_DIM>;
-        using NormalsContType = std::vector<float>;//, getNumVertices() * VERTEX_DIM>;
-        using ColorsContType = std::vector<float>;//, getNumVertices() * COLOR_DIM>;
+        using VertexContType = std::vector<glm::vec3>;//, getNumVertices() * VERTEX_DIM>;
+        using NormalsContType = std::vector<glm::vec3>;//, getNumVertices() * VERTEX_DIM>;
+        using ColorsContType = std::vector<glm::vec4>;//, getNumVertices() * COLOR_DIM>;
         using IndexContType = IndexGeneratorContainerType; 
 
         std::size_t Width, Height;
@@ -138,9 +138,12 @@ namespace Ice::MeshGeneration
                 const auto vertIndex0 = arIndices[i];
                 const auto vertIndex1 = arIndices[i+1];
                 const auto vertIndex2 = arIndices[i+2];
-                const vec3 p0{ arVertices[VERTEX_DIM*vertIndex0], arVertices[VERTEX_DIM*vertIndex0+1], arVertices[VERTEX_DIM*vertIndex0+2] };
-                const vec3 p1{ arVertices[VERTEX_DIM*vertIndex1], arVertices[VERTEX_DIM*vertIndex1+1], arVertices[VERTEX_DIM*vertIndex1+2] };
-                const vec3 p2{ arVertices[VERTEX_DIM*vertIndex2], arVertices[VERTEX_DIM*vertIndex2+1], arVertices[VERTEX_DIM*vertIndex2+2] };
+                const vec3 p0{ arVertices[vertIndex0].x, arVertices[vertIndex0].y, arVertices[vertIndex0].z };
+                const vec3 p1{ arVertices[vertIndex1].x, arVertices[vertIndex1].y, arVertices[vertIndex1].z };
+                const vec3 p2{ arVertices[vertIndex2].x, arVertices[vertIndex2].y, arVertices[vertIndex2].z };
+                //const vec3 p0{ arVertices[VERTEX_DIM*vertIndex0], arVertices[VERTEX_DIM*vertIndex0+1], arVertices[VERTEX_DIM*vertIndex0+2] };
+                //const vec3 p1{ arVertices[VERTEX_DIM*vertIndex1], arVertices[VERTEX_DIM*vertIndex1+1], arVertices[VERTEX_DIM*vertIndex1+2] };
+                //const vec3 p2{ arVertices[VERTEX_DIM*vertIndex2], arVertices[VERTEX_DIM*vertIndex2+1], arVertices[VERTEX_DIM*vertIndex2+2] };
                 const auto norm = (p1 - p0).cross(p2 - p0).unit();
                 storeNormal(norm.x, norm.y, norm.z, arNormals, vertIndex0);
                 storeNormal(norm.x, norm.y, norm.z, arNormals, vertIndex1);
@@ -155,25 +158,19 @@ namespace Ice::MeshGeneration
         }
     private:
         constexpr void storeVertex(float x, float y, float z, VertexContType& arVertices, std::size_t& idx) {
-            arVertices[idx] = x;
-            arVertices[idx+1] = y;
-            arVertices[idx+2] = z;
-            idx += VERTEX_DIM;
+            arVertices[idx] = glm::vec3{ x, y, z };
+            idx += 1;
         }
 
         constexpr void storeColor(const std::tuple<float,float,float> color, ColorsContType& arColors, std::size_t& idx) {
-            arColors[idx] = std::get<0>(color);
-            arColors[idx+1] = std::get<1>(color);
-            arColors[idx+2] = std::get<2>(color);
-            arColors[idx+3] = 1.0f; // alpha
-            idx += COLOR_DIM;
+            arColors[idx] = glm::vec4{ std::get<0>(color), std::get<1>(color), std::get<2>(color), 1.0f };
+            idx += 1;
         }
 
         constexpr void storeNormal(float x, float y, float z, NormalsContType& arNormals, std::size_t idx) {
-            arNormals[idx*VERTEX_DIM] = x;
-            arNormals[idx*VERTEX_DIM+1] = y;
-            arNormals[idx*VERTEX_DIM+2] = z;
+            arNormals[idx] = glm::vec3{ x, y, z };
         }
+
     public:
         template<std::size_t NumColors>
         constexpr auto getVertexColor(float fHeight, float fHeightRangeMin, float fHeightRangeMax, const std::array<RGBA, NumColors>& arColors) {

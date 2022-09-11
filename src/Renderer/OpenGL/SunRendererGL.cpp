@@ -12,10 +12,10 @@
 
 namespace Ice {
 
-const std::vector<GLfloat> SunRendererGL::PointVertex = { 0.0f, 0.0f, 0.0f };
+const std::vector<glm::vec3> SunRendererGL::PointVertex = { glm::vec3{ 0.0f, 0.0f, 0.0f } };
 
 SunRendererGL::SunRendererGL() {
-	m_objPoint = RenderToolsGL::loadVerticesToVAO(SunRendererGL::PointVertex, 3);
+	m_objPoint = RenderToolsGL::loadVerticesToVAO(SunRendererGL::PointVertex);
 	glCall(glEnableVertexAttribArray(0));
 
 	m_pShaderProgram = RenderToolsGL::createShaderProgram("Sun", std::make_unique<SunShaderConfigurator>());

@@ -56,26 +56,34 @@ void RenderToolsGL::loadVBOData(GLuint nVbo, const std::vector<GLfloat>& vData) 
     glCall(glBindBuffer(GL_ARRAY_BUFFER, 0));
 }
 
-GLuint RenderToolsGL::loadFloatBuffer(GLuint nVAO, GLenum nBufferType, const std::vector<GLfloat> &buffer, GLenum nUsage) {
+GLuint RenderToolsGL::loadFloatBuffer(GLenum nBufferType, const GLfloat* buffer, std::size_t nNumElements, GLenum nUsage) {
     GLuint nBuffer;
     glCall(glGenBuffers(1, &nBuffer));
     glCall(glBindBuffer( nBufferType, nBuffer));
-    glCall(glBufferData( nBufferType, buffer.size() * sizeof(GLfloat), &buffer[0], nUsage));
+    glCall(glBufferData( nBufferType, nNumElements * sizeof(GLfloat), &buffer[0], nUsage));
     
     return nBuffer;
 }
 
-RenderObjectGL RenderToolsGL::loadVerticesToVAO(const std::vector<GLfloat>& buffer, int nDim) {
+template<typename VertexType>
+RenderObjectGL RenderToolsGL::loadVerticesToVAO(const std::vector<VertexType>& buffer) {
     GLuint nVao;
     nVao = createVAO();
     
     RenderObjectGL obj{ nVao };
-    obj.addBuffer(loadFloatBuffer(nVao, GL_ARRAY_BUFFER, buffer, GL_STATIC_DRAW));
-    glCall(glVertexAttribPointer(0, nDim, GL_FLOAT, GL_FALSE, nDim * sizeof(GLfloat), nullptr));
+    GLuint nBuffer;
+    glGenBuffers(1, &nBuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, nBuffer);
+    glBufferData(GL_ARRAY_BUFFER, buffer.size() * sizeof(VertexType), &buffer[0], GL_STATIC_DRAW);
+    glCall(glVertexAttribPointer(0, VertexType::length(), GL_FLOAT, GL_FALSE, VertexType::length() * sizeof(GLfloat), nullptr));
     glCall(glBindBuffer( GL_ARRAY_BUFFER, 0));
+    obj.addBuffer(nBuffer);
     
     return obj;
 }
+
+template RenderObjectGL RenderToolsGL::loadVerticesToVAO<glm::vec2>(const std::vector<glm::vec2>&);
+template RenderObjectGL RenderToolsGL::loadVerticesToVAO<glm::vec3>(const std::vector<glm::vec3>&);
 
 std::unique_ptr<RenderObjectGL> RenderToolsGL::createRenderObjectAndLoadVBOsFromMesh(const MeshComponent& mesh) {
     if (mesh.vertices().size() == 0)
@@ -83,19 +91,19 @@ std::unique_ptr<RenderObjectGL> RenderToolsGL::createRenderObjectAndLoadVBOsFrom
     
     auto pRenderObj = std::make_unique<RenderObjectGL>(createVAO());
     
-    GLuint nVertexBuffer = RenderToolsGL::loadFloatBuffer(pRenderObj->vao(), GL_ARRAY_BUFFER, mesh.vertices(), GL_STATIC_DRAW);
+    GLuint nVertexBuffer = RenderToolsGL::loadFloatBuffer(GL_ARRAY_BUFFER, reinterpret_cast<const GLfloat*>(&mesh.vertices()[0]), mesh.vertices().size() * 3,GL_STATIC_DRAW);
     glCall(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, nullptr));
     glCall(glEnableVertexAttribArray(0));
 
     GLuint nTexCoordBuffer{ 0 };
     if (mesh.texCoords().size() > 0) {
-        nTexCoordBuffer = RenderToolsGL::loadFloatBuffer(pRenderObj->vao(), GL_ARRAY_BUFFER, mesh.texCoords(), GL_STATIC_DRAW);
+        nTexCoordBuffer = RenderToolsGL::loadFloatBuffer(GL_ARRAY_BUFFER, reinterpret_cast<const GLfloat*>(&mesh.texCoords()[0]), mesh.texCoords().size() * 2, GL_STATIC_DRAW);
         glCall(glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 2, nullptr));
         glCall(glEnableVertexAttribArray(1));
     }
     GLuint nNormalBuffer{ 0 };
     if (mesh.normals().size() > 0) {
-        nNormalBuffer = RenderToolsGL::loadFloatBuffer(pRenderObj->vao(), GL_ARRAY_BUFFER, mesh.normals(), GL_STATIC_DRAW);
+        nNormalBuffer = RenderToolsGL::loadFloatBuffer(GL_ARRAY_BUFFER, reinterpret_cast<const GLfloat*>(&mesh.normals()[0]), mesh.normals().size() * 3, GL_STATIC_DRAW);
         glCall(glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, nullptr));
         glCall(glEnableVertexAttribArray(2));
     }

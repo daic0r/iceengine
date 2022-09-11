@@ -20,7 +20,7 @@ namespace Ice {
 SkyboxRendererGL::SkyboxRendererGL() noexcept {
     m_pRenderObject = std::make_unique<RenderObjectGL>(RenderToolsGL::createVAO());
     
-    GLuint nVertexBuffer = RenderToolsGL::loadFloatBuffer(m_pRenderObject->vao(), GL_ARRAY_BUFFER, m_skybox.m_mesh.vertices(), GL_STATIC_DRAW);
+    GLuint nVertexBuffer = RenderToolsGL::loadFloatBuffer(GL_ARRAY_BUFFER, reinterpret_cast<GLfloat*>(&m_skybox.m_mesh.vertices()[0]), m_skybox.m_mesh.vertices().size() * 3, GL_STATIC_DRAW);
     glCall(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, nullptr));
     glCall(glEnableVertexAttribArray(0));
     
