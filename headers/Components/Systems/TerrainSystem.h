@@ -10,13 +10,16 @@ namespace Ice
 {
     class TerrainSystem : public EntityComponentSystem<TerrainComponent> {
     public:
-        //std::optional<float> getHeight(float x, float z) const;
-        TerrainComponent* getTerrainAt(float x, float z) const;
 
-        std::optional<float> getHeight(float x, float z, glm::mat4* pMatrix = nullptr) const noexcept;
-        bool getCenterCoordsForTile(int x, int z, float& outX, float& outZ) const noexcept;
-        bool getTriangleAt(float x, float z, std::array<glm::vec3, 3>& vOutTriangles, float *pfRelX = nullptr, float *pfRelZ = nullptr) const noexcept;
-        float heightAtHeightMap(LowPolyTerrain const& terrain, int x, int z) const noexcept;
+        bool hasTerrainAt(float x, float z) const;
+        TerrainComponent& getTerrainAt(float x, float z) const;
+
+        float getHeight(float x, float z, glm::mat4* pMatrix = nullptr) const;
+        glm::vec2 getCenterCoordsForTile(TerrainComponent const& terrain, int x, int z) const;
+        std::array<glm::vec3, 3> getTriangleAt(TerrainComponent const& t, float x, float z, float *pfRelX = nullptr, float *pfRelZ = nullptr) const;
+        float heightAtHeightMap(TerrainComponent const& terrain, int x, int z) const noexcept;
+        glm::vec2 getTerrainLocalCoords(TerrainComponent const& terrain, float x, float z) const;
+        glm::vec2 getTriangleRelativeCoords(TerrainComponent const& terrain, float x, float z) const;
     };
     
 } // namespace Ice

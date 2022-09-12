@@ -13,25 +13,12 @@ namespace Ice::MeshGeneration
 {
     template<typename IndexGenerator = LowPolyTerrainIndexGenerator>
     class LowPolyTerrainMeshGenerator {
-        constexpr auto getNumVertices() {
-            return 
-                // all except last 2 rows of height map entries (i.e. last row of tiles):
-                //  - single vertex first and last column
-                //  - 2 for each height map entry in between
-                // last two rows of height map:
-                //  - only one vertex per height map entry
-                //  - that's because of the last row of tiles, the bottom
-                //    vertices can provide the color for the right triangle 
-                (2 + (Width - 2) * 2) * (Height - 2)
-                + (2 * Width);
-        }
-
         constexpr static inline auto VERTEX_DIM = 3;
         constexpr static inline auto COLOR_DIM = 4;
 
-        using VertexContType = std::vector<glm::vec3>;//, getNumVertices() * VERTEX_DIM>;
-        using NormalsContType = std::vector<glm::vec3>;//, getNumVertices() * VERTEX_DIM>;
-        using ColorsContType = std::vector<glm::vec4>;//, getNumVertices() * COLOR_DIM>;
+        using VertexContType = std::vector<glm::vec3>;//, indexGenerator().getNumVertices() * VERTEX_DIM>;
+        using NormalsContType = std::vector<glm::vec3>;//, indexGenerator().getNumVertices() * VERTEX_DIM>;
+        using ColorsContType = std::vector<glm::vec4>;//, indexGenerator().getNumVertices() * COLOR_DIM>;
         using IndexContType = IndexGeneratorContainerType; 
 
         std::size_t Width, Height;
@@ -53,7 +40,7 @@ namespace Ice::MeshGeneration
         ) {
             VertexContType retVertices = generateVertices(fTileWidth, fTileHeight, &arHeightMap);
             ColorsContType retColors{};
-            retColors.resize(getNumVertices() * COLOR_DIM);
+            retColors.resize(indexGenerator().getNumVertices() * COLOR_DIM);
             std::size_t idx{}, colorIdx{};
 
             for (std::size_t z = 0; z < Height; ++z) {
@@ -85,7 +72,7 @@ namespace Ice::MeshGeneration
         )
         {
             VertexContType retVertices{};
-            retVertices.resize(getNumVertices() * VERTEX_DIM);
+            retVertices.resize(indexGenerator().getNumVertices() * VERTEX_DIM);
             std::size_t idx{};
 
             for (std::size_t z = 0; z < Height; ++z) {
@@ -133,7 +120,7 @@ namespace Ice::MeshGeneration
                 }
             };
             NormalsContType arNormals{};
-            arNormals.resize(getNumVertices() * VERTEX_DIM);
+            arNormals.resize(indexGenerator().getNumVertices() * VERTEX_DIM);
             for (std::size_t i = 0; i < arIndices.size() - 2; i += 3) {
                 const auto vertIndex0 = arIndices[i];
                 const auto vertIndex1 = arIndices[i+1];

@@ -4,6 +4,7 @@
 #include <Entities/EntityComponentSystem.h>
 #include <Components/BiomeNodeComponent.h>
 #include <Components/TransformComponent.h>
+#include <array>
 
 namespace Ice
 {
@@ -11,9 +12,11 @@ namespace Ice
 
     class BiomeSystem : public EntityComponentSystem<BiomeNodeComponent, TransformComponent> {
     public:
+        static constexpr std::size_t MAX_BIOMES_PER_POINT = 4;
 
         void onSystemsInitialized() noexcept;
         bool update(float fDeltaTime) noexcept override;
+        std::array<std::pair<BiomeType, float>, MAX_BIOMES_PER_POINT> getBiomesAt(float x, float z) const; 
 
     private:
         TerrainSystem* m_pTerrainSystem{};

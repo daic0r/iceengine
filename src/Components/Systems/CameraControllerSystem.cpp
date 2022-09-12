@@ -95,7 +95,9 @@ bool CameraControllerSystem::update(float fDeltaTime) {
         m_pTerrainSystem = entityManager.getSystem<TerrainSystem, false>();
     if (!camera.hasHeightGetterFunc())
         camera.setHeightGetterFunc([this](float x, float z) {
-            return m_pTerrainSystem->getHeight(x, z).value_or(36.0f);
+            if (!m_pTerrainSystem->hasTerrainAt(x, z))
+                return 36.0f;
+            return m_pTerrainSystem->getHeight(x, z);
         });
 	m_frustum = Frustum{ camera, m_pGraphicsSystem->distNearPlane(), m_pGraphicsSystem->distFarPlane(), glm::radians(m_pGraphicsSystem->fov()), m_pGraphicsSystem->aspectRatio() };
 

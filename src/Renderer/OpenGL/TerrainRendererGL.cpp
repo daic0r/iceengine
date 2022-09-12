@@ -131,7 +131,7 @@ void TerrainRendererGL::prepareRendering(const RenderEnvironment& env, const std
 
         ///////////////////////////////////////////////////////////////////
         // Link up pointer
-        terrain.pTerrain->m_terrain.setColorVertexAttribute(dynamic_cast<DynamicVertexAttributeGL<glm::vec4>*>(&iter->second.attribute(1)));
+        terrain.pTerrain->m_pColorAttrib = dynamic_cast<DynamicVertexAttributeGL<glm::vec4>*>(&iter->second.attribute(1));
         ///////////////////////////////////////////////////////////////////
 
         /*

@@ -19,6 +19,7 @@ struct BiomeNodeComponent {
     BiomeType m_type;
     RGBA m_color;
     Percent m_power;
+    float m_fRadius{};
 };
 
 } // namespace Ice

@@ -50,9 +50,6 @@ namespace Ice {
         constexpr decltype(auto) heightMap() const noexcept { return (m_vHeightMap); }
         constexpr auto& indexGenerator() noexcept { return m_indexGen; }
         constexpr const auto& indexGenerator() const noexcept { return m_indexGen; }
-        
-        constexpr void setColorVertexAttribute(DynamicVertexAttribute* pAttrib) noexcept { m_pColorAttrib = pAttrib; }
-        constexpr auto colorVertexAttribute() noexcept { return m_pColorAttrib; }
 
         //std::optional<float> getHeight(float x, float z, glm::mat4* pMatrix = nullptr) const noexcept;
         //bool getCenterCoordsForTile(int x, int z, float& outX, float& outZ) const noexcept;
@@ -67,8 +64,6 @@ namespace Ice {
         int m_nX, m_nZ; // Position in the grid of terrains
         float m_fWidth, m_fHeight; // Geometrical dimensions
         float m_fTileWidth, m_fTileHeight; // A tile is the area between adjacent height map points
-        DynamicVertexAttribute* m_pColorAttrib{};
-
         // Via this function we provide a way to find out how to traverse the height points in
         // order to calculate the terrain height at a given point
         MeshGeneration::LowPolyTerrainIndexGenerator m_indexGen;

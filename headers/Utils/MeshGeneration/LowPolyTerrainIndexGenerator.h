@@ -71,6 +71,20 @@ namespace Ice::MeshGeneration
             return nRetIdx;
         }
 
+        constexpr auto getNumVertices() const noexcept {
+            return 
+                // all except last 2 rows of height map entries (i.e. last row of tiles):
+                //  - single vertex first and last column
+                //  - 2 for each height map entry in between
+                // last two rows of height map:
+                //  - only one vertex per height map entry
+                //  - that's because of the last row of tiles, the bottom
+                //    vertices can provide the color for the right triangle 
+                (2 + (Width - 2) * 2) * (Height - 2)
+                + (2 * Width);
+        }
+
+
     private:
         constexpr std::size_t getNumRowVertices(int z) const noexcept {
             if (z >= Height - 2) {
