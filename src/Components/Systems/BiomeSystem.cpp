@@ -2,10 +2,22 @@
 #include <Components/Systems/TerrainSystem.h>
 #include <Entities/EntityManager.h>
 #include <System/Math.h>
+#include <map>
+#include <glm/vec2.hpp>
+
+namespace glm {
+bool operator<(const glm::ivec2& lhs, const glm::ivec2& rhs) noexcept {
+    if (lhs.x != rhs.x)
+        return lhs.x < rhs.x;
+    return lhs.y < rhs.y;
+}
+}
 
 namespace Ice
 {
+
     bool BiomeSystem::update(float fDeltaTime) noexcept {
+        std::map<glm::ivec2, glm::vec4> mFinalColors;
         for (auto e : entities(entityManager.currentScene())) {
             const auto& biome = entityManager.getComponent<BiomeNodeComponent>(e);
             const auto& trans = entityManager.getComponent<TransformComponent>(e);
@@ -33,13 +45,13 @@ namespace Ice
                     const auto& indexGen = terrain.indexGenerator();
                     const auto nIdxLeft = indexGen.getVertexIndex(x, z, true);
                     const auto nIdxRight = indexGen.getVertexIndex(x, z, false);
-                    const auto oldLeft = terrainComp.m_vOriginalColorBuffer.at(nIdxLeft);
-                    const auto oldRight = terrainComp.m_vOriginalColorBuffer.at(nIdxRight);
+                    const auto oldLeftIter = mFinalColors.find(glm::ivec2{ x, z });
+                    const auto oldLeft = oldLeftIter == mFinalColors.end() ? terrainComp.m_vOriginalColorBuffer.at(nIdxLeft) : oldLeftIter->second;
                     const auto fMixFactor = dist / nRadius;
-                    const auto resultColorLeft = Math::mix(oldLeft, glm::vec4{ biome.m_color }, 1.0f - fMixFactor);
-                    const auto resultColorRight = Math::mix(oldRight, glm::vec4{ biome.m_color }, 1.0f - fMixFactor);
-                    terrainComp.m_pColorAttrib->update(nIdxLeft, resultColorLeft); 
-                    terrainComp.m_pColorAttrib->update(nIdxRight, resultColorRight); 
+                    const auto resultColor = Math::mix(oldLeft, glm::vec4{ biome.m_color }, 1.0f - fMixFactor);
+                    terrainComp.m_pColorAttrib->update(nIdxLeft, resultColor); 
+                    terrainComp.m_pColorAttrib->update(nIdxRight, resultColor); 
+                    mFinalColors.insert_or_assign(glm::ivec2{ x, z }, resultColor);
                 }
             }
         }
@@ -62,7 +74,7 @@ namespace Ice
             glm::vec2{ arTriangle[0].x, arTriangle[0].z }, 
             glm::vec2{ arTriangle[1].x, arTriangle[1].z }, 
             glm::vec2{ arTriangle[2].x, arTriangle[2].z },
-            trianglCoord
+            glm::vec2{ x, z }
         );
 
         std::size_t nSlot{};

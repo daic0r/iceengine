@@ -10,7 +10,8 @@ namespace Ice
  
 enum class BiomeType {
     NONE,
-    GRASSLAND
+    GRASSLAND,
+    SNOW
 };
  
 struct BiomeNodeComponent {
