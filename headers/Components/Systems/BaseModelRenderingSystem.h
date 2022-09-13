@@ -26,6 +26,19 @@ template<typename ModelStructType, typename ModelInstanceType>
 class BaseModelRenderingSystem {
 	static inline constexpr auto KDTREE_REFRESH_INTERVAL = 10;
 	static inline constexpr auto FRUSTUM_REFRESH_INTERVAL = 30;
+
+public:
+    struct ModelRenderingKdTreeNodeContainer {
+        std::vector<Entity> m_vObjects;
+        std::unordered_map<ModelStructType, std::vector<ModelInstanceType*>> m_mModels;
+    };
+
+    struct ModelRenderingKdTreeEmplaceValue {
+        Entity m_ent;
+        ModelStructType m_model;
+        ModelInstanceType *m_pInst;
+    };
+
 protected:
 	//std::vector<std::pair<Model, std::vector<ModelInstance*>>> m_vInstances;
 	std::unordered_map<Model, std::vector<ModelInstance*>> m_vInstances;
@@ -36,7 +49,7 @@ protected:
 	IModelRenderer* m_pRenderer{ nullptr };
 	IModelRenderer* m_pShadowRenderer{ nullptr };
 	IGraphicsSystem* m_pGraphicsSystem{};
-	KdTree<Entity> m_kdTree{};
+	KdTree<ModelRenderingKdTreeNodeContainer, ModelRenderingKdTreeEmplaceValue> m_kdTree;
 	std::vector<Entity> m_vVisibleEnts{};
 	int m_nFramesSinceNoKdRefresh{}, m_nFramesSinceFrustumRefresh{};
 	std::vector<glm::vec3> m_vKdTreeVertices;
@@ -49,6 +62,19 @@ protected:
 		m_pCameraControllerSystem = entityManager.getSystem<CameraControllerSystem, true>();
 		m_pGraphicsSystem = systemServices.getGraphicsSystem();
 //		m_pShadowRenderer = systemServices.getShadowMapRenderer();
+		m_kdTree.setEmplaceFunc([](ModelRenderingKdTreeNodeContainer& container, const ModelRenderingKdTreeEmplaceValue& value) {
+			if (std::ranges::none_of(container.m_vObjects, [&value](auto&& v) { return v == value.m_ent; })) {
+				container.m_vObjects.emplace_back(value.m_ent);
+				container.m_mModels[value.m_model].push_back(value.m_pInst);
+			}
+		});
+		m_kdTree.setGetVisibleObjectCollectionFunc([this](const ModelRenderingKdTreeNodeContainer& container) {
+			this->m_vFrustumEnts.insert(this->m_vFrustumEnts.end(), container.m_vObjects.begin(), container.m_vObjects.end());
+			for (const auto& [model, vInst] : container.m_mModels) {
+				auto& v = this->m_vInstances[model];
+				v.insert(v.end(), vInst.begin(), vInst.end());
+			}
+		});
 	}
 
 	void onEntityAdded(Entity e) noexcept {
@@ -121,7 +147,7 @@ protected:
 				for (auto& kvp : m_vInstances) {
 					kvp.second.clear();
 				}
-				m_kdTree.getVisibleObjects(&env.frustum, m_vFrustumEnts, m_vInstances);
+				m_kdTree.getVisibleObjects(&env.frustum); //, m_vFrustumEnts, m_vInstances);
 				m_nFramesSinceFrustumRefresh = 1;
 			} else {
 				++m_nFramesSinceFrustumRefresh;
@@ -134,6 +160,7 @@ protected:
 
 public:
 	const auto& kdTree() const noexcept { return m_kdTree; }
+	auto& kdTree() noexcept { return m_kdTree; }
 
 	const auto& entitiesInFrustum() const noexcept { return m_vFrustumEnts; }
 	void buildKdTree() {
@@ -165,7 +192,7 @@ public:
 			m_kdTree.construct(std::move(m_vKdTreeVertices));
 		}
 		for (auto& [ent, modelInstPair] : m_vEntity2ModelStruct) {
-			m_kdTree.emplace(glm::vec3{ modelInstPair.second.pTransform->m_transform * glm::vec4{ 0.0f, 0.0f, 0.0f, 1.0f } }, ent, modelInstPair.first, &modelInstPair.second);
+			m_kdTree.emplace(glm::vec3{ modelInstPair.second.pTransform->m_transform * glm::vec4{ 0.0f, 0.0f, 0.0f, 1.0f } }, { ent, modelInstPair.first, &modelInstPair.second });
 		}
 	}
 };

@@ -22,4 +22,13 @@ struct AnimatedModel : public Model {
 
 }
 
+namespace std {
+    template<>
+    struct hash<Ice::AnimatedModel> {
+        size_t operator()(const Ice::AnimatedModel& m) const {
+            return std::hash<Ice::MeshComponent*>{}(m.pMesh);
+        }
+    };
+}
+
 #endif /* AnimatedModel_h */
