@@ -47,7 +47,7 @@ namespace Ice
             v1,
             v2, 
             v3, 
-            glm::vec2{ fRelX, fRelZ }
+            glm::vec2{ x, z }
         );
 
         const auto fRet = std::get<0>(lambdas) * arTriangle[0].y + std::get<1>(lambdas) * arTriangle[1].y + std::get<2>(lambdas) * arTriangle[2].y;
@@ -152,9 +152,10 @@ namespace Ice
         }
 
         std::array<glm::vec3, 3> vOutTriangles;
-        vOutTriangles[0] = triangle1[diagFromPoint];
-        vOutTriangles[1] = triangle1[diagToPoint];
-        vOutTriangles[2] = thirdVertex;
+        const auto vAdd = glm::vec3{ (nTileX*terrain.tileWidth())+(terrain.gridX() * terrain.width()), 0, (nTileZ *terrain.tileHeight())+(terrain.gridZ() * terrain.height()) };
+        vOutTriangles[0] = triangle1[diagFromPoint] + vAdd;
+        vOutTriangles[1] = triangle1[diagToPoint] + vAdd;
+        vOutTriangles[2] = thirdVertex + vAdd;
     
         return vOutTriangles;
     }
