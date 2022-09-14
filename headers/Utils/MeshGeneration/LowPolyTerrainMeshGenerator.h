@@ -40,7 +40,7 @@ namespace Ice::MeshGeneration
         ) {
             VertexContType retVertices = generateVertices(fTileWidth, fTileHeight, &arHeightMap);
             ColorsContType retColors{};
-            retColors.resize(indexGenerator().getNumVertices() * COLOR_DIM);
+            retColors.resize(indexGenerator().getNumVertices());// * COLOR_DIM);
             std::size_t idx{}, colorIdx{};
 
             for (std::size_t z = 0; z < Height; ++z) {
@@ -72,7 +72,7 @@ namespace Ice::MeshGeneration
         )
         {
             VertexContType retVertices{};
-            retVertices.resize(indexGenerator().getNumVertices() * VERTEX_DIM);
+            retVertices.resize(indexGenerator().getNumVertices());// * VERTEX_DIM);
             std::size_t idx{};
 
             for (std::size_t z = 0; z < Height; ++z) {
@@ -120,7 +120,7 @@ namespace Ice::MeshGeneration
                 }
             };
             NormalsContType arNormals{};
-            arNormals.resize(indexGenerator().getNumVertices() * VERTEX_DIM);
+            arNormals.resize(indexGenerator().getNumVertices());// * VERTEX_DIM);
             for (std::size_t i = 0; i < arIndices.size() - 2; i += 3) {
                 const auto vertIndex0 = arIndices[i];
                 const auto vertIndex1 = arIndices[i+1];
@@ -145,17 +145,17 @@ namespace Ice::MeshGeneration
         }
     private:
         constexpr void storeVertex(float x, float y, float z, VertexContType& arVertices, std::size_t& idx) {
-            arVertices[idx] = glm::vec3{ x, y, z };
+            arVertices.at(idx) = glm::vec3{ x, y, z };
             idx += 1;
         }
 
         constexpr void storeColor(const std::tuple<float,float,float> color, ColorsContType& arColors, std::size_t& idx) {
-            arColors[idx] = glm::vec4{ std::get<0>(color), std::get<1>(color), std::get<2>(color), 1.0f };
+            arColors.at(idx) = glm::vec4{ std::get<0>(color), std::get<1>(color), std::get<2>(color), 1.0f };
             idx += 1;
         }
 
         constexpr void storeNormal(float x, float y, float z, NormalsContType& arNormals, std::size_t idx) {
-            arNormals[idx] = glm::vec3{ x, y, z };
+            arNormals.at(idx) = glm::vec3{ x, y, z };
         }
 
     public:

@@ -450,7 +450,7 @@ RenderObjectGL& WaterRendererGL::registerWaterTile(WaterTile* pTile) {
     const auto vMesh = g.generateVertices(pTile->tileWidth(), pTile->tileHeight(), nullptr);
     const auto vIndices = g.generateIndices();
     std::vector<glm::vec4> vIndicators;
-    vIndicators.reserve(vMesh.size() / 3);
+    vIndicators.reserve(vMesh.size());
 
     const auto indexAt = [&](std::size_t i) {
         return vIndices.at(i);
@@ -490,7 +490,7 @@ RenderObjectGL& WaterRendererGL::registerWaterTile(WaterTile* pTile) {
     GLuint buffers[3]; 
     glCall(glCreateBuffers(3, buffers));
 
-    glCall(glNamedBufferStorage(buffers[0], vMesh.size() * sizeof(glm::vec2), &vMesh[0], 0));
+    glCall(glNamedBufferStorage(buffers[0], vMesh.size() * sizeof(glm::vec3), &vMesh[0], 0));
     glCall(glBindBuffer(GL_ARRAY_BUFFER, buffers[0]));
     glCall(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*) 0));
     glCall(glEnableVertexAttribArray(0));
