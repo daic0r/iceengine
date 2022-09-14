@@ -171,11 +171,13 @@ bool EventHandlingSystem::update(float fDeltaTime) {
 void EventHandlingSystem::onSystemsInitialized() noexcept {
 	m_pObjRenderingSystem = entityManager.getSystem<ObjectRenderingSystem, true>();
 	m_pAnimObjRenderingSystem = entityManager.getSystem<AnimatedModelRenderingSystem, true>();
-    m_pObjRenderingSystem->kdTree().setIntersectsCollectionFunc([this](const ObjectRenderingSystem::ModelRenderingKdTreeNodeContainer& container) {
+    m_pObjRenderingSystem->kdTree().setIntersectsCollectionFunc([this](const Ray&, const ObjectRenderingSystem::ModelRenderingKdTreeNodeContainer& container) {
         this->m_vEntBuffer.insert(this->m_vEntBuffer.end(), container.m_vObjects.begin(), container.m_vObjects.end());
+        return !container.m_vObjects.empty();
     });
-    m_pAnimObjRenderingSystem->kdTree().setIntersectsCollectionFunc([this](const AnimatedModelRenderingSystem::ModelRenderingKdTreeNodeContainer& container) {
+    m_pAnimObjRenderingSystem->kdTree().setIntersectsCollectionFunc([this](const Ray&, const AnimatedModelRenderingSystem::ModelRenderingKdTreeNodeContainer& container) {
         this->m_vEntBuffer.insert(this->m_vEntBuffer.end(), container.m_vObjects.begin(), container.m_vObjects.end());
+        return !container.m_vObjects.empty();
     });
 }
 

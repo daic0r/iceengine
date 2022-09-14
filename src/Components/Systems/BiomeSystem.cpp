@@ -59,9 +59,34 @@ namespace Ice
     }
 
 
+    std::array<std::pair<BiomeType, float>, BiomeSystem::MAX_BIOMES_PER_POINT> BiomeSystem::getBiomesAt(const std::array<glm::vec3, 3>& arTriangle, const std::array<float, 3>& bary) const {
+        std::array<std::pair<BiomeType, float>, MAX_BIOMES_PER_POINT> ret;
+        std::size_t nSlot{};
+        for (auto e : entities(entityManager.currentScene())) {
+            const auto& biome = entityManager.getComponent<BiomeNodeComponent>(e);
+            const auto& trans = entityManager.getComponent<TransformComponent>(e);
+            
+            std::array<float, 3> arVertexInfluence;
+            std::size_t nIdx{};
+            for (const auto& v : arTriangle) {
+                const auto fDist = glm::length( glm::vec3{ trans.m_transform[3][0], trans.m_transform[3][1], trans.m_transform[3][2] } - v);
+                const auto fInfluence = 1.0f - Math::clamp(fDist / biome.m_fRadius, 0.0f, 1.0f);
+                arVertexInfluence[nIdx++] = fInfluence;
+            }
+            const auto fEffective = bary[0] * arVertexInfluence[0] + bary[1] * arVertexInfluence[1] + bary[2] * arVertexInfluence[2];
+            ret[nSlot++] = std::make_pair(biome.m_type, fEffective);
+            if (nSlot == MAX_BIOMES_PER_POINT)
+                break;
+        }
+
+        return ret;
+ 
+    }
+
     std::array<std::pair<BiomeType, float>, BiomeSystem::MAX_BIOMES_PER_POINT> BiomeSystem::getBiomesAt(float x, float z) const {
         std::array<std::pair<BiomeType, float>, MAX_BIOMES_PER_POINT> ret;
 
+        /*
         auto& comp = m_pTerrainSystem->getTerrainAt(x, z);
 
         std::array<glm::vec3, 3> arTriangle;
@@ -95,6 +120,7 @@ namespace Ice
                 break;
         }
 
+*/
         return ret;
     }
 

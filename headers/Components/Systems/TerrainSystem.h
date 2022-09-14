@@ -5,12 +5,28 @@
 #include <Entities/EntityComponentSystem.h>
 #include <Components/TerrainComponent.h>
 #include <array>
+#include <unordered_map>
+#include <array>
+#include <System/KdTree.h>
 
 namespace Ice
 {
     class TerrainSystem : public EntityComponentSystem<TerrainComponent> {
-    public:
+        using triangle_t = std::array<glm::vec3, 3>;
+        using kd_tree_t = KdTree<std::vector<triangle_t>, triangle_t>;
 
+        std::unordered_map<Entity, kd_tree_t> m_mKdTrees;
+
+    public:
+        struct sIntersectResult {
+            bool bIntersects{};
+            triangle_t triangle;
+            glm::vec3 point;
+            std::array<float, 3> barycentric;
+        };
+
+        void onEntityAdded(Entity) noexcept;
+        
         bool hasTerrainAt(float x, float z) const;
         TerrainComponent& getTerrainAt(float x, float z) const;
 
@@ -20,6 +36,10 @@ namespace Ice
         float heightAtHeightMap(TerrainComponent const& terrain, int x, int z) const noexcept;
         glm::vec2 getTerrainLocalCoords(TerrainComponent const& terrain, float x, float z) const;
         glm::vec2 getTriangleRelativeCoords(TerrainComponent const& terrain, float x, float z) const;
+        const sIntersectResult& intersects(Entity e, const Ray& ray) const noexcept;
+
+    private:
+        sIntersectResult m_intersectResult;
     };
     
 } // namespace Ice

@@ -6,6 +6,8 @@
 #include <glm/mat2x2.hpp>
 #include <tuple>
 #include <random>
+#include <array>
+#include <functional>
 
 namespace Ice::Math {
 
@@ -102,6 +104,22 @@ namespace Ice::Math {
 
     int random(int nMin, int nMax);    
     std::tuple<float, float, float> getBarycentricCoords(const glm::vec2& v1, const glm::vec2& v2, const glm::vec2& v3, const glm::vec2& v) noexcept;
+
+    template<typename VectorType>
+    std::array<float, 3> getBarycentricCoords(const VectorType& v1, const VectorType& v2, const VectorType& v3, const VectorType& v) noexcept {
+	    const auto invT = glm::inverse(std::invoke([&]() {
+            glm::mat<VectorType::length(), VectorType::length(), float, glm::defaultp> ret;
+            for (glm::length_t j{}; j < VectorType::length(); ++j) {
+                ret[0][j] = v1[j] - v3[j];
+                ret[1][j] = v2[j] - v3[j];
+                for (glm::length_t k = 2; k < VectorType::length(); ++k)
+                    ret[k][j] = 0.0f;
+            }
+            return ret;
+        }));
+        const auto lambdas = invT * (v - v3);
+        return std::array<float, 3>{ lambdas[0], lambdas[1], 1.0f - lambdas[0] - lambdas[1] };
+    }
 }
 
 #endif

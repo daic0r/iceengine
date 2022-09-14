@@ -31,6 +31,7 @@ namespace Ice
         struct branch_node;
         using node_t = std::variant<branch_node, leaf_node>;
         using collection_func_t = std::function<void(const LeafNodeContainerType&)>;
+        using intersects_collection_func_t = std::function<bool(const Ray&, const LeafNodeContainerType&)>;
         using emplace_func_t = std::function<void(LeafNodeContainerType&, const ValueType&)>;
 
         struct leaf_node {
@@ -51,7 +52,7 @@ namespace Ice
         bool intersects(const Ray&) const;
         const auto& boundingBox() const noexcept { return m_outerBox; }
         void setGetVisibleObjectCollectionFunc(collection_func_t f) { m_getVisibleObjectCollectionFunc = std::move(f); }
-        void setIntersectsCollectionFunc(collection_func_t f) { m_intersectsCollectionFunc = std::move(f); }
+        void setIntersectsCollectionFunc(intersects_collection_func_t f) { m_intersectsCollectionFunc = std::move(f); }
         void setEmplaceFunc(emplace_func_t f) { m_emplaceFunc = std::move(f); }
    private:
         node_t* subdivide(std::vector<glm::vec3>, int nAxis, int nLevel = 0);
@@ -62,7 +63,7 @@ namespace Ice
         std::vector<node_t> m_vNodes{};
         AABB m_outerBox{};
         collection_func_t m_getVisibleObjectCollectionFunc;
-        collection_func_t m_intersectsCollectionFunc;
+        intersects_collection_func_t m_intersectsCollectionFunc;
         emplace_func_t m_emplaceFunc;
     };
     
@@ -267,9 +268,8 @@ namespace Ice
                     }
                 }
              },
-            [this,&bRet](const leaf_node& leaf) {
-                this->m_intersectsCollectionFunc(leaf.m_container);
-                bRet = true;
+            [this,&bRet,&r](const leaf_node& leaf) {
+                bRet = this->m_intersectsCollectionFunc(r, leaf.m_container);
             }
         }, *pCurNode);
         return bRet;

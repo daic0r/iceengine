@@ -1,9 +1,73 @@
 #include <Components/Systems/TerrainSystem.h>
 #include <bitset>
 #include <glm/gtc/matrix_transform.hpp>
+#include <Components/MeshComponent.h>
+#include <System/Math.h>
 
 namespace Ice
 {
+
+    void TerrainSystem::onEntityAdded(Entity e) noexcept {
+        const auto& mesh = entityManager.getComponent<MeshComponent>(e);
+        auto [iter, _] = m_mKdTrees.emplace(e, mesh.vertices());
+        auto& tree = iter->second;
+        tree.setIntersectsCollectionFunc([this](const Ray& ray, const std::vector<triangle_t>& vContainer) {
+            this->m_intersectResult.bIntersects = false;
+            for (const auto& triangle : vContainer) {
+                const auto v1 = glm::normalize(triangle[1] - triangle[0]);
+                const auto v2 = glm::normalize(triangle[2] - triangle[0]);
+                const auto normal = glm::cross(v1, v2);
+
+                const auto fDenominator = glm::dot(normal, ray.direction());
+                if (Math::equal(fDenominator, 0.0f))
+                    continue;
+                const auto D = glm::dot(normal, triangle[0]); 
+                const auto t = -(glm::dot(normal, ray.origin()) - D) / fDenominator;
+                if (t < 0.0f)
+                    continue;
+
+                const auto pointOnTrianglePlane = ray.origin() + t * ray.direction();
+
+                const auto lambdas = Math::getBarycentricCoords(glm::vec2{ triangle[0].x, triangle[0].z }, glm::vec2{ triangle[1].x, triangle[1].z }, glm::vec2{ triangle[2].x, triangle[2].z }, glm::vec2{ pointOnTrianglePlane.x, pointOnTrianglePlane.z });
+                std::array<float, 3> arLam{ std::get<0>(lambdas), std::get<1>(lambdas), std::get<2>(lambdas) };
+                bool bFound{true};
+                for (std::size_t i{}; i < 3; ++i) {
+                    if (arLam[i] < 0.0f || arLam[i] > 1.0f) {
+                        bFound = false;
+                        break;
+                    }
+                }
+                if (bFound) {
+                    this->m_intersectResult.bIntersects = true;
+                    this->m_intersectResult.triangle = triangle;
+                    this->m_intersectResult.point = pointOnTrianglePlane;
+                    this->m_intersectResult.barycentric = arLam;
+                    return true;
+                }
+            }
+            return false;
+        });
+        tree.setEmplaceFunc([](std::vector<triangle_t>& vContainer, const triangle_t& t) {
+            vContainer.push_back(t);
+        });
+
+        for (std::size_t i = 0; i < mesh.indices().size(); i+=3) { // 3 indices at a time => 1 triangle
+            triangle_t triangle;
+            for (std::size_t j = 0; j < 3; ++j) {
+                triangle[j] = mesh.vertices().at(mesh.indices().at(i+j));
+            }
+            for (std::size_t j = 0; j < 3; ++j) {
+                tree.emplace(triangle[j], triangle);
+            }
+        }
+
+    }
+
+    const TerrainSystem::sIntersectResult& TerrainSystem::intersects(Entity e, const Ray& ray) const noexcept {
+        const auto& tree = m_mKdTrees.at(e);
+        tree.intersects(ray);
+        return m_intersectResult;
+    }
 
     bool TerrainSystem::hasTerrainAt(float x, float z) const {
         for (auto e: entities(entityManager.currentScene())) {
