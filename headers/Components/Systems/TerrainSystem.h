@@ -39,7 +39,7 @@ namespace Ice
         const std::vector<TerrainSystem::sIntersectResult>& intersects(Entity e, const Ray& ray) const noexcept;
 
     private:
-        std::vector<TerrainSystem::sIntersectResult> m_vIntersectResults;
+        mutable std::vector<TerrainSystem::sIntersectResult> m_vIntersectResults;
  };
     
 } // namespace Ice
