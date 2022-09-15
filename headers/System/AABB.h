@@ -37,6 +37,20 @@ public:
 
     constexpr auto& maxVertex() noexcept { return m_maxVertex; }
     constexpr const auto& maxVertex() const noexcept { return m_maxVertex; }
+    
+    constexpr bool contains(const glm::vec3& p) const noexcept {
+        for (glm::vec3::length_type i = 0; i < glm::vec3::length(); ++i) {
+            if (p[i] < minVertex()[i] || p[i] > maxVertex()[i])
+                return false;
+        }
+        return true;
+    }
+    bool contains(const AABB& other) const noexcept {
+        for (const auto& p : other.cornerVertices())
+            if (!contains(p))
+                return false;
+        return true;
+    }
 
     bool intersects(const AABB& other) const noexcept;
     //bool intersects(const Ray& r, float* fpDistance = nullptr) const noexcept;

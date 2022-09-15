@@ -7,15 +7,15 @@
 #include <array>
 #include <unordered_map>
 #include <array>
-#include <System/KdTree.h>
+#include <System/Octree.h>
 
 namespace Ice
 {
     class TerrainSystem : public EntityComponentSystem<TerrainComponent> {
         using triangle_t = std::array<glm::vec3, 3>;
-        using kd_tree_t = KdTree<std::vector<triangle_t>, triangle_t>;
+        using kd_tree_t = Octree<triangle_t>;
 
-        std::unordered_map<Entity, kd_tree_t> m_mKdTrees;
+        std::unordered_map<Entity, kd_tree_t> m_mOctrees;
 
     public:
         struct sIntersectResult {
@@ -36,11 +36,11 @@ namespace Ice
         float heightAtHeightMap(TerrainComponent const& terrain, int x, int z) const noexcept;
         glm::vec2 getTerrainLocalCoords(TerrainComponent const& terrain, float x, float z) const;
         glm::vec2 getTriangleRelativeCoords(TerrainComponent const& terrain, float x, float z) const;
-        const sIntersectResult& intersects(Entity e, const Ray& ray) const noexcept;
+        const std::vector<TerrainSystem::sIntersectResult>& intersects(Entity e, const Ray& ray) const noexcept;
 
     private:
-        sIntersectResult m_intersectResult;
-    };
+        std::vector<TerrainSystem::sIntersectResult> m_vIntersectResults;
+ };
     
 } // namespace Ice
 
