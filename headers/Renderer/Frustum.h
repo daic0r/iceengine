@@ -48,8 +48,8 @@ class Frustum {
 
 	glm::vec3 m_position;
 	glm::vec3 m_direction;
-	glm::vec3 m_up;
 	glm::vec3 m_right;
+	glm::vec3 m_up;
 	float m_fDistNear, m_fDistFar;
 	float m_fWidthNear, m_fHeightNear;
 	float m_fWidthFar, m_fHeightFar;
