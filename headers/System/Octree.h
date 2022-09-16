@@ -41,7 +41,7 @@ namespace Ice
             std::array<std::unique_ptr<node_t>, 8> arNodes;
         };
 
-        void construct(const std::vector<std::pair<AABB, T>>&, node_t* node, const AABB& originalBox);
+        void construct(const std::vector<std::pair<AABB, T>>&, std::unique_ptr<node_t>& node, const AABB& originalBox);
         bool intersects_impl(const Ray&, std::vector<T>& vOut, const node_t* node) const;
     public:
         Octree() = default;
@@ -51,22 +51,28 @@ namespace Ice
 
     private:
 
-        node_t m_root;
+        std::unique_ptr<node_t> m_root;
    
     };
     
     template<typename T>
     Octree<T>::Octree(const std::vector<std::pair<AABB, T>>& vBoxes, const AABB& outerBox) {
-        m_root = branch_node{};
-        std::get<branch_node>(m_root).box = outerBox;
-        construct(vBoxes, &m_root, outerBox);
+        construct(vBoxes, m_root, outerBox);
     }
 
     template<typename T>
-    void Octree<T>::construct(const std::vector<std::pair<AABB, T>>& vPoints, node_t* node, const AABB& originalBox) {
+    void Octree<T>::construct(const std::vector<std::pair<AABB, T>>& vPoints, std::unique_ptr<node_t>& node, const AABB& originalBox) {
         static const auto getCenterAlongDim = [](const AABB& box, int nDim) {
             return box.minVertex()[nDim] + (box.maxVertex()[nDim] - box.minVertex()[nDim]) / 2.0f;
         };
+
+        struct sNodeInfo {
+            std::vector<std::pair<AABB, T>> vNodeContents;
+            AABB box;
+        };
+        std::array<sNodeInfo, 8> arSubNodes;
+        bool bAllHaveContent = true;
+        bool bOneHasAll = false;
         for (int i = 0; i < 8; ++i) {
             AABB box = originalBox;
             switch (i) {
@@ -113,66 +119,73 @@ namespace Ice
                 default:
                     throw std::logic_error("Invalid index");
             }
-            std::vector<std::pair<AABB, T>> nodeBoxes;
-            std::ranges::copy_if(vPoints, std::back_inserter(nodeBoxes), [&box](const auto& elem) {
-                    return box.contains(elem.first);
+            arSubNodes[i].box = box;
+            std::ranges::copy_if(vPoints, std::back_inserter(arSubNodes[i].vNodeContents), [&box](const auto& elem) {
+                return box.intersects(elem.first);
             });
-            bool bUseOriginal{};
-            if (nodeBoxes.empty()) {
-                nodeBoxes = vPoints;
-                bUseOriginal = true;
-            }
 
-            auto& subNode = std::get<branch_node>(*node).arNodes[i];
-            if (nodeBoxes.size() > 1 && nodeBoxes.size() < vPoints.size() && !bUseOriginal) {
-                subNode = std::make_unique<node_t>();
-                *subNode = branch_node{};
-                std::get<branch_node>(*subNode).box = box;
-                construct(nodeBoxes, subNode.get(), box);
+            if (arSubNodes[i].vNodeContents.empty()) {
+                bAllHaveContent = false;
+                break;
             }
-            else {
-                subNode = std::make_unique<node_t>();
-                *subNode = leaf_node{};
-                std::get<leaf_node>(*subNode).box = box;
-                auto& v = std::get<leaf_node>(*subNode).vObjects;
-                std::ranges::transform(nodeBoxes, std::back_inserter(v), [](const std::pair<AABB, T>& kvp) {
-                    return kvp.second;
-                });
+            if (arSubNodes[i].vNodeContents.size() == vPoints.size()) {
+                bOneHasAll = true;
+                break;
             }
         }
-        
+
+        node = std::make_unique<node_t>();
+        if (bAllHaveContent && !bOneHasAll) {
+            *node = branch_node{};
+            auto& thisNode = std::get<branch_node>(*node);
+            thisNode.box = originalBox;
+            for (int i = 0; i < 8; ++i) {
+                construct(arSubNodes[i].vNodeContents, thisNode.arNodes[i], arSubNodes[i].box);
+            }
+        }
+        else {
+            *node = leaf_node{};
+            auto& thisNode = std::get<leaf_node>(*node);
+            thisNode.box = originalBox;
+            auto& v = thisNode.vObjects;
+            std::ranges::transform(vPoints, std::back_inserter(v), [](const std::pair<AABB, T>& kvp) {
+                return kvp.second;
+            });
+        }
     }
 
     template<typename T>
     bool Octree<T>::intersects_impl(const Ray& ray, std::vector<T>& vOut, const node_t* node) const {
-        bool bRet{};
-        std::visit(visitor {
-            [&ray,&vOut,&bRet,this](const branch_node& curNode) { 
+        auto bRet = std::visit(visitor {
+            [&ray,&vOut,this](const branch_node& curNode) { 
                 for (const auto& pSubNode : curNode.arNodes) {
                     const auto bIntersect = std::visit(
                         [&ray](const auto& n) {
                             return n.box.intersects(ray);
                         }
                     , *pSubNode);
-                    if (bIntersect)
-                        bRet |= intersects_impl(ray, vOut, pSubNode.get());
+                    if (bIntersect) {
+                        return intersects_impl(ray, vOut, pSubNode.get());
+                    }
                 }
+            throw std::logic_error("Ray intersections surrounding box but none of the inner ones");
             },
             [&vOut](const leaf_node& leaf) {
                 vOut.insert(vOut.end(), leaf.vObjects.begin(), leaf.vObjects.end());
+                return !vOut.empty();
             }
         }, *node);
-        return !vOut.empty();
+        return bRet;
     }
 
     template<typename T>
     bool Octree<T>::intersects(const Ray& ray, std::vector<T>& vOut) const {
-        return intersects_impl(ray, vOut, &m_root);
+        return intersects_impl(ray, vOut, m_root.get());
     }
 
     template<typename T>
     void Octree<T>::emplace(const AABB& box, const T& value) {
-        auto curNode = &m_root;
+        auto curNode = m_root.get();
         bool bDone{};
         while (!bDone) {
            std::visit(visitor {
