@@ -38,12 +38,15 @@ std::array<glm::vec3, 8> AABB::cornerVertices(const glm::mat4& transform) const 
 
 bool AABB::intersects(const AABB &other) const noexcept {
     
-    bool bRet = true;
-    
     for (int i = 0; i < 3; ++i) {
-        bRet &= (m_maxVertex[i] >= other.m_minVertex[i] && m_maxVertex[i] <= other.m_maxVertex[i]) || (m_minVertex[i] >= other.m_minVertex[i] && m_minVertex[i] <= other.m_maxVertex[i]);
+        const auto bCheck1 = (m_maxVertex[i] >= other.m_minVertex[i] && m_maxVertex[i] <= other.m_maxVertex[i]) || (other.m_maxVertex[i] >= m_minVertex[i] && other.m_maxVertex[i] <= m_maxVertex[i]);
+        if (!bCheck1) {
+            const auto bCheck2 = (m_minVertex[i] >= other.m_minVertex[i] && m_minVertex[i] <= other.m_maxVertex[i]) || (other.m_minVertex[i] >= m_minVertex[i] && other.m_minVertex[i] <= m_maxVertex[i]);
+            if (!bCheck2)
+                return false;
+        }
     }
-    return bRet;
+    return true;
 }
 
 /*
@@ -126,34 +129,34 @@ bool AABB::intersects(const Ray& r) const noexcept {
     
     const std::array<bool, 3> arSgn{ invDir.x < 0.0f, invDir.y < 0.0f, invDir.z < 0.0f };
 
-    float txmin = ((arSgn[0] ? maxVertex().x : minVertex().x) - r.origin().x) * invDir.x;
-    float txmax = ((!arSgn[0] ? maxVertex().x : minVertex().x) - r.origin().x) * invDir.x;
+    float tmin = ((arSgn[0] ? maxVertex().x : minVertex().x) - r.origin().x) * invDir.x;
+    float tmax = ((!arSgn[0] ? maxVertex().x : minVertex().x) - r.origin().x) * invDir.x;
     
     float tymin = ((arSgn[1] ? maxVertex().y : minVertex().y) - r.origin().y) * invDir.y;
     float tymax = ((!arSgn[1] ? maxVertex().y : minVertex().y) - r.origin().y) * invDir.y;
 
-    if (txmin > tymax || tymin > txmax)
+    if (tmin > tymax || tymin > tmax)
         return false;
 
-    if (tymin > txmin)
-        txmin = tymin;
-    if (tymax < txmax)
-        txmax = tymax;
+    if (tymin > tmin)
+        tmin = tymin;
+    if (tymax < tmax)
+        tmax = tymax;
 
     float tzmin = ((arSgn[2] ? maxVertex().z : minVertex().z) - r.origin().z) * invDir.z;
     float tzmax = ((!arSgn[2] ? maxVertex().z : minVertex().z) - r.origin().z) * invDir.z;
 
-    if (txmin > tzmax || tzmin > txmax)
+    if (tmin > tzmax || tzmin > tmax)
         return false;
 
-    if (tzmin > txmin)
-        txmin = tzmin;
-    if (tzmax < txmax)
-        txmax = tzmax;
+    if (tzmin > tmin)
+        tmin = tzmin;
+    if (tzmax < tmax)
+        tmax = tzmax;
 
-    auto t = txmin;
+    auto t = tmin;
     if (t < 0.0f) {
-        t = txmax;
+        t = tmax;
         if (t < 0.0f) return false;
     }
 
