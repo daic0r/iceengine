@@ -43,6 +43,7 @@ namespace Ice
 
         void construct(const std::vector<std::pair<AABB, T>>&, std::unique_ptr<node_t>& node, const AABB& originalBox);
         bool intersects_impl(const Ray&, std::vector<T>& vOut, const node_t* node) const;
+        node_t* find(const glm::vec3& point, node_t* pStart = nullptr) const noexcept;
     public:
         Octree() = default;
         Octree(const std::vector<std::pair<AABB, T>>& vBoxes, const AABB& outerBox);
@@ -155,6 +156,37 @@ namespace Ice
     }
 
     template<typename T>
+    Octree<T>::node_t* Octree<T>::find(const glm::vec3& point, node_t* pStart) const noexcept {
+        auto pCurNode = pStart ? pStart : m_root.get();
+        if (!std::visit([&point](const auto& start) { return start.box.contains(point); }, *pCurNode))
+            return nullptr;
+        node_t* pRet{};
+        while (pCurNode) {
+            std::visit(visitor {
+                [&point,&pCurNode](const branch_node& branch) {
+                    for (const auto& pSubNode : branch.arNodes) {
+                        const auto bContains = std::visit( 
+                            [&point](const auto& subNode) {
+                                return subNode.box.contains(point);
+                            }
+                        , *pSubNode);
+                        if (bContains) {
+                            pCurNode = pSubNode.get();
+                            return;
+                        }
+                    }
+                    throw std::logic_error("Point contained by surrounding box but not by any of the contained ones!");
+                },
+                [&pRet,&pCurNode](const leaf_node& leaf){
+                    pRet = pCurNode;
+                    pCurNode = nullptr;
+                } 
+            },  *pCurNode);
+        }
+        return pRet;
+    }
+
+    template<typename T>
     bool Octree<T>::intersects_impl(const Ray& ray, std::vector<T>& vOut, const node_t* node) const {
         auto bRet = std::visit(visitor {
             [&ray,&vOut,this](const branch_node& curNode) { 
@@ -180,7 +212,11 @@ namespace Ice
 
     template<typename T>
     bool Octree<T>::intersects(const Ray& ray, std::vector<T>& vOut) const {
-        return intersects_impl(ray, vOut, m_root.get());
+        if (!std::get<branch_node>(*m_root).box.intersects(ray))
+            return false;
+        auto pStart = find(ray.origin());
+        bool bHitLeaf{};
+        return intersects_impl(ray, vOut, pStart ? pStart : m_root.get());
     }
 
     template<typename T>
