@@ -12,6 +12,7 @@
 #include <glm/vec3.hpp>
 #include <System/Extents.h>
 #include <glm/mat4x4.hpp>
+#include <bitset>
 
 namespace Ice {
 
@@ -23,6 +24,11 @@ class AABB {
     glm::vec3 m_maxVertex;
     
 public:
+    struct sRayAABBIntersectResult {
+        std::bitset<3> intersectOctant; // x,y,z, 0 -> min, 1 -> max
+        float fDist;
+        glm::vec3 point;
+    };
     
     constexpr AABB() :
                 m_minVertex{ std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max() },
@@ -37,6 +43,16 @@ public:
 
     constexpr auto& maxVertex() noexcept { return m_maxVertex; }
     constexpr const auto& maxVertex() const noexcept { return m_maxVertex; }
+
+    constexpr auto width() const noexcept { return maxVertex().x - minVertex().x; }
+    constexpr auto height() const noexcept { return maxVertex().y - minVertex().y; }
+    constexpr auto depth() const noexcept { return maxVertex().z - minVertex().z; }
+    constexpr auto size(int nDim) const noexcept { return maxVertex()[nDim] - minVertex()[nDim]; }
+
+    float volume() const noexcept;
+    constexpr glm::vec3 center() const noexcept {
+        return minVertex() + (maxVertex() - minVertex()) / 2.0f;
+    }
     
     constexpr bool contains(const glm::vec3& p) const noexcept {
         for (glm::vec3::length_type i = 0; i < glm::vec3::length(); ++i) {
@@ -54,7 +70,7 @@ public:
 
     bool intersects(const AABB& other) const noexcept;
     //bool intersects(const Ray& r, float* fpDistance = nullptr) const noexcept;
-    bool intersects(const Ray& r) const noexcept;
+    bool intersects(const Ray& r, sRayAABBIntersectResult* pResult = nullptr) const noexcept;
     std::array<glm::vec3, 8> cornerVertices(const glm::mat4& transform = glm::mat4{ 1.0f }) const noexcept;
 
     AABB transform(const glm::mat4& m) const noexcept;

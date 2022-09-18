@@ -49,6 +49,10 @@ bool AABB::intersects(const AABB &other) const noexcept {
     return true;
 }
 
+float AABB::volume() const noexcept {
+    return (maxVertex().x - minVertex().x) * (maxVertex().y - minVertex().y) * (maxVertex().z - minVertex().z);
+}
+
 /*
 bool AABB::intersects(const Ray& r, float* fpDistance) const noexcept {
     const auto faces = std::invoke([this]() {
@@ -124,16 +128,18 @@ bool AABB::intersects(const Ray& r, float* fpDistance) const noexcept {
 */
 
 // See: https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-box-intersection
-bool AABB::intersects(const Ray& r) const noexcept {
+bool AABB::intersects(const Ray& r, sRayAABBIntersectResult* pResult) const noexcept {
     const auto invDir = 1.0f / r.direction();
     
     const std::array<bool, 3> arSgn{ invDir.x < 0.0f, invDir.y < 0.0f, invDir.z < 0.0f };
 
-    float tmin = ((arSgn[0] ? maxVertex().x : minVertex().x) - r.origin().x) * invDir.x;
-    float tmax = ((!arSgn[0] ? maxVertex().x : minVertex().x) - r.origin().x) * invDir.x;
-    
-    float tymin = ((arSgn[1] ? maxVertex().y : minVertex().y) - r.origin().y) * invDir.y;
-    float tymax = ((!arSgn[1] ? maxVertex().y : minVertex().y) - r.origin().y) * invDir.y;
+    const auto getRayDependentMinMax = [&](int nDim) {
+        float tmin = ((arSgn[nDim] ? maxVertex()[nDim] : minVertex()[nDim]) - r.origin()[nDim]) * invDir[nDim];
+        float tmax = ((!arSgn[nDim] ? maxVertex()[nDim] : minVertex()[nDim]) - r.origin()[nDim]) * invDir[nDim];
+        return std::make_pair(tmin, tmax);
+    };
+    auto [tmin, tmax] = getRayDependentMinMax(0);
+    const auto [tymin, tymax] = getRayDependentMinMax(1);
 
     if (tmin > tymax || tymin > tmax)
         return false;
@@ -143,8 +149,7 @@ bool AABB::intersects(const Ray& r) const noexcept {
     if (tymax < tmax)
         tmax = tymax;
 
-    float tzmin = ((arSgn[2] ? maxVertex().z : minVertex().z) - r.origin().z) * invDir.z;
-    float tzmax = ((!arSgn[2] ? maxVertex().z : minVertex().z) - r.origin().z) * invDir.z;
+    const auto [tzmin, tzmax] = getRayDependentMinMax(2);
 
     if (tmin > tzmax || tzmin > tmax)
         return false;
@@ -158,6 +163,14 @@ bool AABB::intersects(const Ray& r) const noexcept {
     if (t < 0.0f) {
         t = tmax;
         if (t < 0.0f) return false;
+    }
+    if (pResult) {
+        pResult->fDist = t;
+        pResult->point = r.origin() + t * r.direction();
+        const auto cen = center();
+        pResult->intersectOctant.set(0, pResult->point.x > cen.x);
+        pResult->intersectOctant.set(1, pResult->point.y > cen.y);
+        pResult->intersectOctant.set(2, pResult->point.z > cen.z);
     }
 
     return true;

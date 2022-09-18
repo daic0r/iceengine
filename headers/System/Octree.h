@@ -18,13 +18,27 @@ namespace Ice
     class Octree {
         enum NodePosition {
             BOTTOM_LEFT_FRONT,
-            BOTTOM_RIGHT_FRONT,
-            BOTTOM_RIGHT_BACK,
             BOTTOM_LEFT_BACK,
             TOP_LEFT_FRONT,
+            TOP_LEFT_BACK,
+            BOTTOM_RIGHT_FRONT,
+            BOTTOM_RIGHT_BACK,
             TOP_RIGHT_FRONT,
             TOP_RIGHT_BACK,
-            TOP_LEFT_BACK
+            EXIT
+        };
+
+        enum class Plane {
+            XY,
+            XZ,
+            YZ
+        };
+
+        struct sIntersectParams {
+            std::array<float, 3> t0; // entry point along ray in each dimension
+            std::array<float, 3> t1; // exit point along ray in each dimension
+            std::array<float, 3> tm; // center point along ray in each dimension
+
         };
         struct leaf_node;
         struct branch_node;
@@ -44,6 +58,10 @@ namespace Ice
         void construct(const std::vector<std::pair<AABB, T>>&, std::unique_ptr<node_t>& node, const AABB& originalBox);
         bool intersects_impl(const Ray&, std::vector<T>& vOut, const node_t* node) const;
         node_t* find(const glm::vec3& point, node_t* pStart = nullptr) const noexcept;
+
+        static int getFirstSubNodeIndex(const sIntersectParams& params) noexcept;
+        static NodePosition getNextSubNode(NodePosition current, Plane exitPlane);
+        auto transformRayAndGetNodeMappingFunction(Ray&) const noexcept;
     public:
         Octree() = default;
         Octree(const std::vector<std::pair<AABB, T>>& vBoxes, const AABB& outerBox);
@@ -150,6 +168,8 @@ namespace Ice
             thisNode.box = originalBox;
             auto& v = thisNode.vObjects;
             std::ranges::transform(vPoints, std::back_inserter(v), [](const std::pair<AABB, T>& kvp) {
+                const auto bIsFirst = kvp.second[0].x == 0 && kvp.second[1].x == 0 && kvp.second[2].x == 15 && kvp.second[0].z == 0 && kvp.second[1].z == 15 && kvp.second[2].z == 0;
+                const auto bIsSecond = kvp.second[0].x == 15 && kvp.second[1].x == 15 && kvp.second[2].x == 30 && kvp.second[0].z == 0 && kvp.second[1].z == 15 && kvp.second[2].z == 15;
                 return kvp.second;
             });
         }
@@ -217,6 +237,141 @@ namespace Ice
         auto pStart = find(ray.origin());
         bool bHitLeaf{};
         return intersects_impl(ray, vOut, pStart ? pStart : m_root.get());
+    }
+
+     
+    template<typename T>
+    int Octree<T>::getFirstSubNodeIndex(const sIntersectParams& params) noexcept {
+        int nRetOctant{};
+        const auto maxt0dim = static_cast<Plane>(std::distance(params.t0.begin(), std::ranges::max_element(params.t0)));
+        switch (maxt0dim) {
+            case Plane::XY:
+                nRetOctant |= 1 * static_cast<int>(params.tm[0] < params.t0[2]); 
+                nRetOctant |= 2 * static_cast<int>(params.tm[1] < params.t0[2]); 
+                break;
+            case Plane::XZ:
+                nRetOctant |= 1 * static_cast<int>(params.tm[0] < params.t0[1]); 
+                nRetOctant |= 4 * static_cast<int>(params.tm[2] < params.t0[1]); 
+                break; 
+            case Plane::YZ:
+                nRetOctant |= 2 * static_cast<int>(params.tm[1] < params.t0[0]); 
+                nRetOctant |= 4 * static_cast<int>(params.tm[2] < params.t0[0]); 
+                break;
+        }
+        return nRetOctant;
+    }
+
+    template<typename T>
+    Octree<T>::NodePosition Octree<T>::getNextSubNode(NodePosition current, Plane exitPlane) {
+        switch (current) {
+            case NodePosition::BOTTOM_LEFT_FRONT:
+                {
+                    switch (exitPlane) {
+                        case Plane::YZ:
+                            return NodePosition::BOTTOM_RIGHT_FRONT;
+                        case Plane::XZ:
+                            return NodePosition::TOP_LEFT_FRONT;
+                        case Plane::XY:
+                            return NodePosition::BOTTOM_LEFT_BACK;
+                    }
+                }
+                break;
+            case NodePosition::BOTTOM_LEFT_BACK:
+                {
+                    switch (exitPlane) {
+                        case Plane::YZ:
+                            return NodePosition::BOTTOM_RIGHT_BACK;
+                        case Plane::XZ:
+                            return NodePosition::TOP_LEFT_BACK;
+                        case Plane::XY:
+                            return NodePosition::EXIT;
+                    }
+                }
+                break;
+            case NodePosition::TOP_LEFT_FRONT:
+                {
+                    switch (exitPlane) {
+                        case Plane::YZ:
+                            return NodePosition::TOP_RIGHT_FRONT;
+                        case Plane::XZ:
+                            return NodePosition::EXIT;
+                        case Plane::XY:
+                            return NodePosition::TOP_LEFT_BACK;
+                    }
+                }
+                break;
+            case NodePosition::TOP_LEFT_BACK:
+                {
+                    switch (exitPlane) {
+                        case Plane::YZ:
+                            return NodePosition::TOP_RIGHT_BACK;
+                        case Plane::XZ:
+                            return NodePosition::EXIT;
+                        case Plane::XY:
+                            return NodePosition::EXIT;
+                    }
+                }
+                break;
+            case NodePosition::BOTTOM_RIGHT_FRONT:
+                {
+                    switch (exitPlane) {
+                        case Plane::YZ:
+                            return NodePosition::EXIT;
+                        case Plane::XZ:
+                            return NodePosition::TOP_RIGHT_FRONT;
+                        case Plane::XY:
+                            return NodePosition::BOTTOM_RIGHT_BACK;
+                    }
+                }
+                break;
+            case NodePosition::BOTTOM_RIGHT_BACK:
+                {
+                    switch (exitPlane) {
+                        case Plane::YZ:
+                            return NodePosition::EXIT;
+                        case Plane::XZ:
+                            return NodePosition::TOP_RIGHT_BACK;
+                        case Plane::XY:
+                            return NodePosition::EXIT;
+                    }
+                }
+                break;
+            case NodePosition::TOP_RIGHT_FRONT:
+                {
+                    switch (exitPlane) {
+                        case Plane::YZ:
+                            return NodePosition::EXIT;
+                        case Plane::XZ:
+                            return NodePosition::EXIT;
+                        case Plane::XY:
+                            return NodePosition::TOP_RIGHT_BACK;
+                    }
+                }
+                break;
+            case NodePosition::TOP_RIGHT_BACK:
+            case NodePosition::EXIT:
+                return NodePosition::EXIT;
+        }
+        throw std::logic_error("Invalid node position");
+    }
+
+    template<typename T>
+    auto Octree<T>::transformRayAndGetNodeMappingFunction(Ray& ray) const noexcept {
+        auto dir = ray.direction();
+        auto origin = ray.origin();
+        int nXORMask{};
+        for (glm::vec3::length_type i = 0; i < 3; ++i) {
+            if (dir[i] < 0.0f) {
+                dir[i] *= -1.0f;
+                origin[i] = std::get<branch_node>(*m_root).box[i].size(i) - origin[i];
+                nXORMask |= (1 << (3-i-1));
+            }
+        }
+        ray.setOrigin(origin);
+        ray.setDirection(dir);
+        return [nXORMask](int nNodePosition) {
+            return nNodePosition ^ nXORMask;
+        };
     }
 
     template<typename T>
