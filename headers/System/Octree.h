@@ -161,7 +161,7 @@ namespace Ice
         }
 
         node = std::make_unique<node_t>();
-        if (nLevel < 8 && vPoints.size() > 2) {
+        if (nLevel < 7 && vPoints.size() > 2) {
             *node = branch_node{};
             auto& thisNode = std::get<branch_node>(*node);
             thisNode.box = originalBox;
@@ -215,7 +215,7 @@ namespace Ice
 
     template<typename T>
     template<typename NodePositionMappingFunc>
-    bool Octree<T>::intersects_impl(const Ray& ray, const node_t* node, sIntersectParams params, NodePositionMappingFunc&& mappingFunc , std::vector<T>& vOut) const {
+    bool Octree<T>::intersects_impl(const Ray& ray, const node_t* node, sIntersectParams params, NodePositionMappingFunc&& mappingFunc, std::vector<T>& vOut) const {
         if (params.t1.x < 0.0f || params.t1.y < 0.0f || params.t1.z < 0.0f)
             return false;
         const auto bRet = std::visit(visitor {
@@ -224,11 +224,44 @@ namespace Ice
                 auto nSubNode = getFirstSubNodeIndex(params);
                 while (nSubNode != NodePosition::EXIT) {
                     // Get sub-node params
-                    const auto pSubNode = curNode.arNodes[mappingFunc(nSubNode)].get(); 
-                    params = std::visit([&](const auto& n) {
-                        return calculateIntersectParams(ray, n.box);
-                    }, *pSubNode);
+                    switch (nSubNode) {
+                         case BOTTOM_LEFT_FRONT:
+                            params.t0 = glm::vec3{ params.t0.x, params.t0.y, params.t0.z };
+                            params.t1 = glm::vec3{ params.tm.x, params.tm.y, params.tm.z };
+                            break;
+                         case BOTTOM_LEFT_BACK:
+                            params.t0 = glm::vec3{ params.t0.x, params.t0.y, params.tm.z };
+                            params.t1 = glm::vec3{ params.tm.x, params.tm.y, params.t1.z };
+                            break;
+                         case TOP_LEFT_FRONT:
+                            params.t0 = glm::vec3{ params.t0.x, params.tm.y, params.t0.z };
+                            params.t1 = glm::vec3{ params.tm.x, params.t1.y, params.tm.z };
+                            break;
+                         case TOP_LEFT_BACK:
+                            params.t0 = glm::vec3{ params.t0.x, params.tm.y, params.tm.z };
+                            params.t1 = glm::vec3{ params.tm.x, params.t1.y, params.t1.z };
+                            break;
+                         case BOTTOM_RIGHT_FRONT:
+                            params.t0 = glm::vec3{ params.tm.x, params.t0.y, params.t0.z };
+                            params.t1 = glm::vec3{ params.t1.x, params.tm.y, params.tm.z };
+                            break;
+                         case BOTTOM_RIGHT_BACK:
+                            params.t0 = glm::vec3{ params.tm.x, params.t0.y, params.tm.z };
+                            params.t1 = glm::vec3{ params.t1.x, params.tm.y, params.t1.z };
+                            break;
+                         case TOP_RIGHT_FRONT:
+                            params.t0 = glm::vec3{ params.tm.x, params.tm.y, params.t0.z };
+                            params.t1 = glm::vec3{ params.t1.x, params.t1.y, params.tm.z };
+                            break;
+                        case TOP_RIGHT_BACK:
+                            params.t0 = glm::vec3{ params.tm.x, params.tm.y, params.tm.z };
+                            params.t1 = glm::vec3{ params.t1.x, params.t1.y, params.t1.z };
+                            break;
+                    }
+                    params.tm = (params.t0 + params.t1) * 0.5f;
                     // Process
+                    const auto nTranslatedIndex = mappingFunc(nSubNode);
+                    const auto pSubNode = curNode.arNodes[nTranslatedIndex].get(); 
                     bRet |= intersects_impl(ray, pSubNode, params, mappingFunc, vOut);
                     // Determine exit face
                     const std::array<float, 3> arT1 = { params.t1.x, params.t1.y, params.t1.z };
@@ -252,10 +285,12 @@ namespace Ice
         float t;
         if ((t = std::max(params.t0[0], std::max(params.t0[1], params.t0[2]))) >= std::min(params.t1[0], std::min(params.t1[1], params.t1[2])))
             return false;
+        /*
         if (t < 0.0f) {
             r.setOrigin(r.origin() + t * r.direction());
             params = calculateIntersectParams(r, boundingBox());
         }
+        */
         return intersects_impl(r, m_root.get(), params, mapNodeFunc, vOut);
     }
 
@@ -264,7 +299,7 @@ namespace Ice
         sIntersectParams params;
         params.t0 = (box.minVertex() - ray.origin()) / ray.direction();
         params.t1 = (box.maxVertex() - ray.origin()) / ray.direction();
-        params.tm = (box.maxVertex() - box.minVertex()) * 0.5f;
+        params.tm = (params.t0 + params.t1) * 0.5f;
         return params;
     }
      
@@ -275,16 +310,16 @@ namespace Ice
         const auto maxt0dim = static_cast<Plane>(std::distance(arT0.begin(), std::ranges::max_element(arT0)));
         switch (maxt0dim) {
             case Plane::XY:
-                nRetOctant |= 1 * static_cast<int>(params.tm[0] < params.t0[2]); 
+                nRetOctant |= 4 * static_cast<int>(params.tm[0] < params.t0[2]); 
                 nRetOctant |= 2 * static_cast<int>(params.tm[1] < params.t0[2]); 
                 break;
             case Plane::XZ:
-                nRetOctant |= 1 * static_cast<int>(params.tm[0] < params.t0[1]); 
-                nRetOctant |= 4 * static_cast<int>(params.tm[2] < params.t0[1]); 
+                nRetOctant |= 4 * static_cast<int>(params.tm[0] < params.t0[1]); 
+                nRetOctant |= 1 * static_cast<int>(params.tm[2] < params.t0[1]); 
                 break; 
             case Plane::YZ:
                 nRetOctant |= 2 * static_cast<int>(params.tm[1] < params.t0[0]); 
-                nRetOctant |= 4 * static_cast<int>(params.tm[2] < params.t0[0]); 
+                nRetOctant |= 1 * static_cast<int>(params.tm[2] < params.t0[0]); 
                 break;
         }
         return static_cast<NodePosition>(nRetOctant);
