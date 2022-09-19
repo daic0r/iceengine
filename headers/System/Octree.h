@@ -299,7 +299,7 @@ namespace Ice
                             subNodeParams.t1 = glm::vec3{ params.t1.x, params.t1.y, params.t1.z };
                             break;
                     }
-                    subNodeParams.tm = (params.t0 + params.t1) * 0.5f;
+                    subNodeParams.tm = (subNodeParams.t0 + subNodeParams.t1) * 0.5f;
                     // Process
                     const auto nTranslatedIndex = mappingFunc(nSubNode);
                     const auto pSubNode = curNode.arNodes[nTranslatedIndex].get(); 
