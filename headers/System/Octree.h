@@ -11,11 +11,19 @@
 #include <System/Ray.h>
 #include <Utils/TemplateHelpers.h>
 #include <memory>
+#include <stack>
 
 namespace Ice
 {
+    class IOctreeTraversal {
+    public:
+        virtual std::pair<const AABB*, bool> startTraversal() noexcept = 0;
+        virtual std::pair<const AABB*, bool> next() noexcept = 0;
+        virtual bool done() const noexcept = 0;
+    };
+
     template<typename T>
-    class Octree {
+    class Octree : public IOctreeTraversal {
         enum NodePosition {
             BOTTOM_LEFT_FRONT,
             BOTTOM_LEFT_BACK,
@@ -75,9 +83,44 @@ namespace Ice
         bool intersects(Ray, std::vector<T>& vOut) const;
         void emplace(const AABB& box,const T& val);
 
+
+        /////////////////////////////////////////////////////////
+        // Traversal
+        std::pair<const AABB*, bool> startTraversal() noexcept override {
+            m_pCurNode = m_root.get();
+            m_vTraverseNodes.emplace(m_pCurNode);
+            return { &boundingBox(), false };
+        }
+
+       std::pair<const AABB*, bool> next() noexcept override {
+            if (m_vTraverseNodes.empty())
+                return { nullptr, false };
+            auto pTop = m_vTraverseNodes.top();
+            m_vTraverseNodes.pop();
+            return std::visit(visitor{ 
+                [&,this](const branch_node& branch) {
+                    for (int i = 0; i < 8; ++i)
+                        m_vTraverseNodes.emplace(branch.arNodes[7-i].get());
+                    return std::make_pair(&branch.box, false);
+                },
+                [&](const leaf_node& leaf) {
+                    m_vTraverseNodes.pop();
+                    return std::make_pair(&leaf.box, true);
+                }
+            }, *pTop);
+        }
+        bool done() const noexcept override { 
+            return m_vTraverseNodes.empty();
+        }
+        /////////////////////////////////////////////////////////
+
     private:
 
         std::unique_ptr<node_t> m_root;
+
+        std::stack<node_t*> m_vTraverseNodes;
+        node_t* m_pCurNode{};
+        std::size_t m_nCurChild{};
    
     };
     

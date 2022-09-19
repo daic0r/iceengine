@@ -40,6 +40,7 @@ TerrainRendererGL::TerrainRendererGL() {
 //    m_pShaderProgram = shaderManager->getShader("terrainShader");
 //    m_pShaderConfig = dynamic_cast<TerrainShaderConfigurator*>(m_pShaderProgram->configurator());
 
+    m_pOctreeDebugger = std::make_unique<OctreeDebuggerGL>();
     
     m_pShaderProgram = RenderToolsGL::createShaderProgram("Terrain", std::make_unique<TerrainShaderConfigurator>());
     m_pShaderConfig = dynamic_cast<TerrainShaderConfigurator*>(m_pShaderProgram->configurator());
@@ -238,6 +239,9 @@ void TerrainRendererGL::finishRendering(const RenderEnvironment& env) noexcept {
     //glCall(glDisable(GL_PRIMITIVE_RESTART));
     glCall(glDisable(GL_DEPTH_TEST));
     glCall(glDisable(GL_CULL_FACE));
+
+    if (m_pOctreeDebugger)
+        m_pOctreeDebugger->render(env, m_pOctree);
 }
 
 }

@@ -5,6 +5,7 @@ project(iceengine)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_LIBRARY_PATH {$CMAKE_LIBRARY_PATH} ../external/linux)
+set(CMAKE_BUILD_TYPE Debug)
 #set(GCC_COMPILER_FLAGS "-O3 -std=c++2b")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COMPILER_FLAGS}")
 
@@ -62,6 +63,7 @@ Renderer/OpenGL/UniformBufferObjectGL.cpp
 Renderer/OpenGL/VertexAttributeGL.cpp
 Renderer/OpenGL/VAO.cpp
 Renderer/OpenGL/VBO.cpp
+Renderer/OpenGL/OctreeDebuggerGL.cpp
 Renderer/PostProcessing/PostProcessingPipeline.cpp
 Renderer/PostProcessing/PostProcessingEffectFactory.cpp
 Renderer/PostProcessing/OpenGL/BasePostProcessorGL.cpp
@@ -103,6 +105,7 @@ Components/TerrainComponent.cpp
 Engine.cpp
 Particles/Particle.cpp
 Particles/ParticleSystem.cpp
+../headers/System/Octree.h
 System/Ray.cpp
 System/Image.cpp
 System/Scene.cpp

@@ -16,6 +16,7 @@
 #include <memory>
 #include <Renderer/OpenGL/VertexAttributeGL.h>
 #include <Renderer/OpenGL/VAO.h>
+#include <Renderer/OpenGL/OctreeDebuggerGL.h>
 
 namespace Ice {
 
@@ -27,6 +28,7 @@ class TerrainHighlightShaderConfigurator;
 class RenderObjectGL;
 class ModelRendererGL;
 class GraphicsSystemGL;
+class IOctreeTraversal;
 
 class TerrainRendererGL : public ITerrainRenderer {
     static constexpr std::array<GLfloat, 2*4> HighlightQuad {
@@ -53,6 +55,10 @@ class TerrainRendererGL : public ITerrainRenderer {
 
     std::unique_ptr<DynamicVertexAttributeGL<glm::vec4>> m_pVertexColors;
 
+    // Debug
+    IOctreeTraversal *m_pOctree{};
+    std::unique_ptr<OctreeDebuggerGL> m_pOctreeDebugger;
+
 
 public:
     TerrainRendererGL();
@@ -61,6 +67,7 @@ public:
     void prepareRendering(const RenderEnvironment&, const std::vector<Terrain>&) noexcept override;
     void render(const RenderEnvironment&, const std::vector<Terrain>&) noexcept override;
     void finishRendering(const RenderEnvironment&) noexcept override;
+    void setOctree(IOctreeTraversal* pOc) noexcept override { m_pOctree = pOc; }
 };
 
 }

@@ -4,6 +4,7 @@
 #include <Components/MeshComponent.h>
 #include <System/Math.h>
 #include <glm/gtx/string_cast.hpp>
+#include <Interfaces/ITerrainRenderer.h>
 
 namespace Ice
 {
@@ -31,7 +32,16 @@ namespace Ice
             }
             vTriangles.emplace_back(triangleBox, triangle);
         }
+        //const auto fAddHeight = (outerBox.width() - outerBox.height()) / 2.0f;
+        //outerBox.minVertex().y -= fAddHeight;
+        //outerBox.maxVertex().y += fAddHeight;
         auto [iter, _] = m_mOctrees.emplace(std::piecewise_construct, std::forward_as_tuple(e), std::forward_as_tuple(vTriangles, outerBox));
+
+        for (auto *pBB = iter->second.startTraversal(); pBB != nullptr; pBB = iter->second.next()) {
+            std::cout << "<" << glm::to_string(pBB->minVertex()) << " - " << glm::to_string(pBB->maxVertex()) << ">\n";
+        }
+        auto pTerrainRenderer = systemServices.getTerrainRenderer();
+        pTerrainRenderer->setOctree(&iter->second);
     }
 
     const std::vector<TerrainSystem::sIntersectResult>& TerrainSystem::intersects(Entity e, const Ray& ray) const noexcept {
@@ -50,7 +60,7 @@ namespace Ice
                 if (Math::equal(fDenominator, 0.0f))
                     continue;
                 const auto D = glm::dot(normal, triangle[0]); 
-                const auto t = -(glm::dot(normal, ray.origin()) + D) / fDenominator;
+                const auto t = -(glm::dot(normal, ray.origin()) - D) / fDenominator;
                 if (t < 0.0f)
                     continue;
 
