@@ -37,9 +37,9 @@ namespace Ice
         };
 
         enum class Plane {
-            XY,
+            YZ,
             XZ,
-            YZ
+            XY
         };
 
         struct sIntersectParams {
