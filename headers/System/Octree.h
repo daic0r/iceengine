@@ -15,15 +15,23 @@
 
 namespace Ice
 {
+    struct sTraversalDebugInfo {
+        std::size_t nID{};
+        const AABB* box{};
+        bool bIsLeaf{};
+    };
     class IOctreeTraversal {
     public:
-        virtual std::pair<const AABB*, bool> startTraversal() noexcept = 0;
-        virtual std::pair<const AABB*, bool> next() noexcept = 0;
+        virtual sTraversalDebugInfo startTraversal() noexcept = 0;
+        virtual sTraversalDebugInfo next() noexcept = 0;
         virtual bool done() const noexcept = 0;
+        virtual const std::vector<std::size_t>& intersected() const noexcept = 0;
     };
 
     template<typename T>
     class Octree : public IOctreeTraversal {
+        friend class IOctreeTraversal;
+
         enum NodePosition {
             BOTTOM_LEFT_FRONT,
             BOTTOM_LEFT_BACK,
@@ -54,7 +62,9 @@ namespace Ice
         using node_t = std::variant<branch_node, leaf_node>;
 
         struct base_node {
+            static inline std::size_t NEXT_ID = 1;
             AABB box;
+            std::size_t nID = NEXT_ID++;
         };
         struct leaf_node : base_node {
             std::vector<T> vObjects;
@@ -86,32 +96,32 @@ namespace Ice
 
         /////////////////////////////////////////////////////////
         // Traversal
-        std::pair<const AABB*, bool> startTraversal() noexcept override {
-            m_pCurNode = m_root.get();
-            m_vTraverseNodes.emplace(m_pCurNode);
-            return { &boundingBox(), false };
+        sTraversalDebugInfo startTraversal() noexcept override {
+            m_vTraverseNodes.emplace(m_root.get());
+            return { root().nID, &boundingBox(), false };
         }
 
-       std::pair<const AABB*, bool> next() noexcept override {
+       sTraversalDebugInfo next() noexcept override {
             if (m_vTraverseNodes.empty())
-                return { nullptr, false };
+                return { 0, nullptr, false };
             auto pTop = m_vTraverseNodes.top();
             m_vTraverseNodes.pop();
             return std::visit(visitor{ 
                 [&,this](const branch_node& branch) {
                     for (int i = 0; i < 8; ++i)
                         m_vTraverseNodes.emplace(branch.arNodes[7-i].get());
-                    return std::make_pair(&branch.box, false);
+                    return sTraversalDebugInfo{ branch.nID, &branch.box, false };
                 },
                 [&](const leaf_node& leaf) {
                     m_vTraverseNodes.pop();
-                    return std::make_pair(&leaf.box, true);
+                    return sTraversalDebugInfo{ leaf.nID, &leaf.box, true };
                 }
             }, *pTop);
         }
         bool done() const noexcept override { 
             return m_vTraverseNodes.empty();
         }
+        const std::vector<std::size_t>& intersected() const noexcept { return m_vIntersectLeaves; }
         /////////////////////////////////////////////////////////
 
     private:
@@ -119,8 +129,7 @@ namespace Ice
         std::unique_ptr<node_t> m_root;
 
         std::stack<node_t*> m_vTraverseNodes;
-        node_t* m_pCurNode{};
-        std::size_t m_nCurChild{};
+        mutable std::vector<std::size_t> m_vIntersectLeaves;
    
     };
     
@@ -313,7 +322,8 @@ namespace Ice
                 }
                 return bRet;
             },
-            [&vOut](const leaf_node& leaf) {
+            [&vOut,this](const leaf_node& leaf) {
+                this->m_vIntersectLeaves.push_back(leaf.nID);
                 vOut.insert(vOut.end(), leaf.vObjects.begin(), leaf.vObjects.end());
                 return !vOut.empty();
             }
@@ -323,6 +333,7 @@ namespace Ice
 
     template<typename T>
     bool Octree<T>::intersects(Ray r, std::vector<T>& vOut) const {
+        m_vIntersectLeaves.clear();
         auto mapNodeFunc = transformRayAndGetNodeMappingFunction(r);
         auto params = calculateIntersectParams(r, boundingBox());
         float t;

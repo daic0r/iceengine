@@ -37,7 +37,8 @@ namespace Ice
         //outerBox.maxVertex().y += fAddHeight;
         auto [iter, _] = m_mOctrees.emplace(std::piecewise_construct, std::forward_as_tuple(e), std::forward_as_tuple(vTriangles, outerBox));
 
-        for (auto *pBB = iter->second.startTraversal(); pBB != nullptr; pBB = iter->second.next()) {
+        for (auto info = iter->second.startTraversal(); info.box != nullptr; info = iter->second.next()) {
+            const auto &[nID, pBB, bIsLeaf] = info; 
             std::cout << "<" << glm::to_string(pBB->minVertex()) << " - " << glm::to_string(pBB->maxVertex()) << ">\n";
         }
         auto pTerrainRenderer = systemServices.getTerrainRenderer();
