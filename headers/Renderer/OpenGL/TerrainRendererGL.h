@@ -16,7 +16,10 @@
 #include <memory>
 #include <Renderer/OpenGL/VertexAttributeGL.h>
 #include <Renderer/OpenGL/VAO.h>
+
+#ifdef _DEBUG_OCTREE
 #include <Renderer/OpenGL/OctreeDebuggerGL.h>
+#endif
 
 namespace Ice {
 
@@ -56,8 +59,10 @@ class TerrainRendererGL : public ITerrainRenderer {
     std::unique_ptr<DynamicVertexAttributeGL<glm::vec4>> m_pVertexColors;
 
     // Debug
+#ifdef _DEBUG_OCTREE
     IOctreeTraversal *m_pOctree{};
     std::unique_ptr<OctreeDebuggerGL> m_pOctreeDebugger;
+#endif
 
 
 public:
@@ -67,7 +72,9 @@ public:
     void prepareRendering(const RenderEnvironment&, const std::vector<Terrain>&) noexcept override;
     void render(const RenderEnvironment&, const std::vector<Terrain>&) noexcept override;
     void finishRendering(const RenderEnvironment&) noexcept override;
+#ifdef _DEBUG_OCTREE
     void setOctree(IOctreeTraversal* pOc) noexcept override { m_pOctree = pOc; }
+#endif
 };
 
 }

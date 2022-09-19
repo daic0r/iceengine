@@ -1,6 +1,9 @@
 #ifndef OctreeDebuggerGL_h
 #define OctreeDebuggerGL_h
 
+#ifdef _DEBUG_OCTREE
+#ifdef RENDERER_OPEN_GL
+
 #include <Interfaces/Renderer/IOctreeDebugger.h>
 #include <Renderer/OpenGL/VAO.h>
 #include <Renderer/OpenGL/VBO.h>
@@ -23,5 +26,6 @@ namespace Ice
     };
 } // namespace Ice
 
-
+#endif
+#endif
 #endif

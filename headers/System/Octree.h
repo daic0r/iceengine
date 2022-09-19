@@ -15,6 +15,8 @@
 
 namespace Ice
 {
+
+#ifdef _DEBUG_OCTREE
     struct sTraversalDebugInfo {
         std::size_t nID{};
         const AABB* box{};
@@ -27,9 +29,14 @@ namespace Ice
         virtual bool done() const noexcept = 0;
         virtual const std::vector<std::size_t>& intersected() const noexcept = 0;
     };
+#endif
 
     template<typename T>
-    class Octree : public IOctreeTraversal {
+    class Octree 
+#ifdef _DEBUG_OCTREE
+        : public IOctreeTraversal
+#endif
+    {
         friend class IOctreeTraversal;
 
         enum NodePosition {
@@ -62,9 +69,11 @@ namespace Ice
         using node_t = std::variant<branch_node, leaf_node>;
 
         struct base_node {
+#ifdef _DEBUG_OCTREE
             static inline std::size_t NEXT_ID = 1;
-            AABB box;
             std::size_t nID = NEXT_ID++;
+#endif
+            AABB box;
         };
         struct leaf_node : base_node {
             std::vector<T> vObjects;
@@ -96,6 +105,7 @@ namespace Ice
 
         /////////////////////////////////////////////////////////
         // Traversal
+#ifdef _DEBUG_OCTREE
         sTraversalDebugInfo startTraversal() noexcept override {
             m_vTraverseNodes.emplace(m_root.get());
             return { root().nID, &boundingBox(), false };
@@ -122,15 +132,17 @@ namespace Ice
             return m_vTraverseNodes.empty();
         }
         const std::vector<std::size_t>& intersected() const noexcept { return m_vIntersectLeaves; }
+#endif
         /////////////////////////////////////////////////////////
 
     private:
 
         std::unique_ptr<node_t> m_root;
 
+#ifdef _DEBUG_OCTREE
         std::stack<node_t*> m_vTraverseNodes;
         mutable std::vector<std::size_t> m_vIntersectLeaves;
-   
+#endif   
     };
     
     template<typename T>
@@ -259,8 +271,10 @@ namespace Ice
             return false;
         const auto bRet = std::visit(visitor {
             [&,this,mappingFunc=std::forward<NodePositionMappingFunc>(mappingFunc)](const branch_node& curNode) { 
+#ifdef _DEBUG_OCTREE
+                this->m_vIntersectLeaves.push_back(curNode.nID);
+#endif
                 bool bRet{};
-
                 auto nSubNode = getFirstSubNodeIndex(params);
                 while (nSubNode != NodePosition::EXIT) {
                     sIntersectParams subNodeParams; 
@@ -310,8 +324,9 @@ namespace Ice
                 return bRet;
             },
             [&vOut,this](const leaf_node& leaf) {
-                if (leaf.vObjects.size() > 0)
-                    this->m_vIntersectLeaves.push_back(leaf.nID);
+#ifdef _DEBUG_OCTREE
+                this->m_vIntersectLeaves.push_back(leaf.nID);
+#endif
                 vOut.insert(vOut.end(), leaf.vObjects.begin(), leaf.vObjects.end());
                 return !vOut.empty();
             }
@@ -321,18 +336,14 @@ namespace Ice
 
     template<typename T>
     bool Octree<T>::intersects(Ray r, std::vector<T>& vOut) const {
+#ifdef _DEBUG_OCTREE
         m_vIntersectLeaves.clear();
+#endif
         auto mapNodeFunc = transformRayAndGetNodeMappingFunction(r);
         auto params = calculateIntersectParams(r, boundingBox());
         float t;
         if ((t = std::max(params.t0[0], std::max(params.t0[1], params.t0[2]))) >= std::min(params.t1[0], std::min(params.t1[1], params.t1[2])))
             return false;
-        /*
-        if (t < 0.0f) {
-            r.setOrigin(r.origin() + t * r.direction());
-            params = calculateIntersectParams(r, boundingBox());
-        }
-        */
         return intersects_impl(r, m_root.get(), params, mapNodeFunc, vOut);
     }
 

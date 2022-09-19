@@ -36,13 +36,14 @@ namespace Ice
         //outerBox.minVertex().y -= fAddHeight;
         //outerBox.maxVertex().y += fAddHeight;
         auto [iter, _] = m_mOctrees.emplace(std::piecewise_construct, std::forward_as_tuple(e), std::forward_as_tuple(vTriangles, outerBox));
-
+ #ifdef _DEBUG_OCTREE
         for (auto info = iter->second.startTraversal(); info.box != nullptr; info = iter->second.next()) {
             const auto &[nID, pBB, bIsLeaf] = info; 
             std::cout << "<" << glm::to_string(pBB->minVertex()) << " - " << glm::to_string(pBB->maxVertex()) << ">\n";
         }
         auto pTerrainRenderer = systemServices.getTerrainRenderer();
         pTerrainRenderer->setOctree(&iter->second);
+#endif
     }
 
     const std::vector<TerrainSystem::sIntersectResult>& TerrainSystem::intersects(Entity e, const Ray& ray) const noexcept {

@@ -16,14 +16,18 @@ namespace Ice {
 
 struct Terrain;
 struct RenderEnvironment;
+#ifdef _DEBUG_OCTREE
 class IOctreeTraversal;
+#endif
 
 class ITerrainRenderer {
 public:
     virtual void prepareRendering(const RenderEnvironment&, const std::vector<Terrain>&) noexcept = 0;
     virtual void render(const RenderEnvironment&, const std::vector<Terrain>&) noexcept = 0;
     virtual void finishRendering(const RenderEnvironment&) noexcept = 0;
+#ifdef _DEBUG_OCTREE
     virtual void setOctree(IOctreeTraversal*) noexcept = 0;
+#endif
     virtual ~ITerrainRenderer() = default;
 };
 
