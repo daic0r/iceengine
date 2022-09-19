@@ -51,7 +51,7 @@ public:
 
     float volume() const noexcept;
     constexpr glm::vec3 center() const noexcept {
-        return minVertex() + (maxVertex() - minVertex()) / 2.0f;
+        return (minVertex() + maxVertex()) * 0.5f;
     }
     
     constexpr bool contains(const glm::vec3& p) const noexcept {

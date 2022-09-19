@@ -76,12 +76,12 @@ namespace Ice
         void construct(const std::vector<std::pair<AABB, T>>&, std::unique_ptr<node_t>& node, const AABB& originalBox, int nLevel = 0);
         
         template<typename NodePositionMappingFunc>
-        bool intersects_impl(const Ray&, const node_t* node, sIntersectParams params, NodePositionMappingFunc&& mappingFunc, std::vector<T>& vOut) const;
+        bool intersects_impl(const Ray&, const node_t* node, const sIntersectParams& params, NodePositionMappingFunc&& mappingFunc, std::vector<T>& vOut) const;
 
         node_t* find(const glm::vec3& point, node_t* pStart = nullptr) const noexcept;
 
         static NodePosition getFirstSubNodeIndex(const sIntersectParams& params) noexcept;
-        static NodePosition getNextSubNode(NodePosition current, Plane exitPlane);
+        static NodePosition getNextSubNode(NodePosition current, const sIntersectParams& params);
         static sIntersectParams calculateIntersectParams(const Ray&, const AABB& box) noexcept;
         auto transformRayAndGetNodeMappingFunction(Ray&) const noexcept;
         branch_node& root() noexcept { return std::get<branch_node>(*m_root); };
@@ -140,59 +140,55 @@ namespace Ice
 
     template<typename T>
     void Octree<T>::construct(const std::vector<std::pair<AABB, T>>& vPoints, std::unique_ptr<node_t>& node, const AABB& originalBox, int nLevel) {
-        static const auto getCenterAlongDim = [](const AABB& box, int nDim) {
-            return box.minVertex()[nDim] + (box.maxVertex()[nDim] - box.minVertex()[nDim]) / 2.0f;
-        };
+        const auto center = originalBox.center();
 
         struct sNodeInfo {
             std::vector<std::pair<AABB, T>> vNodeContents;
             AABB box;
         };
         std::array<sNodeInfo, 8> arSubNodes;
-        bool bAllHaveContent = true;
-        bool bOneHasAll = false;
         for (int i = 0; i < 8; ++i) {
             AABB box = originalBox;
             switch (i) {
                 case BOTTOM_LEFT_BACK:
-                    box.maxVertex().x = getCenterAlongDim(originalBox, 0);
-                    box.maxVertex().y = getCenterAlongDim(originalBox, 1);
-                    box.minVertex().z = getCenterAlongDim(originalBox, 2);
+                    box.maxVertex().x = center[0];
+                    box.maxVertex().y = center[1];
+                    box.minVertex().z = center[2];
                     break;
                  case BOTTOM_RIGHT_BACK:
-                    box.minVertex().x = getCenterAlongDim(originalBox, 0);
-                    box.maxVertex().y = getCenterAlongDim(originalBox, 1);
-                    box.minVertex().z = getCenterAlongDim(originalBox, 2);
+                    box.minVertex().x = center[0];
+                    box.maxVertex().y = center[1];
+                    box.minVertex().z = center[2];
                     break;
                 case BOTTOM_LEFT_FRONT:
-                    box.maxVertex().x = getCenterAlongDim(originalBox, 0);
-                    box.maxVertex().y = getCenterAlongDim(originalBox, 1);
-                    box.maxVertex().z = getCenterAlongDim(originalBox, 2);
+                    box.maxVertex().x = center[0];
+                    box.maxVertex().y = center[1];
+                    box.maxVertex().z = center[2];
                     break;
                  case BOTTOM_RIGHT_FRONT:
-                    box.minVertex().x = getCenterAlongDim(originalBox, 0);
-                    box.maxVertex().y = getCenterAlongDim(originalBox, 1);
-                    box.maxVertex().z = getCenterAlongDim(originalBox, 2);
+                    box.minVertex().x = center[0];
+                    box.maxVertex().y = center[1];
+                    box.maxVertex().z = center[2];
                     break;
                 case TOP_LEFT_BACK:
-                    box.maxVertex().x = getCenterAlongDim(originalBox, 0);
-                    box.minVertex().y = getCenterAlongDim(originalBox, 1);
-                    box.minVertex().z = getCenterAlongDim(originalBox, 2);
+                    box.maxVertex().x = center[0];
+                    box.minVertex().y = center[1];
+                    box.minVertex().z = center[2];
                     break;
                  case TOP_RIGHT_BACK:
-                    box.minVertex().x = getCenterAlongDim(originalBox, 0);
-                    box.minVertex().y = getCenterAlongDim(originalBox, 1);
-                    box.minVertex().z = getCenterAlongDim(originalBox, 2);
+                    box.minVertex().x = center[0];
+                    box.minVertex().y = center[1];
+                    box.minVertex().z = center[2];
                     break;
                 case TOP_LEFT_FRONT:
-                    box.maxVertex().x = getCenterAlongDim(originalBox, 0);
-                    box.minVertex().y = getCenterAlongDim(originalBox, 1);
-                    box.maxVertex().z = getCenterAlongDim(originalBox, 2);
+                    box.maxVertex().x = center[0];
+                    box.minVertex().y = center[1];
+                    box.maxVertex().z = center[2];
                     break;
                  case TOP_RIGHT_FRONT:
-                    box.minVertex().x = getCenterAlongDim(originalBox, 0);
-                    box.minVertex().y = getCenterAlongDim(originalBox, 1);
-                    box.maxVertex().z = getCenterAlongDim(originalBox, 2);
+                    box.minVertex().x = center[0];
+                    box.minVertex().y = center[1];
+                    box.maxVertex().z = center[2];
                     break;
                 default:
                     throw std::logic_error("Invalid index");
@@ -201,19 +197,10 @@ namespace Ice
             std::ranges::copy_if(vPoints, std::back_inserter(arSubNodes[i].vNodeContents), [&box](const auto& elem) {
                 return box.intersects(elem.first);
             });
-
-            if (arSubNodes[i].vNodeContents.empty()) {
-                bAllHaveContent = false;
-                //break;
-            }
-            if (arSubNodes[i].vNodeContents.size() == vPoints.size()) {
-                bOneHasAll = true;
-                //break;
-            }
-        }
+       }
 
         node = std::make_unique<node_t>();
-        if (nLevel < 7 && vPoints.size() > 2) {
+        if (nLevel < 6 && vPoints.size() > 2) {
             *node = branch_node{};
             auto& thisNode = std::get<branch_node>(*node);
             thisNode.box = originalBox;
@@ -267,63 +254,64 @@ namespace Ice
 
     template<typename T>
     template<typename NodePositionMappingFunc>
-    bool Octree<T>::intersects_impl(const Ray& ray, const node_t* node, sIntersectParams params, NodePositionMappingFunc&& mappingFunc, std::vector<T>& vOut) const {
+    bool Octree<T>::intersects_impl(const Ray& ray, const node_t* node, const sIntersectParams& params, NodePositionMappingFunc&& mappingFunc, std::vector<T>& vOut) const {
         if (params.t1.x < 0.0f || params.t1.y < 0.0f || params.t1.z < 0.0f)
             return false;
         const auto bRet = std::visit(visitor {
             [&,this,mappingFunc=std::forward<NodePositionMappingFunc>(mappingFunc)](const branch_node& curNode) { 
                 bool bRet{};
+
                 auto nSubNode = getFirstSubNodeIndex(params);
                 while (nSubNode != NodePosition::EXIT) {
+                    sIntersectParams subNodeParams; 
                     // Get sub-node params
                     switch (nSubNode) {
-                         case BOTTOM_LEFT_FRONT:
-                            params.t0 = glm::vec3{ params.t0.x, params.t0.y, params.t0.z };
-                            params.t1 = glm::vec3{ params.tm.x, params.tm.y, params.tm.z };
+                        case BOTTOM_LEFT_FRONT:
+                            subNodeParams.t0 = glm::vec3{ params.t0.x, params.t0.y, params.t0.z };
+                            subNodeParams.t1 = glm::vec3{ params.tm.x, params.tm.y, params.tm.z };
                             break;
-                         case BOTTOM_LEFT_BACK:
-                            params.t0 = glm::vec3{ params.t0.x, params.t0.y, params.tm.z };
-                            params.t1 = glm::vec3{ params.tm.x, params.tm.y, params.t1.z };
+                        case BOTTOM_LEFT_BACK:
+                            subNodeParams.t0 = glm::vec3{ params.t0.x, params.t0.y, params.tm.z };
+                            subNodeParams.t1 = glm::vec3{ params.tm.x, params.tm.y, params.t1.z };
                             break;
-                         case TOP_LEFT_FRONT:
-                            params.t0 = glm::vec3{ params.t0.x, params.tm.y, params.t0.z };
-                            params.t1 = glm::vec3{ params.tm.x, params.t1.y, params.tm.z };
+                        case TOP_LEFT_FRONT:
+                            subNodeParams.t0 = glm::vec3{ params.t0.x, params.tm.y, params.t0.z };
+                            subNodeParams.t1 = glm::vec3{ params.tm.x, params.t1.y, params.tm.z };
                             break;
-                         case TOP_LEFT_BACK:
-                            params.t0 = glm::vec3{ params.t0.x, params.tm.y, params.tm.z };
-                            params.t1 = glm::vec3{ params.tm.x, params.t1.y, params.t1.z };
+                        case TOP_LEFT_BACK:
+                            subNodeParams.t0 = glm::vec3{ params.t0.x, params.tm.y, params.tm.z };
+                            subNodeParams.t1 = glm::vec3{ params.tm.x, params.t1.y, params.t1.z };
                             break;
-                         case BOTTOM_RIGHT_FRONT:
-                            params.t0 = glm::vec3{ params.tm.x, params.t0.y, params.t0.z };
-                            params.t1 = glm::vec3{ params.t1.x, params.tm.y, params.tm.z };
+                        case BOTTOM_RIGHT_FRONT:
+                            subNodeParams.t0 = glm::vec3{ params.tm.x, params.t0.y, params.t0.z };
+                            subNodeParams.t1 = glm::vec3{ params.t1.x, params.tm.y, params.tm.z };
                             break;
-                         case BOTTOM_RIGHT_BACK:
-                            params.t0 = glm::vec3{ params.tm.x, params.t0.y, params.tm.z };
-                            params.t1 = glm::vec3{ params.t1.x, params.tm.y, params.t1.z };
+                        case BOTTOM_RIGHT_BACK:
+                            subNodeParams.t0 = glm::vec3{ params.tm.x, params.t0.y, params.tm.z };
+                            subNodeParams.t1 = glm::vec3{ params.t1.x, params.tm.y, params.t1.z };
                             break;
-                         case TOP_RIGHT_FRONT:
-                            params.t0 = glm::vec3{ params.tm.x, params.tm.y, params.t0.z };
-                            params.t1 = glm::vec3{ params.t1.x, params.t1.y, params.tm.z };
+                        case TOP_RIGHT_FRONT:
+                            subNodeParams.t0 = glm::vec3{ params.tm.x, params.tm.y, params.t0.z };
+                            subNodeParams.t1 = glm::vec3{ params.t1.x, params.t1.y, params.tm.z };
                             break;
                         case TOP_RIGHT_BACK:
-                            params.t0 = glm::vec3{ params.tm.x, params.tm.y, params.tm.z };
-                            params.t1 = glm::vec3{ params.t1.x, params.t1.y, params.t1.z };
+                            subNodeParams.t0 = glm::vec3{ params.tm.x, params.tm.y, params.tm.z };
+                            subNodeParams.t1 = glm::vec3{ params.t1.x, params.t1.y, params.t1.z };
                             break;
                     }
-                    params.tm = (params.t0 + params.t1) * 0.5f;
+                    subNodeParams.tm = (params.t0 + params.t1) * 0.5f;
                     // Process
                     const auto nTranslatedIndex = mappingFunc(nSubNode);
                     const auto pSubNode = curNode.arNodes[nTranslatedIndex].get(); 
-                    bRet |= intersects_impl(ray, pSubNode, params, mappingFunc, vOut);
-                    // Determine exit face
-                    const std::array<float, 3> arT1 = { params.t1.x, params.t1.y, params.t1.z };
-                    const auto exitPlane = static_cast<Plane>(std::distance(arT1.begin(), std::ranges::min_element(arT1)));
-                    nSubNode = getNextSubNode(nSubNode, exitPlane);
+                    bRet |= intersects_impl(ray, pSubNode, subNodeParams, mappingFunc, vOut);
+                    // Determine next node
+                    nSubNode = getNextSubNode(nSubNode, params);
                 }
                 return bRet;
             },
             [&vOut,this](const leaf_node& leaf) {
-                this->m_vIntersectLeaves.push_back(leaf.nID);
+                if (leaf.vObjects.size() > 0)
+                    this->m_vIntersectLeaves.push_back(leaf.nID);
                 vOut.insert(vOut.end(), leaf.vObjects.begin(), leaf.vObjects.end());
                 return !vOut.empty();
             }
@@ -380,10 +368,16 @@ namespace Ice
     }
 
     template<typename T>
-    Octree<T>::NodePosition Octree<T>::getNextSubNode(NodePosition current, Plane exitPlane) {
+    Octree<T>::NodePosition Octree<T>::getNextSubNode(NodePosition current, const sIntersectParams& params) {
+        static const auto minIndex = [](float a, float b, float c) {
+            const std::array<float, 3> ar{a,b,c};
+            return static_cast<Plane>(std::distance(ar.begin(), std::ranges::min_element(ar)));
+        };
+        Plane exitPlane;
         switch (current) {
             case NodePosition::BOTTOM_LEFT_FRONT:
                 {
+                    exitPlane = minIndex(params.tm.x, params.tm.y, params.tm.z);
                     switch (exitPlane) {
                         case Plane::YZ:
                             return NodePosition::BOTTOM_RIGHT_FRONT;
@@ -396,6 +390,7 @@ namespace Ice
                 break;
             case NodePosition::BOTTOM_LEFT_BACK:
                 {
+                    exitPlane = minIndex(params.tm.x, params.tm.y, params.t1.z);
                     switch (exitPlane) {
                         case Plane::YZ:
                             return NodePosition::BOTTOM_RIGHT_BACK;
@@ -408,6 +403,7 @@ namespace Ice
                 break;
             case NodePosition::TOP_LEFT_FRONT:
                 {
+                    exitPlane = minIndex(params.tm.x, params.t1.y, params.tm.z);
                     switch (exitPlane) {
                         case Plane::YZ:
                             return NodePosition::TOP_RIGHT_FRONT;
@@ -420,6 +416,7 @@ namespace Ice
                 break;
             case NodePosition::TOP_LEFT_BACK:
                 {
+                    exitPlane = minIndex(params.tm.x, params.t1.y, params.t1.z);
                     switch (exitPlane) {
                         case Plane::YZ:
                             return NodePosition::TOP_RIGHT_BACK;
@@ -432,6 +429,7 @@ namespace Ice
                 break;
             case NodePosition::BOTTOM_RIGHT_FRONT:
                 {
+                    exitPlane = minIndex(params.t1.x, params.tm.y, params.tm.z);
                     switch (exitPlane) {
                         case Plane::YZ:
                             return NodePosition::EXIT;
@@ -444,6 +442,7 @@ namespace Ice
                 break;
             case NodePosition::BOTTOM_RIGHT_BACK:
                 {
+                    exitPlane = minIndex(params.t1.x, params.tm.y, params.t1.z);
                     switch (exitPlane) {
                         case Plane::YZ:
                             return NodePosition::EXIT;
@@ -456,6 +455,7 @@ namespace Ice
                 break;
             case NodePosition::TOP_RIGHT_FRONT:
                 {
+                    exitPlane = minIndex(params.t1.x, params.t1.y, params.tm.z);
                     switch (exitPlane) {
                         case Plane::YZ:
                             return NodePosition::EXIT;
