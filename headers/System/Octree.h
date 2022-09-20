@@ -12,6 +12,7 @@
 #include <Utils/TemplateHelpers.h>
 #include <memory>
 #include <stack>
+#include <System/Types.h>
 
 namespace Ice
 {
@@ -91,14 +92,13 @@ namespace Ice
 
         static NodePosition getFirstSubNodeIndex(const sIntersectParams& params) noexcept;
         static NodePosition getNextSubNode(NodePosition current, const sIntersectParams& params);
-        static sIntersectParams calculateIntersectParams(const Ray&, const AABB& box) noexcept;
         auto transformRayAndGetNodeMappingFunction(Ray&) const noexcept;
         branch_node& root() noexcept { return std::get<branch_node>(*m_root); };
         const branch_node& root() const noexcept { return std::get<branch_node>(*m_root); };
         const AABB& boundingBox() const noexcept { return root().box; }
     public:
         Octree() = default;
-        Octree(const std::vector<std::pair<AABB, T>>& vBoxes, const AABB& outerBox);
+        Octree(const std::vector<std::pair<AABB, T>>& vBoxes, const AABB& outerBox, std::size_t nMaxDepth = 6);
         bool intersects(Ray, std::vector<T>& vOut) const;
         void emplace(const AABB& box,const T& val);
 
@@ -138,6 +138,7 @@ namespace Ice
     private:
 
         std::unique_ptr<node_t> m_root;
+        std::size_t m_nMaxDepth{6};
 
 #ifdef _DEBUG_OCTREE
         std::stack<node_t*> m_vTraverseNodes;
@@ -146,7 +147,7 @@ namespace Ice
     };
     
     template<typename T>
-    Octree<T>::Octree(const std::vector<std::pair<AABB, T>>& vBoxes, const AABB& outerBox) {
+    Octree<T>::Octree(const std::vector<std::pair<AABB, T>>& vBoxes, const AABB& outerBox, std::size_t nMaxDepth) : m_nMaxDepth{nMaxDepth} {
         construct(vBoxes, m_root, outerBox);
     }
 
@@ -212,7 +213,7 @@ namespace Ice
        }
 
         node = std::make_unique<node_t>();
-        if (nLevel < 6 && vPoints.size() > 2) {
+        if (nLevel <= m_nMaxDepth && vPoints.size() > 2) {
             *node = branch_node{};
             auto& thisNode = std::get<branch_node>(*node);
             thisNode.box = originalBox;
@@ -226,8 +227,6 @@ namespace Ice
             thisNode.box = originalBox;
             auto& v = thisNode.vObjects;
             std::ranges::transform(vPoints, std::back_inserter(v), [](const std::pair<AABB, T>& kvp) {
-                const auto bIsFirst = kvp.second[0].x == 0 && kvp.second[1].x == 0 && kvp.second[2].x == 15 && kvp.second[0].z == 0 && kvp.second[1].z == 15 && kvp.second[2].z == 0;
-                const auto bIsSecond = kvp.second[0].x == 15 && kvp.second[1].x == 15 && kvp.second[2].x == 30 && kvp.second[0].z == 0 && kvp.second[1].z == 15 && kvp.second[2].z == 15;
                 return kvp.second;
             });
         }
@@ -335,27 +334,20 @@ namespace Ice
     }
 
     template<typename T>
-    bool Octree<T>::intersects(Ray r, std::vector<T>& vOut) const {
+    bool Octree<T>::intersects(Ray ray, std::vector<T>& vOut) const {
 #ifdef _DEBUG_OCTREE
         m_vIntersectLeaves.clear();
 #endif
-        auto mapNodeFunc = transformRayAndGetNodeMappingFunction(r);
-        auto params = calculateIntersectParams(r, boundingBox());
-        float t;
-        if ((t = std::max(params.t0[0], std::max(params.t0[1], params.t0[2]))) >= std::min(params.t1[0], std::min(params.t1[1], params.t1[2])))
+        auto mapNodeFunc = transformRayAndGetNodeMappingFunction(ray);
+        sIntersectParams params;
+        params.t0 = (boundingBox().minVertex() - ray.origin()) / ray.direction();
+        params.t1 = (boundingBox().maxVertex() - ray.origin()) / ray.direction();
+        params.tm = (params.t0 + params.t1) * 0.5f;
+        if (std::max(params.t0[0], std::max(params.t0[1], params.t0[2])) >= std::min(params.t1[0], std::min(params.t1[1], params.t1[2])))
             return false;
-        return intersects_impl(r, m_root.get(), params, mapNodeFunc, vOut);
+        return intersects_impl(ray, m_root.get(), params, mapNodeFunc, vOut);
     }
 
-    template<typename T>
-    Octree<T>::sIntersectParams Octree<T>::calculateIntersectParams(const Ray& ray, const AABB& box) noexcept {
-        sIntersectParams params;
-        params.t0 = (box.minVertex() - ray.origin()) / ray.direction();
-        params.t1 = (box.maxVertex() - ray.origin()) / ray.direction();
-        params.tm = (params.t0 + params.t1) * 0.5f;
-        return params;
-    }
-     
     template<typename T>
     Octree<T>::NodePosition Octree<T>::getFirstSubNodeIndex(const sIntersectParams& params) noexcept {
         int nRetOctant{};
