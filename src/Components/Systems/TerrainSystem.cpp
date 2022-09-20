@@ -46,50 +46,22 @@ namespace Ice
 #endif
     }
 
-    const std::vector<TerrainSystem::sIntersectResult>& TerrainSystem::intersects(Entity e, const Ray& ray) const noexcept {
-        m_vIntersectResults.clear();
+    TerrainSystem::IntersectResult TerrainSystem::intersects(Entity e, const Ray& ray) const noexcept {
         const auto& tree = m_mOctrees.at(e);
-        tree.intersects(ray, [this,&ray](const std::vector<triangle_t>& vOut) {
-
-            std::cout << "Testing " << vOut.size() << " triangles\n";
+        IntersectResult res;
+        tree.intersects(ray, [this,&ray,&res](const std::vector<triangle_t>& vOut) {
             for (const auto& triangle : vOut) {
-                const auto v1 = glm::normalize(triangle[1] - triangle[0]);
-                const auto v2 = glm::normalize(triangle[2] - triangle[0]);
-                const auto normal = glm::cross(v1, v2);
-
-                const auto fDenominator = glm::dot(normal, ray.direction());
-                if (Math::equal(fDenominator, 0.0f))
-                    return SubdivisionIntersectionBehavior::CONTINUE;
-                const auto D = glm::dot(normal, triangle[0]); 
-                const auto t = -(glm::dot(normal, ray.origin()) - D) / fDenominator;
-                if (t < 0.0f)
-                    return SubdivisionIntersectionBehavior::CONTINUE;
-
-                const auto pointOnTrianglePlane = ray.origin() + t * ray.direction();
-
-                const auto lambdas = Math::getBarycentricCoords(glm::vec2{ triangle[0].x, triangle[0].z }, glm::vec2{ triangle[1].x, triangle[1].z }, glm::vec2{ triangle[2].x, triangle[2].z }, glm::vec2{ pointOnTrianglePlane.x, pointOnTrianglePlane.z });
-                std::array<float, 3> arLam{ std::get<0>(lambdas), std::get<1>(lambdas), std::get<2>(lambdas) };
-                bool bFound{true};
-                for (std::size_t i{}; i < 3; ++i) {
-                    if (arLam[i] < 0.0f || arLam[i] > 1.0f) {
-                        bFound = false;
-                        break;
-                    }
-                }
-                if (bFound) {
-                    sIntersectResult res;
+               if (const auto intersect = triangle.intersects(ray); intersect.bIntersects) {
                     res.bIntersects = true;
                     res.triangle = triangle;
-                    res.point = pointOnTrianglePlane;
-                    res.barycentric = arLam;
-                    m_vIntersectResults.push_back(res);
+                    res.point = intersect.point;
+                    res.barycentric = intersect.barycentric;
                     return SubdivisionIntersectionBehavior::ABORT_SUCCESS;
                 }
             }
             return SubdivisionIntersectionBehavior::CONTINUE;
         });
-        return m_vIntersectResults;
-
+        return res;
     }
 
     bool TerrainSystem::hasTerrainAt(float x, float z) const {

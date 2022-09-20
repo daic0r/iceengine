@@ -88,6 +88,12 @@ enum class TerrainClipMode {
     ABOVE_WATER = -1
 };
 
+enum class Plane {
+    YZ,
+    XZ,
+    XY
+};
+ 
 enum class SubdivisionIntersectionBehavior {
     NONE,
     CONTINUE,

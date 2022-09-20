@@ -128,6 +128,7 @@ System/Path.cpp
 System/File.cpp
 System/Math.cpp
 System/KdTree.cpp
+System/Triangle.cpp
 GUI/Button.cpp
 GUI/ImageView.cpp
 GUI/ScrollWidget.cpp

@@ -4,6 +4,7 @@
 #include <System/Math.h>
 #include <map>
 #include <glm/vec2.hpp>
+#include <System/Triangle.h>
 
 namespace glm {
 bool operator<(const glm::ivec2& lhs, const glm::ivec2& rhs) noexcept {
@@ -59,7 +60,7 @@ namespace Ice
     }
 
 
-    std::array<std::pair<BiomeType, float>, BiomeSystem::MAX_BIOMES_PER_POINT> BiomeSystem::getBiomesAt(const std::array<glm::vec3, 3>& arTriangle, const std::array<float, 3>& bary) const {
+    std::array<std::pair<BiomeType, float>, BiomeSystem::MAX_BIOMES_PER_POINT> BiomeSystem::getBiomesAt(const Triangle& triangle, const std::array<float, 3>& bary) const {
         std::array<std::pair<BiomeType, float>, MAX_BIOMES_PER_POINT> ret;
         std::size_t nSlot{};
         for (auto e : entities(entityManager.currentScene())) {
@@ -68,7 +69,7 @@ namespace Ice
             
             std::array<float, 3> arVertexInfluence;
             std::size_t nIdx{};
-            for (const auto& v : arTriangle) {
+            for (const auto& v : triangle.toArray()) {
                 const auto fDist = glm::length( glm::vec3{ trans.m_transform[3][0], trans.m_transform[3][1], trans.m_transform[3][2] } - v);
                 const auto fInfluence = 1.0f - Math::clamp(fDist / biome.m_fRadius, 0.0f, 1.0f);
                 arVertexInfluence[nIdx++] = fInfluence;

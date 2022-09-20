@@ -53,13 +53,7 @@ namespace Ice
             EXIT
         };
 
-        enum class Plane {
-            YZ,
-            XZ,
-            XY
-        };
-
-        struct sIntersectParams {
+       struct sIntersectParams {
             glm::vec3 t0; // entry point along ray in each dimension
             glm::vec3 t1; // exit point along ray in each dimension
             glm::vec3 tm; // center point along ray in each dimension
