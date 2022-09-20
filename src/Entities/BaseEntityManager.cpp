@@ -134,26 +134,12 @@ bool BaseEntityManager::update(float fDeltaTime) {
 	m_vFutures.clear();
     using namespace std::chrono;
     auto be = steady_clock::now();
-	size_t nLastUnfinishedIndex = 0;
-	int nLastOrder = 0;
-	while (nLastUnfinishedIndex < m_vEntityComponentSystems.size()) {
-		for (size_t i = nLastUnfinishedIndex; i < m_vEntityComponentSystems.size(); ++i) {
-			auto pSystem = m_vEntityComponentSystems[i];
-			if (pSystem->executionOrder() != nLastOrder) {
-				nLastOrder = pSystem->executionOrder();
-				break;
-			}
-			m_vFutures.push_back(m_threadPool.async([fDeltaTime, pSystem]() {
-				return pSystem->update(fDeltaTime);
-				}));
-			nLastOrder = pSystem->executionOrder();
-			++nLastUnfinishedIndex;
-		}
-		for (auto& fut : m_vFutures)
-			bRet &= fut.get();
-		m_vFutures.clear();
-	}
-    //vFutures.clear();
+
+    // Run systems
+    for (auto pSystem : m_vEntityComponentSystems) {
+        bRet &= pSystem->update(fDeltaTime);
+    }
+
     auto en = duration_cast<nanoseconds>(steady_clock::now() - be);
     dur += en;
     fTimeElapsed += fDeltaTime;
@@ -162,7 +148,7 @@ bool BaseEntityManager::update(float fDeltaTime) {
         //nFps /= 3;
         //dur /= 3;
         //std::cout << nFps << " fps\n";
-        std::cout << "Took " << static_cast<float>(dur.count()) / static_cast<float>(nFps) << "ns" << std::endl;
+        //std::cout << "Took " << static_cast<float>(dur.count()) / static_cast<float>(nFps) << "ns" << std::endl;
         fTimeElapsed = 0.0f;
         dur = milliseconds{ 0 };
         nFps = 0;
