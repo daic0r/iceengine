@@ -88,6 +88,13 @@ enum class TerrainClipMode {
     ABOVE_WATER = -1
 };
 
+enum class SubdivisionIntersectionBehavior {
+    NONE,
+    CONTINUE,
+    ABORT_FAILURE,
+    ABORT_SUCCESS
+};
+
 }
 
 #endif /* Types_h */

@@ -49,22 +49,21 @@ namespace Ice
     const std::vector<TerrainSystem::sIntersectResult>& TerrainSystem::intersects(Entity e, const Ray& ray) const noexcept {
         m_vIntersectResults.clear();
         const auto& tree = m_mOctrees.at(e);
-        std::vector<triangle_t> vOut;
-        if (tree.intersects(ray, vOut)) {
+        tree.intersects(ray, [this,&ray](const std::vector<triangle_t>& vOut) {
 
+            std::cout << "Testing " << vOut.size() << " triangles\n";
             for (const auto& triangle : vOut) {
-                //std::cout << "<" << glm::to_string(triangle[0]) << "-" << glm::to_string(triangle[1]) << "-" << glm::to_string(triangle[2]) << ">\n";
                 const auto v1 = glm::normalize(triangle[1] - triangle[0]);
                 const auto v2 = glm::normalize(triangle[2] - triangle[0]);
                 const auto normal = glm::cross(v1, v2);
 
                 const auto fDenominator = glm::dot(normal, ray.direction());
                 if (Math::equal(fDenominator, 0.0f))
-                    continue;
+                    return SubdivisionIntersectionBehavior::CONTINUE;
                 const auto D = glm::dot(normal, triangle[0]); 
                 const auto t = -(glm::dot(normal, ray.origin()) - D) / fDenominator;
                 if (t < 0.0f)
-                    continue;
+                    return SubdivisionIntersectionBehavior::CONTINUE;
 
                 const auto pointOnTrianglePlane = ray.origin() + t * ray.direction();
 
@@ -84,12 +83,11 @@ namespace Ice
                     res.point = pointOnTrianglePlane;
                     res.barycentric = arLam;
                     m_vIntersectResults.push_back(res);
+                    return SubdivisionIntersectionBehavior::ABORT_SUCCESS;
                 }
             }
-            std::ranges::sort(m_vIntersectResults, [&ray](const auto& res1, const auto& res2) {
-                return glm::length(res1.point - ray.origin()) < glm::length(res2.point - ray.origin());
-            });
-        }
+            return SubdivisionIntersectionBehavior::CONTINUE;
+        });
         return m_vIntersectResults;
 
     }

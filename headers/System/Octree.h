@@ -13,6 +13,7 @@
 #include <memory>
 #include <stack>
 #include <System/Types.h>
+#include <System/static_task.h>
 
 namespace Ice
 {
@@ -68,6 +69,7 @@ namespace Ice
         struct branch_node;
 
         using node_t = std::variant<branch_node, leaf_node>;
+        using onhitleafnodefunc_t = static_task<SubdivisionIntersectionBehavior(const std::vector<T>&)>;
 
         struct base_node {
 #ifdef _DEBUG_OCTREE
@@ -86,7 +88,7 @@ namespace Ice
         void construct(const std::vector<std::pair<AABB, T>>&, std::unique_ptr<node_t>& node, const AABB& originalBox, int nLevel = 0);
         
         template<typename NodePositionMappingFunc>
-        bool intersects_impl(const Ray&, const node_t* node, const sIntersectParams& params, NodePositionMappingFunc&& mappingFunc, std::vector<T>& vOut) const;
+        SubdivisionIntersectionBehavior intersects_impl(const Ray&, const node_t* node, const sIntersectParams& params, NodePositionMappingFunc&& mappingFunc, const onhitleafnodefunc_t& onHitLeafNode) const;
 
         node_t* find(const glm::vec3& point, node_t* pStart = nullptr) const noexcept;
 
@@ -99,7 +101,7 @@ namespace Ice
     public:
         Octree() = default;
         Octree(const std::vector<std::pair<AABB, T>>& vBoxes, const AABB& outerBox, std::size_t nMaxDepth = 6);
-        bool intersects(Ray, std::vector<T>& vOut) const;
+        bool intersects(Ray, const onhitleafnodefunc_t& onHitLeafNode) const;
         void emplace(const AABB& box,const T& val);
 
 
@@ -265,15 +267,15 @@ namespace Ice
 
     template<typename T>
     template<typename NodePositionMappingFunc>
-    bool Octree<T>::intersects_impl(const Ray& ray, const node_t* node, const sIntersectParams& params, NodePositionMappingFunc&& mappingFunc, std::vector<T>& vOut) const {
+    SubdivisionIntersectionBehavior Octree<T>::intersects_impl(const Ray& ray, const node_t* node, const sIntersectParams& params, NodePositionMappingFunc&& mappingFunc, const onhitleafnodefunc_t& onHitLeafNode) const {
         if (params.t1.x < 0.0f || params.t1.y < 0.0f || params.t1.z < 0.0f)
-            return false;
-        const auto bRet = std::visit(visitor {
+            return SubdivisionIntersectionBehavior::CONTINUE;
+        const auto intersectBehavior = std::visit(visitor {
             [&,this,mappingFunc=std::forward<NodePositionMappingFunc>(mappingFunc)](const branch_node& curNode) { 
 #ifdef _DEBUG_OCTREE
                 this->m_vIntersectLeaves.push_back(curNode.nID);
 #endif
-                bool bRet{};
+                SubdivisionIntersectionBehavior ret;
                 auto nSubNode = getFirstSubNodeIndex(params);
                 while (nSubNode != NodePosition::EXIT) {
                     sIntersectParams subNodeParams; 
@@ -316,25 +318,28 @@ namespace Ice
                     // Process
                     const auto nTranslatedIndex = mappingFunc(nSubNode);
                     const auto pSubNode = curNode.arNodes[nTranslatedIndex].get(); 
-                    bRet |= intersects_impl(ray, pSubNode, subNodeParams, mappingFunc, vOut);
+                    ret = intersects_impl(ray, pSubNode, subNodeParams, mappingFunc, onHitLeafNode);
+                    if (static_cast<int>(ret) & 2) // ABORT bit 2 set
+                        return ret;
                     // Determine next node
                     nSubNode = getNextSubNode(nSubNode, params);
                 }
-                return bRet;
+                return ret;
             },
-            [&vOut,this](const leaf_node& leaf) {
+            [&onHitLeafNode,this](const leaf_node& leaf) {
 #ifdef _DEBUG_OCTREE
                 this->m_vIntersectLeaves.push_back(leaf.nID);
 #endif
-                vOut.insert(vOut.end(), leaf.vObjects.begin(), leaf.vObjects.end());
-                return !vOut.empty();
+                if (!leaf.vObjects.empty())
+                    return onHitLeafNode(leaf.vObjects);
+                return SubdivisionIntersectionBehavior::CONTINUE;
             }
         }, *node);
-        return bRet;
+        return intersectBehavior;
     }
 
     template<typename T>
-    bool Octree<T>::intersects(Ray ray, std::vector<T>& vOut) const {
+    bool Octree<T>::intersects(Ray ray, const onhitleafnodefunc_t& onHitLeafNode) const {
 #ifdef _DEBUG_OCTREE
         m_vIntersectLeaves.clear();
 #endif
@@ -345,7 +350,7 @@ namespace Ice
         params.tm = (params.t0 + params.t1) * 0.5f;
         if (std::max(params.t0[0], std::max(params.t0[1], params.t0[2])) >= std::min(params.t1[0], std::min(params.t1[1], params.t1[2])))
             return false;
-        return intersects_impl(ray, m_root.get(), params, mapNodeFunc, vOut);
+        return intersects_impl(ray, m_root.get(), params, mapNodeFunc, onHitLeafNode) == SubdivisionIntersectionBehavior::ABORT_SUCCESS;
     }
 
     template<typename T>
