@@ -192,7 +192,11 @@ public:
 			m_kdTree.construct(std::move(m_vKdTreeVertices));
 		}
 		for (auto& [ent, modelInstPair] : m_vEntity2ModelStruct) {
-			m_kdTree.emplace(glm::vec3{ modelInstPair.second.pTransform->m_transform * glm::vec4{ 0.0f, 0.0f, 0.0f, 1.0f } }, { ent, modelInstPair.first, &modelInstPair.second });
+			AABB boxLocal{ modelInstPair.first.pMesh->extents() };
+
+			const auto boxWorld = boxLocal.transform(modelInstPair.second.pTransform->m_transform);
+	
+			m_kdTree.emplace(boxWorld, { ent, modelInstPair.first, &modelInstPair.second });
 		}
 	}
 };

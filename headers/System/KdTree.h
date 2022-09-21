@@ -18,6 +18,7 @@
 #include <glm/gtx/string_cast.hpp>
 #include <iostream>
 #include <System/Math.h>
+#include <stack>
 
 namespace Ice
 {
@@ -48,6 +49,8 @@ namespace Ice
         void print(node_t* pNode = nullptr, int nAxis = 0);
         template<typename U = ValueType>
         void emplace(const glm::vec3& p, U&& u);
+        template<typename U = ValueType>
+        void emplace(const AABB&, U&& u);
         void getVisibleObjects(const Frustum*) const;
         bool intersects(const Ray&) const;
         const auto& boundingBox() const noexcept { return m_outerBox; }
@@ -88,6 +91,36 @@ namespace Ice
         }
     }
 
+    template<typename LeafNodeContainerType, typename ValueType>
+    template<typename U>
+    void KdTree<LeafNodeContainerType, ValueType>::emplace(const AABB& box, U&& u) {
+        int nAxis{};
+        std::stack<std::pair<AABB,node_t*>> sNodes; 
+        sNodes.emplace(m_outerBox, m_pRoot);
+        while (!sNodes.empty()) {
+            const auto curNode = std::move(sNodes.top());
+            sNodes.pop();
+            std::visit(visitor{ 
+                [this,&box,nAxis,&sNodes,obj=std::forward<U>(u),nodeBox=curNode.first](branch_node& branch) {
+                    this->m_emplaceFunc(branch.m_container, obj);
+                    AABB tmpBox = nodeBox;
+                    tmpBox.maxVertex()[nAxis] = branch.m_fLocation;
+                    if (box.intersects(tmpBox)) {
+                        sNodes.emplace(tmpBox, branch.m_pLeft);
+                    }
+                    tmpBox = nodeBox;
+                    tmpBox.minVertex()[nAxis] = branch.m_fLocation;
+                    if (box.intersects(tmpBox)) {
+                        sNodes.emplace(tmpBox, branch.m_pRight);
+                    }
+                },
+                [this,obj=std::forward<U>(u),nodeBox=curNode.first](leaf_node& branch) {
+                    this->m_emplaceFunc(branch.m_container, obj);
+                }
+            }, *curNode.second);
+            nAxis = (nAxis + 1) % 3;
+        }
+    }
 
     template<typename LeafNodeContainerType, typename ValueType>
     typename KdTree<LeafNodeContainerType, ValueType>::node_t* KdTree<LeafNodeContainerType, ValueType>::subdivide(std::vector<glm::vec3> vPoint3, int nAxis, int nLevel) {
