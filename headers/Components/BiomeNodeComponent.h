@@ -15,12 +15,19 @@ enum class BiomeType {
 };
  
 struct BiomeNodeComponent {
+    enum class State {
+        NONE,
+        EXPANDING,
+        SHRINKING,
+        STATIC
+    };
     static constexpr Ice::EntityComponentId id() noexcept { return ComponentIds::BIOME_NODE_COMPONENT; }
 
-    BiomeType m_type;
-    RGBA m_color;
-    Percent m_power;
-    float m_fRadius{};
+    BiomeType type;
+    RGBA color;
+    Percent power{100.0f};
+    float fRadius{};
+    State state{State::NONE};
 };
 
 } // namespace Ice

@@ -20,17 +20,23 @@ namespace Ice
     bool BiomeSystem::update(float fDeltaTime) noexcept {
         std::map<glm::ivec2, glm::vec4> mFinalColors;
         for (auto e : entities(entityManager.currentScene())) {
-            const auto& biome = entityManager.getComponent<BiomeNodeComponent>(e);
+            auto& biome = entityManager.getComponent<BiomeNodeComponent>(e);
+            if (biome.state == BiomeNodeComponent::State::STATIC)
+                continue;
+
             const auto& trans = entityManager.getComponent<TransformComponent>(e);
 
             glm::vec2 pos{ trans.m_transform[3][0], trans.m_transform[3][2] };
 
             auto& terrainComp = m_pTerrainSystem->getTerrainAt(pos.x, pos.y);
             auto& terrain = terrainComp.m_terrain;
+            // Is nullptr before first run of renderer
             if (terrainComp.m_pColorAttrib == nullptr)
                 return true;
 
-            auto nRadius = static_cast<int>(biome.m_fRadius); // in "height map entries", i.e. discrete nodes in the grid
+            
+            const auto fEffectiveRadius = biome.power.getPercentage(biome.fRadius);
+            auto nRadius = static_cast<int>(fEffectiveRadius);
 
             // #TODO: CALCULATE "TERRAIN LOCAL" COORDS
             pos = m_pTerrainSystem->getTerrainLocalCoords(terrainComp, pos.x, pos.y);
@@ -40,7 +46,7 @@ namespace Ice
             for (auto z = std::max(0, nTileZ - nRadius); z < std::min((int)terrain.heightMapHeight(), nTileZ + nRadius); ++z) {
                 for (auto x = std::max(0, nTileX - (nRadius)); x < std::min((int)terrain.heightMapWidth(), nTileX + (nRadius)); ++x) {
                     const auto dist = glm::length(glm::vec2{ x*terrain.tileWidth(), z*terrain.tileHeight() } - pos);
-                    if (dist > biome.m_fRadius)
+                    if (dist > fEffectiveRadius)
                         continue;
 
                     const auto& indexGen = terrain.indexGenerator();
@@ -49,11 +55,20 @@ namespace Ice
                     const auto oldLeftIter = mFinalColors.find(glm::ivec2{ x, z });
                     const auto oldLeft = oldLeftIter == mFinalColors.end() ? terrainComp.m_vOriginalColorBuffer.at(nIdxLeft) : oldLeftIter->second;
                     const auto fMixFactor = dist / nRadius;
-                    const auto resultColor = Math::mix(oldLeft, glm::vec4{ biome.m_color }, 1.0f - fMixFactor);
+                    const auto resultColor = Math::mix(oldLeft, glm::vec4{ biome.color }, 1.0f - fMixFactor);
                     terrainComp.m_pColorAttrib->update(nIdxLeft, resultColor); 
                     terrainComp.m_pColorAttrib->update(nIdxRight, resultColor); 
                     mFinalColors.insert_or_assign(glm::ivec2{ x, z }, resultColor);
                 }
+            }
+            
+            if (biome.state == BiomeNodeComponent::State::EXPANDING)
+                biome.power = Percent{ biome.power + fDeltaTime };
+            else
+            if (biome.state == BiomeNodeComponent::State::SHRINKING)
+                biome.power = Percent{ biome.power - fDeltaTime };
+            if (biome.power >= 100.0f || biome.power <= 0.0f || biome.state == BiomeNodeComponent::State::NONE) {
+                biome.state = BiomeNodeComponent::State::STATIC;
             }
         }
         return true;
@@ -67,15 +82,17 @@ namespace Ice
             const auto& biome = entityManager.getComponent<BiomeNodeComponent>(e);
             const auto& trans = entityManager.getComponent<TransformComponent>(e);
             
+            const auto fEffectiveRadius = biome.power.getPercentage(biome.fRadius);
+
             std::array<float, 3> arVertexInfluence;
             std::size_t nIdx{};
             for (const auto& v : triangle.toArray()) {
                 const auto fDist = glm::length( glm::vec3{ trans.m_transform[3][0], trans.m_transform[3][1], trans.m_transform[3][2] } - v);
-                const auto fInfluence = 1.0f - Math::clamp(fDist / biome.m_fRadius, 0.0f, 1.0f);
+                const auto fInfluence = 1.0f - Math::clamp(fDist / fEffectiveRadius, 0.0f, 1.0f);
                 arVertexInfluence[nIdx++] = fInfluence;
             }
             const auto fEffective = bary[0] * arVertexInfluence[0] + bary[1] * arVertexInfluence[1] + bary[2] * arVertexInfluence[2];
-            ret[nSlot++] = std::make_pair(biome.m_type, fEffective);
+            ret[nSlot++] = std::make_pair(biome.type, fEffective);
             if (nSlot == MAX_BIOMES_PER_POINT)
                 break;
         }
