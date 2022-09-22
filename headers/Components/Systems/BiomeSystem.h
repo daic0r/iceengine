@@ -20,6 +20,8 @@ namespace Ice
         std::array<std::pair<BiomeType, float>, MAX_BIOMES_PER_POINT> getBiomesAt(float x, float z) const; 
         std::array<std::pair<BiomeType, float>, MAX_BIOMES_PER_POINT> getBiomesAt(const Triangle& triangle, const std::array<float, 3>& bary) const; 
 
+        Entity findBiome(std::uint16_t nId) const;
+
     private:
         TerrainSystem* m_pTerrainSystem{};
     };

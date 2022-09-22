@@ -50,6 +50,7 @@ enum ComponentIds : EntityComponentId {
 	SUN_COMPONENT,
     WATER_TILE_COMPONENT,
     BIOME_NODE_COMPONENT,
+    BEE_COMPONENT,
     MAX_ID,
     SHARED_COMPONENT_BASE = 0x400
 };

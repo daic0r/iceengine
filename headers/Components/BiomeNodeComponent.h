@@ -23,6 +23,8 @@ struct BiomeNodeComponent {
     };
     static constexpr Ice::EntityComponentId id() noexcept { return ComponentIds::BIOME_NODE_COMPONENT; }
 
+    static inline std::uint16_t NEXT_ID = 1;
+    std::uint16_t nBiomeID{ NEXT_ID++ };
     BiomeType type;
     RGBA color;
     Percent power{100.0f};

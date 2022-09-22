@@ -5,6 +5,7 @@
 #include <map>
 #include <glm/vec2.hpp>
 #include <System/Triangle.h>
+#include <ranges>
 
 namespace glm {
 bool operator<(const glm::ivec2& lhs, const glm::ivec2& rhs) noexcept {
@@ -144,6 +145,15 @@ namespace Ice
 
     void BiomeSystem::onSystemsInitialized() noexcept {
         m_pTerrainSystem = entityManager.getSystem<TerrainSystem, false>();
+    }
+
+
+    Entity BiomeSystem::findBiome(std::uint16_t nId) const {
+        const auto& sEnts = entities(entityManager.currentScene());
+        const auto iter = std::ranges::find_if(sEnts, [nId](auto ent) { return entityManager.getComponent<BiomeNodeComponent>(ent).nBiomeID == nId; });
+        if (iter == sEnts.end())
+            throw std::runtime_error("Biome with given ID not found");
+        return *iter;
     }
 
 } // namespace Ice
