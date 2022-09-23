@@ -133,10 +133,10 @@ bool ModelImporterOBJ::import(std::map<std::string, MeshComponent>& outMeshData)
 					while (chIndex < strVertexInfo.length() && strVertexInfo[chIndex] != '/')
 						strIndex += strVertexInfo[chIndex++];
 
+					++chIndex;
+
 					if (strIndex == "")
 						continue;
-
-					++chIndex;
 
 					int nBufIndex = std::stoi(strIndex);
 					switch (i) {
