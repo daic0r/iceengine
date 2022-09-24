@@ -7,7 +7,7 @@ namespace Ice::Math
         std::mt19937 mersenne_twister{rd()};
     }
 
-    std::tuple<float, float, float> getBarycentricCoords(const glm::vec2& v1, const glm::vec2& v2, const glm::vec2& v3, const glm::vec2& v) noexcept {
+    std::array<float, 3> getBarycentricCoords(const glm::vec2& v1, const glm::vec2& v2, const glm::vec2& v3, const glm::vec2& v) noexcept {
         glm::mat2 invT{ v1.x - v3.x, v1.y - v3.y, v2.x - v3.x, v2.y - v3.y };
         invT = glm::inverse(invT);
         

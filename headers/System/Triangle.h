@@ -21,6 +21,7 @@ namespace Ice
 
         Triangle() = default;
         constexpr Triangle(const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2) : m_vertices{v0,v1,v2} {}
+        constexpr Triangle(const std::array<glm::vec3, 3>& ar) : Triangle{ ar[0], ar[1], ar[2] } {}
 
         constexpr const glm::vec3& operator[](std::size_t n) const noexcept { return m_vertices[n]; }
         constexpr glm::vec3& operator[](std::size_t n) noexcept { return m_vertices[n]; }

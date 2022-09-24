@@ -92,11 +92,10 @@ namespace Ice
 
     float TerrainSystem::getHeight(float x, float z, glm::mat4* pMatrix) const {
         float fRelX, fRelZ;
-        std::array<glm::vec3, 3> arTriangle;
 
         const auto &comp = getTerrainAt(x, z);
 
-        arTriangle = getTriangleAt(comp, x, z, &fRelX, &fRelZ);
+        const auto arTriangle = getTriangleAt(comp, x, z, &fRelX, &fRelZ);
 
         const auto v1 = glm::vec2{ arTriangle[0].x, arTriangle[0].z };
         const auto v2 = glm::vec2{ arTriangle[1].x, arTriangle[1].z };
@@ -109,7 +108,7 @@ namespace Ice
             glm::vec2{ x, z }
         );
 
-        const auto fRet = std::get<0>(lambdas) * arTriangle[0].y + std::get<1>(lambdas) * arTriangle[1].y + std::get<2>(lambdas) * arTriangle[2].y;
+        const auto fRet = lambdas[0] * arTriangle[0].y + lambdas[1] * arTriangle[1].y + lambdas[2] * arTriangle[2].y;
         if (pMatrix) {
             const auto& terrain = comp.m_terrain;
 
@@ -150,7 +149,7 @@ namespace Ice
         return ret;
     }
     
-    std::array<glm::vec3, 3> TerrainSystem::getTriangleAt(TerrainComponent const& t, float x, float z, float *fpRelX, float *fpRelZ) const {
+    Triangle TerrainSystem::getTriangleAt(TerrainComponent const& t, float x, float z, float *fpRelX, float *fpRelZ) const {
         const auto& terrain = t.m_terrain;
 
         glm::vec2 ret = getTerrainLocalCoords(t, x, z);
@@ -161,7 +160,7 @@ namespace Ice
         const auto nTileX = static_cast<int>(x / terrain.tileWidth());
         const auto nTileZ = static_cast<int>(z / terrain.tileHeight());
 
-        float fRelX = x - (nTileX * terrain.tileWidth());
+        float fRelX = x - (nTileX * terrain.tileHeight());
         float fRelZ = z - (nTileZ * terrain.tileHeight());
         if (fpRelX)
             *fpRelX = fRelX;
@@ -210,13 +209,13 @@ namespace Ice
             }
         }
 
-        std::array<glm::vec3, 3> vOutTriangles;
+        Triangle triangle;
         const auto vAdd = glm::vec3{ (nTileX*terrain.tileWidth())+(terrain.gridX() * terrain.width()), 0, (nTileZ *terrain.tileHeight())+(terrain.gridZ() * terrain.height()) };
-        vOutTriangles[0] = triangle1[diagFromPoint] + vAdd;
-        vOutTriangles[1] = triangle1[diagToPoint] + vAdd;
-        vOutTriangles[2] = thirdVertex + vAdd;
+        triangle[0] = triangle1[diagFromPoint] + vAdd;
+        triangle[1] = triangle1[diagToPoint] + vAdd;
+        triangle[2] = thirdVertex + vAdd;
     
-        return vOutTriangles;
+        return triangle;
     }
 
     float TerrainSystem::heightAtHeightMap(TerrainComponent const& terrain, int x, int z) const noexcept {
@@ -224,7 +223,7 @@ namespace Ice
     }
 
     glm::vec2 TerrainSystem::getTerrainLocalCoords(TerrainComponent const& terrain, float x, float z) const {
-        return glm::vec2{ x - static_cast<int>(x / terrain.m_terrain.width()), z - static_cast<int>(z / terrain.m_terrain.height()) };
+        return glm::vec2{ fmod(x, terrain.m_terrain.width()), fmod(z, terrain.m_terrain.height()) };
     }
 
     glm::vec2 TerrainSystem::getTriangleRelativeCoords(TerrainComponent const& terrain, float x, float z) const {

@@ -14,9 +14,9 @@ namespace Ice
 {
     class TerrainSystem : public EntityComponentSystem<TerrainComponent> {
         using triangle_t = Triangle;
-        using kd_tree_t = Octree<triangle_t>;
+        using tree_t = Octree<triangle_t>;
 
-        std::unordered_map<Entity, kd_tree_t> m_mOctrees;
+        std::unordered_map<Entity, tree_t> m_mOctrees;
 
     public:
         struct IntersectResult {
@@ -32,7 +32,7 @@ namespace Ice
 
         float getHeight(float x, float z, glm::mat4* pMatrix = nullptr) const;
         glm::vec2 getCenterCoordsForTile(TerrainComponent const& terrain, int x, int z) const;
-        std::array<glm::vec3, 3> getTriangleAt(TerrainComponent const& t, float x, float z, float *pfRelX = nullptr, float *pfRelZ = nullptr) const;
+        Triangle getTriangleAt(TerrainComponent const& t, float x, float z, float *pfRelX = nullptr, float *pfRelZ = nullptr) const;
         float heightAtHeightMap(TerrainComponent const& terrain, int x, int z) const noexcept;
         glm::vec2 getTerrainLocalCoords(TerrainComponent const& terrain, float x, float z) const;
         glm::vec2 getTriangleRelativeCoords(TerrainComponent const& terrain, float x, float z) const;

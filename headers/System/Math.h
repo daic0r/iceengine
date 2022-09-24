@@ -103,7 +103,7 @@ namespace Ice::Math {
     }
 
     int random(int nMin, int nMax);    
-    std::tuple<float, float, float> getBarycentricCoords(const glm::vec2& v1, const glm::vec2& v2, const glm::vec2& v3, const glm::vec2& v) noexcept;
+    std::array<float, 3> getBarycentricCoords(const glm::vec2& v1, const glm::vec2& v2, const glm::vec2& v3, const glm::vec2& v) noexcept;
 
     template<typename VectorType>
     std::array<float, 3> getBarycentricCoords(const VectorType& v1, const VectorType& v2, const VectorType& v3, const VectorType& v) noexcept {

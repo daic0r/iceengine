@@ -39,7 +39,7 @@ namespace Ice
                 break;
         }
         const auto lambdas = Math::getBarycentricCoords(glm::vec2{ m_vertices[0][arComponents[0]], m_vertices[0][arComponents[1]] }, glm::vec2{ m_vertices[1][arComponents[0]], m_vertices[1][arComponents[1]] }, glm::vec2{ m_vertices[2][arComponents[0]], m_vertices[2][arComponents[1]] }, glm::vec2{ ret.point[arComponents[0]], ret.point[arComponents[1]] });
-        ret.barycentric = { std::get<0>(lambdas), std::get<1>(lambdas), std::get<2>(lambdas) };
+        ret.barycentric = lambdas;
         bool bFound{true};
         for (std::size_t i{}; i < 3; ++i) {
             if (ret.barycentric[i] < 0.0f || ret.barycentric[i] > 1.0f) {
