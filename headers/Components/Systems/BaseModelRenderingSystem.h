@@ -152,6 +152,10 @@ protected:
 			} else {
 				++m_nFramesSinceFrustumRefresh;
 			}
+
+			for (auto e : m_vFrustumEnts) {
+				extendedUpdateInstanceFunc(e, m_vEntity2ModelStruct[e].second);
+			}
 	
 			if (m_pShadowRenderer)
 				m_pShadowRenderer->render(env, m_vInstances);

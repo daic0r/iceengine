@@ -6,6 +6,7 @@ in vec3 outNormal;
 in vec2 shadowMapCoord;
 in float distToLight;
 in float distFromCam;
+in float visibility;
 out vec4 outColor;
 
 uniform sampler2D diffuseTex;
@@ -46,7 +47,8 @@ void main(void) {
         materialColor = texture(diffuseTex, coord);
 	float brightness = max(dot(toLight, outNormal), 0.0);
 	vec3 finalLight = brightness * sunColor;
-	outColor = clamp(materialColor * vec4(finalLight, 1.0) + materialColor * vec4(sunAmbient, 1.0), vec4(0.0, 0.0, 0.0, 0.0), vec4(1.0, 1.0, 1.0, 1.0));
+	outColor = materialColor * vec4(finalLight, 1.0) + materialColor * vec4(sunAmbient, 1.0);
+	//outColor = clamp(materialColor * vec4(finalLight, 1.0) + materialColor * vec4(sunAmbient, 1.0), vec4(0.0, 0.0, 0.0, 0.0), vec4(1.0, 1.0, 1.0, 1.0));
 	
 	const float fOneOverNumSamples = 1.0 / 25.0;
 	float fTotalShadow = 0.0;
@@ -72,4 +74,5 @@ void main(void) {
 	float fDarkeningFactor = 1.0;
 	fDarkeningFactor -= (fTotalShadow * 0.4) * clamp(1.0 - (distFromCam - (shadowDistance - shadowMargin)) / shadowMargin, 0.0, 1.0);
 	outColor = vec4(outColor.rgb * fDarkeningFactor, 1.0);
+	outColor = mix(vec4(1.0, 1.0, 1.0, 1.0), outColor, visibility);
 }

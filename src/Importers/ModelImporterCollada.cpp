@@ -238,7 +238,7 @@ bool ModelImporterCollada::import(std::map<std::string, MeshComponent>& outMeshD
                 
                     glm::ivec4 jointIds;
                     glm::vec4 weights;
-                    
+
                     for (const auto& [j, pSource] : mInputs) {
                         ss >> nIndex;
 
@@ -246,17 +246,25 @@ bool ModelImporterCollada::import(std::map<std::string, MeshComponent>& outMeshD
                         float* pPackedVertexTargetBuffer{ nullptr };
                         std::string strSemantic = mOffset2Semantic[j];
                         if (strSemantic == "VERTEX" || strSemantic == "POSITION") {
+                            jointIds = glm::ivec4{};
+                            weights = glm::vec4{};
+
                             pPackedVertexTargetBuffer = &pv.vertex[0];
                             
                             if (m_vVertexWeights.size() > 0) {
                                 const auto& weightMap = m_vVertexWeights.at(nIndex);
                                 int n{ 0 };
+                                float fLen{};
                                 for (auto riter = weightMap.rbegin(); riter != weightMap.rend(); ++riter) {
                                     jointIds[n] = static_cast<int>(riter->second);
                                     weights[n] = riter->first;
+                                    fLen += (weights[n]*weights[n]);
                                     ++n;
-                                    if (nIndex > 3)
+                                    if (n > 3)
                                         break;
+                                }
+                                if (fLen > 0.0f) {
+                                    weights = weights / sqrtf(fLen);
                                 }
                             }
                         }

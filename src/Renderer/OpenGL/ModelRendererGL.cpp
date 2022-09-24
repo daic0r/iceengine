@@ -155,6 +155,8 @@ void ModelRendererGL::_render(const RenderEnvironment& env, const std::unordered
 		glm::mat4* arMatrices = static_cast<glm::mat4*>(glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY));
 		for (auto pInst : kvp.second) {
 			arMatrices[nInsCount++] = pInst->pTransform->m_transform;
+			if (m_compileInstanceDataFunc)
+				m_compileInstanceDataFunc(pModel->shaderConfigurator(), nInsCount++, pInst);
 		}
 		glUnmapBuffer(GL_ARRAY_BUFFER);
 
