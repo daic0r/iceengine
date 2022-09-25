@@ -5,6 +5,7 @@
 #include <nlohmann/json.hpp>
 #include <glm/vec3.hpp>
 #include <glm/mat4x4.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 /*
 template<typename... Args>
@@ -136,6 +137,7 @@ namespace glm {
         v.w = j.at("w").template get<float>();
     }
 
+
 	inline void to_json(nlohmann::json& j, const glm::mat4& m) {
 		j["col1"] = m[0];
 		j["col2"] = m[1];
@@ -149,6 +151,35 @@ namespace glm {
 		m[2] = j.at("col3").template get<glm::vec4>();
 		m[3] = j.at("col4").template get<glm::vec4>();
 	}
+
+    inline void from_json(const nlohmann::json& j, vec<4, int, glm::packed_highp>& v) {
+        v.x = j.at("x").template get<int>();
+        v.y = j.at("y").template get<int>();
+        v.z = j.at("z").template get<int>();
+        v.w = j.at("w").template get<int>();
+    }
+
+    inline void to_json(nlohmann::json& j, const vec<4, int, glm::packed_highp>& v) {
+        j["x"] = v.x;
+        j["y"] = v.y;
+        j["z"] = v.z;
+        j["w"] = v.w;
+    }
+
+    inline void from_json(const nlohmann::json& j, glm::quat& v) {
+        v.w = j.at("w").template get<float>();
+        v.x = j.at("x").template get<float>();
+        v.y = j.at("y").template get<float>();
+        v.z = j.at("z").template get<float>();
+    }
+
+    inline void to_json(nlohmann::json& j, const glm::quat& v) {
+        j["w"] = v.w;
+        j["x"] = v.x;
+        j["y"] = v.y;
+        j["z"] = v.z;
+    }
+
 }
 #endif
 

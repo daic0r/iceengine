@@ -23,7 +23,18 @@ public:
     
     inline auto& jointTransforms() noexcept { return m_mJointTransforms; }
     inline const auto& jointTransforms() const noexcept { return m_mJointTransforms; }
+
+    friend void to_json(nlohmann::json& j, const JointAnimation&);
+    friend void from_json(const nlohmann::json& j, JointAnimation&);
 };
+
+inline void to_json(nlohmann::json& j, const JointAnimation& animation) {
+    j.emplace("jointTransforms", animation.m_mJointTransforms);
+}
+
+inline void from_json(const nlohmann::json& j, JointAnimation& animation) {
+    j.at("jointTransforms").template get_to<std::map<float, JointTransform>>(animation.m_mJointTransforms);
+}
 
 }
 

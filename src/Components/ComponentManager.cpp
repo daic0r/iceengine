@@ -15,6 +15,9 @@
 #include <Components/BlueprintComponent.h>
 #include <Components/MeshGroupComponent.h>
 #include <Components/SharedComponent.h>
+#include <Components/AnimatedMeshComponent.h>
+#include <Components/SkeletonComponent.h>
+#include <Components/ModelAnimationComponent.h>
 #include <sstream>
 #include <Entities/EntityManager.h>
 #include <nlohmann/json.hpp>
@@ -156,6 +159,24 @@ ComponentManager::ComponentManager()
             }
         },
         {
+            ANIMATED_MESH_COMPONENT,
+            [](Entity e, const nlohmann::json& j) {
+                addAndDeserialize<AnimatedMeshComponent>(e, j);
+            }
+        },
+        {
+            SKELETON_COMPONENT,
+            [](Entity e, const nlohmann::json& j) {
+                addAndDeserialize<SkeletonComponent>(e, j);
+            }
+        },
+		{
+            MODEL_ANIMATION_COMPONENT,
+            [](Entity e, const nlohmann::json& j) {
+                addAndDeserialize<ModelAnimationComponent>(e, j);
+            }
+        },
+		{
             PATH_SEGMENT_COMPONENT,
             [](Entity e, const nlohmann::json& j) {
                 addAndDeserialize<PathSegmentComponent>(e, j);

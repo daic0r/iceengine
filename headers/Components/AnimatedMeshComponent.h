@@ -13,6 +13,7 @@
 #include <vector>
 #include <glm/vec4.hpp>
 #include <cstdint>
+#include <Utils/serializables.h>
 
 namespace Ice {
 
@@ -22,6 +23,12 @@ struct AnimatedMeshComponent {
     std::vector<glm::ivec4> m_vJointIds;
     std::vector<glm::vec4> m_vWeights;
     std::uint16_t m_nNumJoints{ 0 };
+
+    BEGIN_DECLARE_SERIALIZABLE_ATTRIBS()
+    SERIALIZABLE_ATTRIB(jointIds, m_vJointIds)
+    SERIALIZABLE_ATTRIB(weights, m_vWeights)
+    SERIALIZABLE_ATTRIB(numJoints, m_nNumJoints)
+    END_DECLARE_SERIALIZABLE_ATTRIBS()
 };
 
 }

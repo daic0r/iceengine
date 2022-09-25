@@ -11,6 +11,7 @@
 
 #include <Components/ComponentIds.h>
 #include <ModelAnimation/Joint.h>
+#include <Utils/serializables.h>
 
 namespace Ice {
 
@@ -19,6 +20,11 @@ struct SkeletonComponent {
     
     glm::mat4 m_invBindShapeMatrix;
     Joint m_rootJoint;
+
+    BEGIN_DECLARE_SERIALIZABLE_ATTRIBS()
+    SERIALIZABLE_ATTRIB(invBindShapeMatrix, m_invBindShapeMatrix)
+    SERIALIZABLE_ATTRIB(rootJoint, m_rootJoint)
+    END_DECLARE_SERIALIZABLE_ATTRIBS()
 };
 
 }

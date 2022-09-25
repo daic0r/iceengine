@@ -12,6 +12,7 @@
 #include <ModelAnimation/Joint.h>
 #include <ModelAnimation/JointAnimation.h>
 #include <map>
+#include <nlohmann/json.hpp>
 
 namespace Ice {
 
@@ -22,6 +23,7 @@ class ModelAnimation {
     std::map<JointId, JointAnimation> m_mJointAnimations;
     
 public:
+    ModelAnimation() = default;
     
     inline auto lengthSeconds() const noexcept { return m_fLengthSeconds; }
     inline void setLengthSeconds(float fLength) noexcept { m_fLengthSeconds = fLength; }
@@ -30,6 +32,16 @@ public:
     
     const auto& jointAnimations() const noexcept { return m_mJointAnimations; }
     auto& jointAnimations() noexcept { return m_mJointAnimations; }
+
+    friend void to_json(nlohmann::json& j, const Ice::ModelAnimation& ani) {
+        j.emplace("lengthSeconds", ani.m_fLengthSeconds);
+        j.emplace("jointAnimations", ani.m_mJointAnimations);
+    }
+
+    friend void from_json(const nlohmann::json& j, Ice::ModelAnimation& ani) {
+        j.at("lengthSeconds").template get_to<float>(ani.m_fLengthSeconds);
+        j.at("jointAnimations").template get_to<decltype(ModelAnimation::m_mJointAnimations)>(ani.m_mJointAnimations);
+    }
 };
 
 }
