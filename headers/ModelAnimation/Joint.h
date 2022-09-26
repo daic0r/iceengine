@@ -45,20 +45,25 @@ public:
     inline void setTransform(const glm::mat4& t) noexcept { m_transform = t; }
     inline void addChild(const Joint& j) noexcept { m_vChildren.emplace_back(j); }
 
+    bool operator==(const Joint& rhs) const {
+        return m_nId == rhs.m_nId && m_strName == rhs.m_strName && m_invBindTransform == rhs.m_invBindTransform && m_vChildren == rhs.m_vChildren && m_bindTransform == rhs.m_bindTransform;
+    }
+
+    friend void to_json(nlohmann::json& j, const Ice::Joint& v);
     friend void from_json(const nlohmann::json& j, Ice::Joint& v);
 };
 
 inline void to_json(nlohmann::json& j, const Ice::Joint& v) {
-    j.emplace("id", v.id());
-    j.emplace("name", v.name());
-    j.emplace("invBindTransform", v.invBindTransform());
-    j.emplace("bindTransform", v.bindTransform());
-    j.emplace("children", v.children());
+    j.emplace("id", v.m_nId);
+    j.emplace("name", v.m_strName);
+    j.emplace("invBindTransform", v.m_invBindTransform);
+    j.emplace("bindTransform", v.m_bindTransform);
+    j.emplace("children", v.m_vChildren);
 }
 
 inline void from_json(const nlohmann::json& j, Ice::Joint& v) {
     v.m_nId = j.at("id").template get<std::uint16_t>();
-    v.m_strName = j.at("id").template get<std::uint16_t>();
+    v.m_strName = j.at("name").template get<std::string>();
     v.m_invBindTransform = j.at("invBindTransform").template get<glm::mat4>();
     v.m_bindTransform = j.at("bindTransform").template get<glm::mat4>();
     v.children() = j.at("children").template get<std::vector<Ice::Joint>>(); 

@@ -13,6 +13,7 @@
 #include <ModelAnimation/JointAnimation.h>
 #include <map>
 #include <nlohmann/json.hpp>
+#include <System/Math.h>
 
 namespace Ice {
 
@@ -32,6 +33,10 @@ public:
     
     const auto& jointAnimations() const noexcept { return m_mJointAnimations; }
     auto& jointAnimations() noexcept { return m_mJointAnimations; }
+
+    bool operator==(const ModelAnimation& rhs) const {
+        return Math::equal(m_fLengthSeconds, rhs.m_fLengthSeconds) && Math::equal(m_fCurrentTime, rhs.m_fCurrentTime) &&  m_mJointAnimations == rhs.m_mJointAnimations;
+    }
 
     friend void to_json(nlohmann::json& j, const Ice::ModelAnimation& ani) {
         j.emplace("lengthSeconds", ani.m_fLengthSeconds);

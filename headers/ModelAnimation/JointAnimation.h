@@ -24,6 +24,10 @@ public:
     inline auto& jointTransforms() noexcept { return m_mJointTransforms; }
     inline const auto& jointTransforms() const noexcept { return m_mJointTransforms; }
 
+    bool operator==(const JointAnimation& rhs) const {
+        return m_mJointTransforms == rhs.m_mJointTransforms;
+    }
+
     friend void to_json(nlohmann::json& j, const JointAnimation&);
     friend void from_json(const nlohmann::json& j, JointAnimation&);
 };

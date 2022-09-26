@@ -30,6 +30,10 @@ public:
     JointTransform interpolate(const JointTransform& other, float fProgress) const noexcept;
     glm::mat4 toMatrix() const noexcept;
 
+    bool operator==(const JointTransform& rhs) const {
+        return m_position == rhs.m_position && m_rotation == rhs.m_rotation;
+    }
+
     friend void to_json(nlohmann::json& j, const JointTransform& transform);
     friend void from_json(const nlohmann::json& j, JointTransform& transform);
 };

@@ -42,10 +42,10 @@ protected:
 
 	template<typename Component>
 	static void addAndDeserialize(Entity e, const nlohmann::json& j) {
-		entityManager.addComponent(e, Component{});
-		auto& comp = entityManager.getComponent<Component>(e);
+		Component comp{};
 		auto ser = comp.getSerializables();
 		ser.deserialize(j);
+		entityManager.addComponent(e, comp);
 	}
 
 public:

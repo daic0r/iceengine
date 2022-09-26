@@ -5,12 +5,17 @@
 #include <Renderer/OpenGL/RenderToolsGL.h>
 #include <iostream>
 #include <System/AnimatedModel.h>
+#include <optional>
 
 namespace Ice {
 
 void ModelManagerGL::registerModel(const Model* pModel) noexcept {
-    if (m_mModels.find(pModel->pMesh) != m_mModels.end())
-        return;
+    std::optional<bool> bPromotedFromNonAnimatedMesh{};
+    if (m_mModels.find(pModel->pMesh) != m_mModels.end()) {
+        bPromotedFromNonAnimatedMesh = dynamic_cast<const AnimatedModel*>(pModel) != nullptr;
+        if (!bPromotedFromNonAnimatedMesh.value())
+            return;
+    }
 
 	//if (!m_pShadowProgram) {
 	//	m_pShadowProgram = RenderToolsGL::createShaderProgram("Shadow", createShadowShaderConfigurator());
@@ -24,16 +29,24 @@ void ModelManagerGL::registerModel(const Model* pModel) noexcept {
 	//	m_pGraphicsSystem = systemServices.getGraphicsSystem();
 	//}
 
-    auto glModel = RenderToolsGL::createRenderObjectAndLoadVBOsFromMesh(*pModel->pMesh);
-	auto n = glModel->createEmptyVBO(10000 * 16);
-	RenderToolsGL::addInstanceVertexAttribute(n, 3, 4, 16, 0);
-	RenderToolsGL::addInstanceVertexAttribute(n, 4, 4, 16, 4);
-	RenderToolsGL::addInstanceVertexAttribute(n, 5, 4, 16, 8);
-	RenderToolsGL::addInstanceVertexAttribute(n, 6, 4, 16, 12);
-	glCall(glEnableVertexAttribArray(3));
-	glCall(glEnableVertexAttribArray(4));
-	glCall(glEnableVertexAttribArray(5));
-	glCall(glEnableVertexAttribArray(6));
+    std::unique_ptr<RenderObjectGL> glModel;
+    if (!bPromotedFromNonAnimatedMesh.has_value()) {
+        glModel = RenderToolsGL::createRenderObjectAndLoadVBOsFromMesh(*pModel->pMesh);
+        auto n = glModel->createEmptyVBO(10000 * 16);
+        RenderToolsGL::addInstanceVertexAttribute(n, 3, 4, 16, 0);
+        RenderToolsGL::addInstanceVertexAttribute(n, 4, 4, 16, 4);
+        RenderToolsGL::addInstanceVertexAttribute(n, 5, 4, 16, 8);
+        RenderToolsGL::addInstanceVertexAttribute(n, 6, 4, 16, 12);
+        glCall(glEnableVertexAttribArray(3));
+        glCall(glEnableVertexAttribArray(4));
+        glCall(glEnableVertexAttribArray(5));
+        glCall(glEnableVertexAttribArray(6));
+    } else
+    if (bPromotedFromNonAnimatedMesh.has_value() && bPromotedFromNonAnimatedMesh.value())
+    {
+        auto iter = m_mModels.find(pModel->pMesh);
+        glBindVertexArray(iter->second->vao());
+    }
 	if (dynamic_cast<const AnimatedModel*>(pModel) != nullptr) {
         auto pAniModel = static_cast<const AnimatedModel*>(pModel);
         
@@ -59,6 +72,9 @@ void ModelManagerGL::registerModel(const Model* pModel) noexcept {
     //if (m_loadAdditionalVBOFunc)
     //    m_loadAdditionalVBOFunc(pModel, glModel.get());
     glCall(glBindVertexArray(0));
+
+    if (!glModel)
+        return;
     
     auto shaderIter = m_mShaderPrograms.find(pModel->pMesh->shaderId());
     if (shaderIter == m_mShaderPrograms.end()) {
