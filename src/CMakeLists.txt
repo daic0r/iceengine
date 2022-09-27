@@ -156,6 +156,7 @@ GUI/Constraints/TwoPointSizeConstraint.cpp
 ModelAnimation/JointTransform.cpp
 Importers/ModelImporterCollada.cpp
 Importers/ModelImporterOBJ.cpp
+Importers/ModelImporterGlTF.cpp
 World/LowPolyTerrain.cpp
 World/World.cpp
 World/Terrain.cpp
