@@ -10,9 +10,20 @@
 #include <ranges>
 #include <memory>
 #include <limits>
+#include <glm/mat4x4.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <stack>
 
 namespace Ice
 {
+    template<typename T> auto makeTypedBufferFromBufferView(const tinygltf::Model& model, const tinygltf::BufferView& view) {
+        std::vector<T> vRet;
+        vRet.resize(view.byteLength / sizeof(T));
+        std::memcpy(&vRet[0], &model.buffers.at(view.buffer).data[view.byteOffset], view.byteLength);
+        return vRet;
+    };
+
     ModelImporterGlTF::ModelImporterGlTF(std::string_view strFile) : m_strFile{ strFile }
     {
         if (!std::filesystem::exists(strFile)) {
@@ -29,6 +40,13 @@ namespace Ice
             throw std::runtime_error("glTF couldn't be loaded");
         }
 
+        loadMeshAndMaterials(model);
+        loadSkeleton(model);
+
+        return true;
+    }
+
+    void ModelImporterGlTF::loadMeshAndMaterials(const tinygltf::Model& model) {
         // Materials
         std::vector<RenderMaterial> vMaterials;
         vMaterials.reserve(model.materials.size());
@@ -42,13 +60,6 @@ namespace Ice
             m_mMaterials.emplace(material.name, mat);
         }
         ///////////////////////////////////////////////////////////////////////
-
-        auto makeTypedBufferFromBufferView = []<typename T>(const tinygltf::Model& model, const tinygltf::BufferView& view) {
-            std::vector<T> vRet;
-            vRet.resize(view.byteLength / sizeof(T));
-            std::memcpy(&vRet[0], &model.buffers.at(view.buffer).data[view.byteOffset], view.byteLength);
-            return vRet;
-        };
 
         for (const auto& mesh : model.meshes) {
             auto& mCurObject = m_mMeshes[mesh.name];
@@ -71,7 +82,7 @@ namespace Ice
                         assert(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
                         assert(accessor.type == TINYGLTF_TYPE_VEC3);
 
-                        const auto buf = makeTypedBufferFromBufferView.template operator()<glm::vec3>(model, view);
+                        const auto buf = makeTypedBufferFromBufferView<glm::vec3>(model, view);
                         std::ranges::transform(buf, std::back_inserter(mCurObject.vertices()), [&minVertex,&maxVertex](const glm::vec3& v) {
                             for (glm::length_t i{}; i < 3; ++i) {
                                 if (v[i] < minVertex[i])
@@ -87,7 +98,7 @@ namespace Ice
                         assert(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
                         assert(accessor.type == TINYGLTF_TYPE_VEC3);
 
-                        const auto buf = makeTypedBufferFromBufferView.template operator()<glm::vec3>(model, view);
+                        const auto buf = makeTypedBufferFromBufferView<glm::vec3>(model, view);
                         mCurObject.normals().insert(mCurObject.normals().end(), buf.begin(), buf.end());
                     }
                     else
@@ -95,7 +106,7 @@ namespace Ice
                         assert(accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE);
                         assert(accessor.type == TINYGLTF_TYPE_VEC4);
                         
-                        const auto buf = makeTypedBufferFromBufferView.template operator()<glm::i8vec4>(model, view);
+                        const auto buf = makeTypedBufferFromBufferView<glm::i8vec4>(model, view);
                         std::ranges::transform(buf, std::back_inserter(mCurAniObject.m_vJointIds), [](const glm::i8vec4& elem) {
                             return glm::ivec4{ elem.x, elem.y, elem.z, elem.w };
                         });
@@ -105,7 +116,7 @@ namespace Ice
                         assert(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
                         assert(accessor.type == TINYGLTF_TYPE_VEC4);
 
-                        const auto buf = makeTypedBufferFromBufferView.template operator()<glm::vec4>(model, view);
+                        const auto buf = makeTypedBufferFromBufferView<glm::vec4>(model, view);
                         mCurAniObject.m_vWeights.insert(mCurAniObject.m_vWeights.end(), buf.begin(), buf.end());
                     }
                 } // attributes
@@ -116,7 +127,7 @@ namespace Ice
                 const auto& indexAccessor = model.accessors.at(prim.indices);
                 assert(indexAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT);
                 const auto& indexBufferView = model.bufferViews.at(indexAccessor.bufferView);
-                const auto buf = makeTypedBufferFromBufferView.template operator()<unsigned short>(model, indexBufferView);
+                const auto buf = makeTypedBufferFromBufferView<unsigned short>(model, indexBufferView);
                 auto& vMaterialIndices = mCurObject.materialIndices()[vMaterials.at(prim.material).name()];
 
                 std::ranges::transform(buf, std::back_inserter(vMaterialIndices), [nStartIndex](auto elem) {
@@ -126,8 +137,59 @@ namespace Ice
 
             ++nPrimIndex;
         }
+    }
 
-        return true;
+    void addChildren(const tinygltf::Model& model, const tinygltf::Skin& skin, std::vector<Joint>& vJoints, Joint& j, const std::vector<int>& vChildren) {
+        for (auto nChild : vChildren) {
+            const auto& jointNode = model.nodes.at(nChild);
+            addChildren(model, skin, vJoints, vJoints.at(nChild), jointNode.children);
+        }
+        
+        for (auto nChild : vChildren) {
+            const auto& jointNode = model.nodes.at(skin.joints.at(nChild));
+            j.addChild(vJoints.at(nChild));
+        }
+    }
+ 
+    void ModelImporterGlTF::loadSkeleton(const tinygltf::Model& model) {
+        if (model.skins.size() > 1)
+            throw std::runtime_error("Only 1 skeleton supported!");
+        if (model.skins.size() == 0)
+            return;
+
+        const auto& skin = model.skins.front();
+        const auto& invBindView = model.bufferViews.at(model.accessors.at(skin.inverseBindMatrices).bufferView);
+        auto vInvBindMatrices = makeTypedBufferFromBufferView<glm::mat4>(model, invBindView);
+
+        std::vector<Joint> vJoints;
+        vJoints.resize(skin.joints.size());
+        
+        for (auto nJoint : skin.joints) {
+            const auto& jointNode = model.nodes.at(nJoint);
+
+            glm::mat4 matTrans{1.0f}, matRot{1.0f}, matScale{1.0f};
+            if (jointNode.rotation.size() > 0) {
+                glm::quat qRot{ jointNode.rotation.at(3), jointNode.rotation.at(0), jointNode.rotation.at(1), jointNode.rotation.at(2) };
+                matRot = glm::mat4{ qRot };
+            }
+            if (jointNode.scale.size() > 0) {
+                matScale = glm::scale(glm::mat4{1.0f}, glm::vec3{ jointNode.scale.at(0), jointNode.scale.at(1), jointNode.scale.at(2) });
+            }
+            if (jointNode.translation.size() > 0) {
+                matTrans = glm::translate(glm::mat4{1.0f}, glm::vec3{ jointNode.translation.at(0), jointNode.translation.at(1), jointNode.translation.at(2) });
+            }
+            const auto bindTransform = matTrans * matRot * matScale;
+
+            auto& j = vJoints.at(nJoint);// { nJoint, jointNode.name, glm::inverse(bindTransform) };
+            j.setId(nJoint);
+            j.setName(jointNode.name);
+            j.setBindTransform(bindTransform);
+            j.setInvBindTransform(vInvBindMatrices.at(nJoint));
+            //j.setInvBindTransform(glm::inverse(bindTransform));
+        }
+
+        m_skeleton.m_rootJoint = vJoints.at(skin.joints.at(0));
+        addChildren(model, skin, vJoints, m_skeleton.m_rootJoint, model.nodes.at(skin.joints.at(0)).children);
     }
     
 } // namespace Ice

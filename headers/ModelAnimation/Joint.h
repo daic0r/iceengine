@@ -41,6 +41,9 @@ public:
     const auto& children() const noexcept { return m_vChildren; }
     auto& children() noexcept { return m_vChildren; }
 
+    void setId(std::uint16_t nId) noexcept { m_nId = nId; }
+    void setName(std::string_view strName) { m_strName = strName; }
+    void setInvBindTransform(const glm::mat4& b) noexcept { m_invBindTransform = b; }
     inline void setBindTransform(const glm::mat4& b) noexcept { m_bindTransform = b; }
     inline void setTransform(const glm::mat4& t) noexcept { m_transform = t; }
     inline void addChild(const Joint& j) noexcept { m_vChildren.emplace_back(j); }

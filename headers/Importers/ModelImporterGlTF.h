@@ -7,10 +7,19 @@
 #include <System/RenderMaterial.h>
 #include <map>
 #include <string_view>
+#include <Components/SkeletonComponent.h>
+
+namespace tinygltf {
+    class Model;
+}
 
 namespace Ice
 {
     class ModelImporterGlTF {
+    
+        void loadMeshAndMaterials(const tinygltf::Model&);
+        void loadSkeleton(const tinygltf::Model&);
+
     public:
         ModelImporterGlTF(std::string_view strFile);
         bool import();
@@ -23,6 +32,7 @@ namespace Ice
         std::map<std::string, MeshComponent> m_mMeshes;
         std::map<std::string, AnimatedMeshComponent> m_mAniMeshes;
         std::map<std::string, RenderMaterial> m_mMaterials;
+        SkeletonComponent m_skeleton;
     };
 } // namespace Ice
 
