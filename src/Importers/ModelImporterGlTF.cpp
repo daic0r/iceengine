@@ -13,7 +13,8 @@
 #include <glm/mat4x4.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include <stack>
+#include <ModelAnimation/JointAnimation.h>
+#include <ModelAnimation/JointTransform.h>
 
 namespace Ice
 {
@@ -42,6 +43,7 @@ namespace Ice
 
         loadMeshAndMaterials(model);
         loadSkeleton(model);
+        loadAnimations(model);
 
         return true;
     }
@@ -184,12 +186,76 @@ namespace Ice
             j.setId(nJoint);
             j.setName(jointNode.name);
             j.setBindTransform(bindTransform);
-            j.setInvBindTransform(vInvBindMatrices.at(nJoint));
-            //j.setInvBindTransform(glm::inverse(bindTransform));
+            //j.setInvBindTransform(vInvBindMatrices.at(nJoint));
+            j.setInvBindTransform(glm::inverse(bindTransform));
         }
 
         m_skeleton.m_rootJoint = vJoints.at(skin.joints.at(0));
+        m_skeleton.m_invBindShapeMatrix = glm::mat4{1.0f};
         addChildren(model, skin, vJoints, m_skeleton.m_rootJoint, model.nodes.at(skin.joints.at(0)).children);
+
+        for (auto& [strName, animatedMesh] : m_mAniMeshes) {
+            animatedMesh.m_nNumJoints = skin.joints.size();
+        }
+    }
+
+    void ModelImporterGlTF::loadAnimations(const tinygltf::Model& model) {
+        struct sJointKeyframeTransform {
+            std::vector<float> vTimepoints;
+            std::vector<glm::vec3> vTranslations;
+            std::vector<glm::quat> vRotations;
+            std::vector<glm::vec3> vScalings;
+        };
+        for (const auto& ani : model.animations) {
+            auto& mCurAnimation = m_mAnimations[ani.name];
+
+            std::map<int, sJointKeyframeTransform> mJointTransforms;
+
+            for (const auto& channel : ani.channels) {
+                const auto& sampler = ani.samplers.at(channel.sampler);
+                const auto& view = model.bufferViews.at(model.accessors.at(sampler.output).bufferView);
+                auto& jointTransform = mJointTransforms[channel.target_node];
+
+                if (jointTransform.vTimepoints.empty())
+                    jointTransform.vTimepoints = makeTypedBufferFromBufferView<float>(model, model.bufferViews.at(model.accessors.at(sampler.input).bufferView));
+
+                if (channel.target_path == "translation")
+                    jointTransform.vTranslations = makeTypedBufferFromBufferView<glm::vec3>(model, view);
+                else
+                if (channel.target_path == "rotation") {
+                    const auto vRot = makeTypedBufferFromBufferView<glm::quat>(model, view);
+                    jointTransform.vRotations.reserve(vRot.size());
+                    std::ranges::transform(vRot, std::back_inserter(jointTransform.vRotations), [](const glm::quat& elem) {
+                        return glm::quat{ elem[3], elem[0], elem[1], elem[2] }; 
+                    });
+                }
+                else
+                if (channel.target_path == "scale") {
+                    jointTransform.vScalings = makeTypedBufferFromBufferView<glm::vec3>(model, view);
+                }
+            }
+
+            float fLengthSeconds{};
+            for (const auto& [nJointId, jointTransforms] : mJointTransforms) {
+                auto& jointAnimation = mCurAnimation.jointAnimations()[nJointId];
+                assert(jointTransforms.vTimepoints.size() == jointTransforms.vTranslations.size()); 
+                assert(jointTransforms.vTimepoints.size() == jointTransforms.vRotations.size()); 
+                assert(jointTransforms.vTimepoints.size() == jointTransforms.vScalings.size()); 
+
+                const auto fLengthThisJoint = *std::prev(jointTransforms.vTimepoints.end());
+                if (fLengthThisJoint > fLengthSeconds)
+                    fLengthSeconds = fLengthThisJoint;
+
+                for (std::size_t i{}; i < jointTransforms.vTimepoints.size(); ++i) {
+                    const auto matScale = glm::scale(glm::mat4{1.0f}, jointTransforms.vScalings.at(i));
+                    const auto matRot = glm::mat4{ jointTransforms.vRotations.at(i) };
+                    const auto matTransl = glm::translate(glm::mat4{1.0f}, jointTransforms.vTranslations.at(i));
+                    jointAnimation.jointTransforms().emplace(jointTransforms.vTimepoints.at(i), matTransl * matRot * matScale);
+                }
+            }
+
+            mCurAnimation.setLengthSeconds(fLengthSeconds);
+        }
     }
     
 } // namespace Ice
