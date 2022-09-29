@@ -120,6 +120,31 @@ namespace Ice::Math {
         const auto lambdas = invT * (v - v3);
         return std::array<float, 3>{ lambdas[0], lambdas[1], 1.0f - lambdas[0] - lambdas[1] };
     }
+
+    inline glm::vec3 getScaleFactorsFromMatrix(const glm::mat4& mat) noexcept {
+        glm::vec3 scaleFactors;
+        scaleFactors.x = glm::length(glm::vec3{ mat[0][0], mat[0][1], mat[0][2] });
+        scaleFactors.y = glm::length(glm::vec3{ mat[1][0], mat[1][1], mat[1][2] });
+        scaleFactors.z = glm::length(glm::vec3{ mat[2][0], mat[2][1], mat[2][2] });
+        return scaleFactors;
+    }
+
+    inline glm::mat4 descale(const glm::mat4& mat, const glm::vec3& scaleFactors) noexcept {
+        auto ret = mat;
+        ret[0][0] /= scaleFactors.x;
+        ret[0][1] /= scaleFactors.x;
+        ret[0][2] /= scaleFactors.x;
+
+        ret[1][0] /= scaleFactors.y;
+        ret[1][1] /= scaleFactors.y;
+        ret[1][2] /= scaleFactors.y;
+
+        ret[2][0] /= scaleFactors.z;
+        ret[2][1] /= scaleFactors.z;
+        ret[2][2] /= scaleFactors.z;
+
+        return ret;
+    }
 }
 
 #endif

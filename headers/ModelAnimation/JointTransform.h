@@ -21,17 +21,18 @@ namespace Ice {
 class JointTransform {
     glm::vec3 m_position;
     glm::quat m_rotation;
+    glm::vec3 m_scaling;
     
 public:
     
     JointTransform() = default;
     JointTransform(const glm::mat4&) noexcept;
-    JointTransform(const glm::vec3&, const glm::quat&) noexcept;
+    JointTransform(const glm::vec3&, const glm::quat&, const glm::vec3& s = glm::vec3{1.0f,1.0f,1.0f}) noexcept;
     JointTransform interpolate(const JointTransform& other, float fProgress) const noexcept;
     glm::mat4 toMatrix() const noexcept;
 
     bool operator==(const JointTransform& rhs) const {
-        return m_position == rhs.m_position && m_rotation == rhs.m_rotation;
+        return m_position == rhs.m_position && m_rotation == rhs.m_rotation && m_scaling == rhs.m_scaling;
     }
 
     friend void to_json(nlohmann::json& j, const JointTransform& transform);
