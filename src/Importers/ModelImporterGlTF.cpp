@@ -164,12 +164,13 @@ namespace Ice
     void addChildren(const tinygltf::Model& model, const tinygltf::Skin& skin, std::vector<Joint>& vJoints, Joint& j, const std::vector<int>& vChildren) {
         for (auto nChild : vChildren) {
             const auto& jointNode = model.nodes.at(nChild);
-            addChildren(model, skin, vJoints, vJoints.at(nChild), jointNode.children);
+            auto& child = vJoints.at(std::distance(skin.joints.begin(), std::ranges::find_if(skin.joints, [nChild](int node) { return node == nChild; })));
+            addChildren(model, skin, vJoints, child, jointNode.children);
         }
         
         for (auto nChild : vChildren) {
-            const auto& jointNode = model.nodes.at(skin.joints.at(nChild));
-            j.addChild(vJoints.at(nChild));
+            auto& child = vJoints.at(std::distance(skin.joints.begin(), std::ranges::find_if(skin.joints, [nChild](int node) { return node == nChild; })));
+            j.addChild(child);
         }
     }
  
@@ -185,20 +186,22 @@ namespace Ice
         std::vector<Joint> vJoints;
         vJoints.resize(skin.joints.size());
         
+        std::size_t nIdx{};
         for (auto nJoint : skin.joints) {
             const auto& jointNode = model.nodes.at(nJoint);
 
             const auto bindTransform = loadNodeTransform(jointNode);
 
-            auto& j = vJoints.at(nJoint);// { nJoint, jointNode.name, glm::inverse(bindTransform) };
-            j.setId(nJoint);
+            auto& j = vJoints.at(nIdx);// { nJoint, jointNode.name, glm::inverse(bindTransform) };
+            j.setId(nIdx);
             j.setName(jointNode.name);
             j.setBindTransform(bindTransform);
-            j.setInvBindTransform(vInvBindMatrices.at(nJoint));
+            j.setInvBindTransform(vInvBindMatrices.at(nIdx));
+            ++nIdx;
             //j.setInvBindTransform(glm::inverse(bindTransform));
         }
 
-        m_skeleton.m_rootJoint = vJoints.at(skin.joints.at(0));
+        m_skeleton.m_rootJoint = vJoints.at(0);
         addChildren(model, skin, vJoints, m_skeleton.m_rootJoint, model.nodes.at(skin.joints.at(0)).children);
 
         if (const auto iter = std::ranges::find_if(model.nodes, [&skin](const tinygltf::Node& node) { return node.name == skin.name; }); iter != model.nodes.end()) {
@@ -255,7 +258,8 @@ namespace Ice
 
             float fLengthSeconds{};
             for (const auto& [nJointId, jointTransforms] : mJointTransforms) {
-                auto& jointAnimation = mCurAnimation.jointAnimations()[nJointId];
+                const auto nJointIndex = std::distance(model.skins.front().joints.begin(), std::ranges::find_if(model.skins.front().joints, [nJointId](int node) { return node == nJointId; }));
+                auto& jointAnimation = mCurAnimation.jointAnimations()[nJointIndex];
                 assert(jointTransforms.vTimepoints.size() == jointTransforms.vTranslations.size()); 
                 assert(jointTransforms.vTimepoints.size() == jointTransforms.vRotations.size()); 
                 assert(jointTransforms.vTimepoints.size() == jointTransforms.vScalings.size()); 
