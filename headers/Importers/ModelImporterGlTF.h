@@ -9,18 +9,27 @@
 #include <string_view>
 #include <Components/SkeletonComponent.h>
 #include <ModelAnimation/ModelAnimation.h>
+#include <ModelAnimation/Joint.h>
+#include <vector>
 
 namespace tinygltf {
     class Model;
+    class Mesh;
+    class Skin;
+    class Node;
 }
 
 namespace Ice
 {
     class ModelImporterGlTF {
     
-        void loadMeshAndMaterials(const tinygltf::Model&);
-        void loadSkeleton(const tinygltf::Model&);
-        void loadAnimations(const tinygltf::Model&);
+        void loadMeshAndMaterials(const tinygltf::Model&, const tinygltf::Mesh&);
+        void loadSkeleton(const tinygltf::Model&, const tinygltf::Skin&);
+        void loadAnimations(const tinygltf::Model&, const tinygltf::Skin&);
+
+        static glm::mat4 loadNodeTransform(const tinygltf::Node& jointNode) noexcept;
+        static std::size_t nodeIndexToJointIndex(const tinygltf::Skin& skin, std::size_t nNodeIndex);
+        static void addChildren(const tinygltf::Model& model, const tinygltf::Skin& skin, std::vector<Joint>& vJoints, Joint& j, const std::vector<int>& vChildren);
 
     public:
         ModelImporterGlTF(std::string_view strFile);

@@ -29,11 +29,10 @@ namespace Ice
         return vRet;
     };
 
-    static glm::mat4 loadNodeTransform(const tinygltf::Node& jointNode) {
+    glm::mat4 ModelImporterGlTF::loadNodeTransform(const tinygltf::Node& jointNode) noexcept {
         glm::mat4 matTrans{1.0f}, matRot{1.0f}, matScale{1.0f};
         if (jointNode.rotation.size() > 0) {
             glm::quat qRot = glm::make_quat(&jointNode.rotation.at(0));
-            //glm::quat qRot{ jointNode.rotation.at(3), jointNode.rotation.at(0), jointNode.rotation.at(1), jointNode.rotation.at(2) };
             matRot = glm::mat4{ qRot };
         }
         if (jointNode.scale.size() > 0) {
@@ -43,6 +42,10 @@ namespace Ice
             matTrans = glm::translate(glm::mat4{1.0f}, glm::vec3{ jointNode.translation.at(0), jointNode.translation.at(1), jointNode.translation.at(2) });
         }
         return matTrans * matRot * matScale;
+    }
+
+    std::size_t ModelImporterGlTF::nodeIndexToJointIndex(const tinygltf::Skin& skin, std::size_t nNodeIndex) {
+        return std::distance(skin.joints.cbegin(), std::ranges::find_if(skin.joints, [nNodeIndex](int node) { return node == nNodeIndex; }));
     }
 
     ModelImporterGlTF::ModelImporterGlTF(std::string_view strFile) : m_strFile{ strFile }
@@ -61,14 +64,19 @@ namespace Ice
             throw std::runtime_error("glTF couldn't be loaded");
         }
 
-        loadMeshAndMaterials(model);
-        loadSkeleton(model);
-        loadAnimations(model);
+        const auto instanceNodeIter = std::ranges::find_if(model.nodes, [](const tinygltf::Node& node) { return node.mesh > -1; });
+        loadMeshAndMaterials(model, model.meshes.at(instanceNodeIter->mesh));
+        
+        if (instanceNodeIter->skin > -1) {
+            const auto& skin = model.skins.at(instanceNodeIter->skin);
+            loadSkeleton(model, skin);
+            loadAnimations(model, skin);
+        }
 
         return true;
     }
 
-    void ModelImporterGlTF::loadMeshAndMaterials(const tinygltf::Model& model) {
+    void ModelImporterGlTF::loadMeshAndMaterials(const tinygltf::Model& model, const tinygltf::Mesh& mesh) {
         // Materials
         std::vector<RenderMaterial> vMaterials;
         vMaterials.reserve(model.materials.size());
@@ -83,11 +91,8 @@ namespace Ice
         }
         ///////////////////////////////////////////////////////////////////////
 
-        for (const auto& mesh : model.meshes) {
             auto& mCurObject = m_mMeshes[mesh.name];
             auto& mCurAniObject = m_mAniMeshes[mesh.name];
-
-            std::size_t nPrimIndex{};
 
             glm::vec3 minVertex{ std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max() };
             glm::vec3 maxVertex{ -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max() };
@@ -156,31 +161,22 @@ namespace Ice
                     return elem + nStartIndex;
                 });
             }
-
-            ++nPrimIndex;
-        }
     }
 
-    void addChildren(const tinygltf::Model& model, const tinygltf::Skin& skin, std::vector<Joint>& vJoints, Joint& j, const std::vector<int>& vChildren) {
+    void ModelImporterGlTF::addChildren(const tinygltf::Model& model, const tinygltf::Skin& skin, std::vector<Joint>& vJoints, Joint& j, const std::vector<int>& vChildren) {
         for (auto nChild : vChildren) {
             const auto& jointNode = model.nodes.at(nChild);
-            auto& child = vJoints.at(std::distance(skin.joints.begin(), std::ranges::find_if(skin.joints, [nChild](int node) { return node == nChild; })));
+            auto& child = vJoints.at(nodeIndexToJointIndex(skin, nChild));
             addChildren(model, skin, vJoints, child, jointNode.children);
         }
         
         for (auto nChild : vChildren) {
-            auto& child = vJoints.at(std::distance(skin.joints.begin(), std::ranges::find_if(skin.joints, [nChild](int node) { return node == nChild; })));
+            auto& child = vJoints.at(nodeIndexToJointIndex(skin, nChild));
             j.addChild(child);
         }
     }
  
-    void ModelImporterGlTF::loadSkeleton(const tinygltf::Model& model) {
-        if (model.skins.size() > 1)
-            throw std::runtime_error("Only 1 skeleton supported!");
-        if (model.skins.size() == 0)
-            return;
-
-        const auto& skin = model.skins.front();
+    void ModelImporterGlTF::loadSkeleton(const tinygltf::Model& model, const tinygltf::Skin& skin) {
         auto vInvBindMatrices = makeTypedBufferFromBufferView<glm::mat4>(model, model.accessors.at(skin.inverseBindMatrices));
 
         std::vector<Joint> vJoints;
@@ -192,13 +188,12 @@ namespace Ice
 
             const auto bindTransform = loadNodeTransform(jointNode);
 
-            auto& j = vJoints.at(nIdx);// { nJoint, jointNode.name, glm::inverse(bindTransform) };
+            auto& j = vJoints.at(nIdx);
             j.setId(nIdx);
             j.setName(jointNode.name);
             j.setBindTransform(bindTransform);
             j.setInvBindTransform(vInvBindMatrices.at(nIdx));
             ++nIdx;
-            //j.setInvBindTransform(glm::inverse(bindTransform));
         }
 
         m_skeleton.m_rootJoint = vJoints.at(0);
@@ -215,7 +210,7 @@ namespace Ice
         }
     }
 
-    void ModelImporterGlTF::loadAnimations(const tinygltf::Model& model) {
+    void ModelImporterGlTF::loadAnimations(const tinygltf::Model& model, const tinygltf::Skin& skin) {
         struct sJointKeyframeTransform {
             std::vector<float> vTimepoints;
             std::vector<glm::vec3> vTranslations;
@@ -246,7 +241,6 @@ namespace Ice
                     jointTransform.vRotations.reserve(vRot.size());
                     std::ranges::transform(vRot, std::back_inserter(jointTransform.vRotations), [](const std::array<float, 4>& elem) {
                         return glm::make_quat(&elem[0]);
-                        //return glm::quat{ elem[3], elem[0], elem[1], elem[2] }; 
                     });
                 }
                 else
@@ -257,8 +251,8 @@ namespace Ice
             }
 
             float fLengthSeconds{};
-            for (const auto& [nJointId, jointTransforms] : mJointTransforms) {
-                const auto nJointIndex = std::distance(model.skins.front().joints.begin(), std::ranges::find_if(model.skins.front().joints, [nJointId](int node) { return node == nJointId; }));
+            for (const auto& [nJointNodeId, jointTransforms] : mJointTransforms) {
+                const auto nJointIndex = nodeIndexToJointIndex(skin, nJointNodeId);
                 auto& jointAnimation = mCurAnimation.jointAnimations()[nJointIndex];
                 assert(jointTransforms.vTimepoints.size() == jointTransforms.vTranslations.size()); 
                 assert(jointTransforms.vTimepoints.size() == jointTransforms.vRotations.size()); 
@@ -269,13 +263,8 @@ namespace Ice
                     fLengthSeconds = fLengthThisJoint;
 
                 for (std::size_t i{}; i < jointTransforms.vTimepoints.size(); ++i) {
-                    /*
-                    const auto matScale = glm::scale(glm::mat4{1.0f}, jointTransforms.vScalings.at(i));
-                    const auto matRot = glm::mat4{ jointTransforms.vRotations.at(i) };
-                    const auto matTransl = glm::translate(glm::mat4{1.0f}, jointTransforms.vTranslations.at(i));
-                    */
                     JointTransform tf{ jointTransforms.vTranslations.at(i), jointTransforms.vRotations.at(i), jointTransforms.vScalings.at(i) };
-                    jointAnimation.jointTransforms().emplace(jointTransforms.vTimepoints.at(i), tf); // matTransl * matRot * matScale);
+                    jointAnimation.jointTransforms().emplace(jointTransforms.vTimepoints.at(i), tf);
                 }
             }
 
