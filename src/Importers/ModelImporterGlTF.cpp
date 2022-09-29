@@ -15,6 +15,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include <ModelAnimation/JointAnimation.h>
 #include <ModelAnimation/JointTransform.h>
+#include <glm/gtc/type_ptr.hpp>
 
 namespace Ice
 {
@@ -31,7 +32,8 @@ namespace Ice
     static glm::mat4 loadNodeTransform(const tinygltf::Node& jointNode) {
         glm::mat4 matTrans{1.0f}, matRot{1.0f}, matScale{1.0f};
         if (jointNode.rotation.size() > 0) {
-            glm::quat qRot{ jointNode.rotation.at(3), jointNode.rotation.at(0), jointNode.rotation.at(1), jointNode.rotation.at(2) };
+            glm::quat qRot = glm::make_quat(&jointNode.rotation.at(0));
+            //glm::quat qRot{ jointNode.rotation.at(3), jointNode.rotation.at(0), jointNode.rotation.at(1), jointNode.rotation.at(2) };
             matRot = glm::mat4{ qRot };
         }
         if (jointNode.scale.size() > 0) {
@@ -126,7 +128,7 @@ namespace Ice
                         
                         const auto buf = makeTypedBufferFromBufferView<glm::i8vec4>(model, accessor);
                         std::ranges::transform(buf, std::back_inserter(mCurAniObject.m_vJointIds), [](const glm::i8vec4& elem) {
-                            return glm::ivec4{ elem.x, elem.y, elem.z, elem.w };
+                            return glm::ivec4{ elem[0], elem[1], elem[2], elem[3] };
                         });
                     }
                     else
@@ -135,6 +137,9 @@ namespace Ice
                         assert(accessor.type == TINYGLTF_TYPE_VEC4);
 
                         const auto buf = makeTypedBufferFromBufferView<glm::vec4>(model, accessor);
+                        for (const auto& v : buf) {
+                            assert(Math::equal(v[0] + v[1] + v[2] + v[3], 1.0f));
+                        }
                         mCurAniObject.m_vWeights.insert(mCurAniObject.m_vWeights.end(), buf.begin(), buf.end());
                     }
                 } // attributes
@@ -183,7 +188,6 @@ namespace Ice
         for (auto nJoint : skin.joints) {
             const auto& jointNode = model.nodes.at(nJoint);
 
-
             const auto bindTransform = loadNodeTransform(jointNode);
 
             auto& j = vJoints.at(nJoint);// { nJoint, jointNode.name, glm::inverse(bindTransform) };
@@ -228,18 +232,23 @@ namespace Ice
                 if (jointTransform.vTimepoints.empty())
                     jointTransform.vTimepoints = makeTypedBufferFromBufferView<float>(model, model.accessors.at(sampler.input));
 
-                if (channel.target_path == "translation")
+                if (channel.target_path == "translation") {
+                    assert(jointTransform.vTranslations.size() == 0);
                     jointTransform.vTranslations = makeTypedBufferFromBufferView<glm::vec3>(model, accessorOutput);
+                }
                 else
                 if (channel.target_path == "rotation") {
-                    const auto vRot = makeTypedBufferFromBufferView<glm::quat>(model, accessorOutput);
+                    const auto vRot = makeTypedBufferFromBufferView<std::array<float, 4>>(model, accessorOutput);
+                    assert(jointTransform.vRotations.size() == 0);
                     jointTransform.vRotations.reserve(vRot.size());
-                    std::ranges::transform(vRot, std::back_inserter(jointTransform.vRotations), [](const glm::quat& elem) {
-                        return glm::quat{ elem[3], elem[0], elem[1], elem[2] }; 
+                    std::ranges::transform(vRot, std::back_inserter(jointTransform.vRotations), [](const std::array<float, 4>& elem) {
+                        return glm::make_quat(&elem[0]);
+                        //return glm::quat{ elem[3], elem[0], elem[1], elem[2] }; 
                     });
                 }
                 else
                 if (channel.target_path == "scale") {
+                    assert(jointTransform.vScalings.size() == 0);
                     jointTransform.vScalings = makeTypedBufferFromBufferView<glm::vec3>(model, accessorOutput);
                 }
             }
@@ -256,10 +265,12 @@ namespace Ice
                     fLengthSeconds = fLengthThisJoint;
 
                 for (std::size_t i{}; i < jointTransforms.vTimepoints.size(); ++i) {
+                    /*
                     const auto matScale = glm::scale(glm::mat4{1.0f}, jointTransforms.vScalings.at(i));
                     const auto matRot = glm::mat4{ jointTransforms.vRotations.at(i) };
                     const auto matTransl = glm::translate(glm::mat4{1.0f}, jointTransforms.vTranslations.at(i));
-                    JointTransform tf{ jointTransforms.vTranslations.at(i), jointTransforms.vRotations.at(i) };
+                    */
+                    JointTransform tf{ jointTransforms.vTranslations.at(i), jointTransforms.vRotations.at(i), jointTransforms.vScalings.at(i) };
                     jointAnimation.jointTransforms().emplace(jointTransforms.vTimepoints.at(i), tf); // matTransl * matRot * matScale);
                 }
             }
