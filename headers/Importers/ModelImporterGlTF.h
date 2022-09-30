@@ -24,7 +24,7 @@ namespace Ice
     class ModelImporterGlTF {
     
         void loadMeshAndMaterials(const tinygltf::Model&, const tinygltf::Mesh&);
-        void loadSkeleton(const tinygltf::Model&, const tinygltf::Skin&);
+        void loadSkeleton(const tinygltf::Model&, const tinygltf::Skin&, const tinygltf::Mesh&);
         void loadAnimations(const tinygltf::Model&, const tinygltf::Skin&);
 
         static glm::mat4 loadNodeTransform(const tinygltf::Node& jointNode) noexcept;
@@ -38,15 +38,15 @@ namespace Ice
         const auto& animatedMeshes() const noexcept { return m_mAniMeshes; }
         const auto& materials() const noexcept { return m_mMaterials; }
         const auto& animations() const noexcept { return m_mAnimations; }
-        const auto& skeletonComponent() const noexcept { return m_skeleton; }
+        const auto& skeletonComponents() const noexcept { return m_mSkeletons; }
 
     private:
         std::string m_strFile{};
         std::map<std::string, MeshComponent> m_mMeshes;
         std::map<std::string, AnimatedMeshComponent> m_mAniMeshes;
-        std::map<std::string, RenderMaterial> m_mMaterials;
+        std::map<std::string, SkeletonComponent> m_mSkeletons;
         std::map<std::string, ModelAnimation> m_mAnimations;
-        SkeletonComponent m_skeleton;
+        std::map<std::string, RenderMaterial> m_mMaterials;
     };
 } // namespace Ice
 

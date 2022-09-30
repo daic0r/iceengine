@@ -60,16 +60,27 @@ namespace Ice
 
         tinygltf::Model model;
         std::string strErr, strWarn;
-        if (!gltf_ctx.LoadASCIIFromFile(&model, &strErr, &strWarn, m_strFile)) {
-            throw std::runtime_error("glTF couldn't be loaded");
+        const auto path = std::filesystem::path{ m_strFile };
+        const auto strExt = std::string{ path.extension() };
+        if (strExt == ".gltf") {
+            if (!gltf_ctx.LoadASCIIFromFile(&model, &strErr, &strWarn, m_strFile)) {
+                throw std::runtime_error("glTF couldn't be loaded");
+            }
+        } else if (strExt == ".glb") {
+            if (!gltf_ctx.LoadBinaryFromFile(&model, &strErr, &strWarn, m_strFile)) {
+                throw std::runtime_error("glTF couldn't be loaded");
+            }
+        } else {
+            throw std::runtime_error("Invalid file extension (must be either .gltf or .glb");
         }
 
         const auto instanceNodeIter = std::ranges::find_if(model.nodes, [](const tinygltf::Node& node) { return node.mesh > -1; });
-        loadMeshAndMaterials(model, model.meshes.at(instanceNodeIter->mesh));
+        const auto& mesh = model.meshes.at(instanceNodeIter->mesh);
+        loadMeshAndMaterials(model, mesh);
         
         if (instanceNodeIter->skin > -1) {
             const auto& skin = model.skins.at(instanceNodeIter->skin);
-            loadSkeleton(model, skin);
+            loadSkeleton(model, skin, mesh);
             loadAnimations(model, skin);
         }
 
@@ -92,7 +103,6 @@ namespace Ice
         ///////////////////////////////////////////////////////////////////////
 
             auto& mCurObject = m_mMeshes[mesh.name];
-            auto& mCurAniObject = m_mAniMeshes[mesh.name];
 
             glm::vec3 minVertex{ std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max() };
             glm::vec3 maxVertex{ -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max() };
@@ -131,6 +141,9 @@ namespace Ice
                         assert(accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE);
                         assert(accessor.type == TINYGLTF_TYPE_VEC4);
                         
+                        // We're doing this here in case this is not an animated mesh
+                        // In that case we'll not just create an empty entry in the map
+                        auto& mCurAniObject = m_mAniMeshes[mesh.name];
                         const auto buf = makeTypedBufferFromBufferView<glm::i8vec4>(model, accessor);
                         std::ranges::transform(buf, std::back_inserter(mCurAniObject.m_vJointIds), [](const glm::i8vec4& elem) {
                             return glm::ivec4{ elem[0], elem[1], elem[2], elem[3] };
@@ -141,6 +154,9 @@ namespace Ice
                         assert(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
                         assert(accessor.type == TINYGLTF_TYPE_VEC4);
 
+                        // We're doing this here in case this is not an animated mesh
+                        // In that case we'll not just create an empty entry in the map
+                        auto& mCurAniObject = m_mAniMeshes[mesh.name];
                         const auto buf = makeTypedBufferFromBufferView<glm::vec4>(model, accessor);
                         for (const auto& v : buf) {
                             assert(Math::equal(v[0] + v[1] + v[2] + v[3], 1.0f));
@@ -176,7 +192,7 @@ namespace Ice
         }
     }
  
-    void ModelImporterGlTF::loadSkeleton(const tinygltf::Model& model, const tinygltf::Skin& skin) {
+    void ModelImporterGlTF::loadSkeleton(const tinygltf::Model& model, const tinygltf::Skin& skin, const tinygltf::Mesh& mesh) {
         auto vInvBindMatrices = makeTypedBufferFromBufferView<glm::mat4>(model, model.accessors.at(skin.inverseBindMatrices));
 
         std::vector<Joint> vJoints;
@@ -196,13 +212,14 @@ namespace Ice
             ++nIdx;
         }
 
-        m_skeleton.m_rootJoint = vJoints.at(0);
-        addChildren(model, skin, vJoints, m_skeleton.m_rootJoint, model.nodes.at(skin.joints.at(0)).children);
+        auto& skeleton = m_mSkeletons[mesh.name];
+        skeleton.m_rootJoint = vJoints.at(0);
+        addChildren(model, skin, vJoints, skeleton.m_rootJoint, model.nodes.at(skin.joints.at(0)).children);
 
         if (const auto iter = std::ranges::find_if(model.nodes, [&skin](const tinygltf::Node& node) { return node.name == skin.name; }); iter != model.nodes.end()) {
-            m_skeleton.m_invBindShapeMatrix = glm::inverse(loadNodeTransform(*iter));
+            skeleton.m_invBindShapeMatrix = glm::inverse(loadNodeTransform(*iter));
         } else {
-            m_skeleton.m_invBindShapeMatrix = glm::mat4{1.0f};
+            skeleton.m_invBindShapeMatrix = glm::mat4{1.0f};
         }
 
         for (auto& [strName, animatedMesh] : m_mAniMeshes) {
