@@ -42,11 +42,13 @@ public:
 inline void to_json(nlohmann::json& j, const JointTransform& transform) {
     j.emplace("position", transform.m_position);
     j.emplace("rotation", transform.m_rotation);
+    j.emplace("scaling", transform.m_scaling);
 }
 
 inline void from_json(const nlohmann::json& j, JointTransform& transform) {
     j.at("position").template get_to<glm::vec3>(transform.m_position);
     j.at("rotation").template get_to<glm::quat>(transform.m_rotation);
+    j.at("scaling").template get_to<glm::vec3>(transform.m_scaling);
 }
 
 }
