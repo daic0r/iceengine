@@ -18,15 +18,16 @@ namespace Ice {
 bool ModelAnimationSystem::update(float fDeltaTime) {
     
     for (auto e : entities(entityManager.currentScene())) {
-        
         auto& animation = entityManager.getComponent<ModelAnimationComponent>(e);
+        if (!animation.pCurrent)
+            continue;
+
         auto& skeleton = entityManager.getComponent<SkeletonComponent>(e);
         
-        animation.m_animation.currentTime() += fDeltaTime;
-        animation.m_animation.currentTime() = fmod(animation.m_animation.currentTime(), animation.m_animation.lengthSeconds());
+        animation.pCurrent->currentTime() += fDeltaTime;
+        animation.pCurrent->currentTime() = fmod(animation.pCurrent->currentTime(), animation.pCurrent->lengthSeconds());
         
-        updateJoint(skeleton.m_rootJoint, animation.m_animation, skeleton.m_invBindShapeMatrix);
-        
+        updateJoint(skeleton.m_rootJoint, *animation.pCurrent, skeleton.m_invBindShapeMatrix);
     }
     
     return true;

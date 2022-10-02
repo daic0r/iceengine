@@ -919,7 +919,7 @@ void ModelImporterCollada::toSkeletonComponent(SkeletonComponent &ret) const noe
 }
 
 void ModelImporterCollada::toModelAnimationComponent(ModelAnimationComponent& ret) const noexcept {
-    ModelAnimation &ani = ret.m_animation;
+    ModelAnimation &ani = ret.animations["default"];
     
     float nLengthSeconds = std::numeric_limits<int>::min();
     

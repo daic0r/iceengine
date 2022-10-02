@@ -12,6 +12,7 @@
 #include <Components/ComponentIds.h>
 #include <ModelAnimation/ModelAnimation.h>
 #include <Utils/serializables.h>
+#include <map>
 
 namespace Ice {
 
@@ -19,10 +20,11 @@ struct ModelAnimationComponent {
   
     static constexpr EntityComponentId id() noexcept { return MODEL_ANIMATION_COMPONENT; }
     
-    ModelAnimation m_animation;
+    std::map<std::string, ModelAnimation> animations;
+    ModelAnimation* pCurrent{};
 
     BEGIN_DECLARE_SERIALIZABLE_ATTRIBS()
-    SERIALIZABLE_ATTRIB(modelAnimation, m_animation)
+    SERIALIZABLE_ATTRIB(animations, animations)
     END_DECLARE_SERIALIZABLE_ATTRIBS()
 };
 

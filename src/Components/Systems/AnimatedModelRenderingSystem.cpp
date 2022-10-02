@@ -115,7 +115,7 @@ Entity AnimatedModelRenderingSystem::loadBlueprintFromExternalFile(std::string_v
 		meshCompAni.shaderId() = "AnimatedModel";
 		entityManager.addComponent(manEntComp, gltf.animatedMeshes().begin()->second);
 		entityManager.addComponent(manEntComp, gltf.skeletonComponents().begin()->second);
-		entityManager.addComponent(manEntComp, ModelAnimationComponent { gltf.animations().at("Run") });
+		entityManager.addComponent(manEntComp, ModelAnimationComponent { gltf.animations() });
 
 		RenderMaterialsComponent mat;
 		mat.materials() = gltf.materials();
