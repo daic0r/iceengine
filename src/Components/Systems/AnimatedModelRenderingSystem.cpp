@@ -21,6 +21,7 @@
 #include <iostream>
 #include <glm/gtx/string_cast.hpp>
 #include <Importers/ModelImporterGlTF.h>
+#include <Importers/ModelImporterCollada.h>
 #include <System/File.h>
 
 namespace Ice {
@@ -101,22 +102,52 @@ AnimatedModel AnimatedModelRenderingSystem::makeModelStruct(Entity e) const
 	return mod;
 }
 
-Entity AnimatedModelRenderingSystem::loadBlueprintFromGlTF(std::string_view strFile) {
-	ModelImporterGlTF gltf{ AssetFile{ strFile } };
-	gltf.import();
-	auto manEntComp = entityManager.createEntity();
-	entityManager.addComponent(manEntComp, gltf.meshes().begin()->second);
-	auto& meshCompAni = entityManager.getComponent<MeshComponent>(manEntComp);
-	meshCompAni.shaderId() = "AnimatedModel";
-	entityManager.addComponent(manEntComp, gltf.animatedMeshes().begin()->second);
-	entityManager.addComponent(manEntComp, gltf.skeletonComponents().begin()->second);
-	entityManager.addComponent(manEntComp, ModelAnimationComponent { gltf.animations().at("Run") });
+Entity AnimatedModelRenderingSystem::loadBlueprintFromExternalFile(std::string_view strFile) {
+	namespace fs = std::filesystem;
+	const auto path = fs::path{ strFile };
+	
+	if (path.extension() == ".gltf" || path.extension() == ".glb") {
+		ModelImporterGlTF gltf{ AssetFile{ strFile } };
+		gltf.import();
+		auto manEntComp = entityManager.createEntity();
+		entityManager.addComponent(manEntComp, gltf.meshes().begin()->second);
+		auto& meshCompAni = entityManager.getComponent<MeshComponent>(manEntComp);
+		meshCompAni.shaderId() = "AnimatedModel";
+		entityManager.addComponent(manEntComp, gltf.animatedMeshes().begin()->second);
+		entityManager.addComponent(manEntComp, gltf.skeletonComponents().begin()->second);
+		entityManager.addComponent(manEntComp, ModelAnimationComponent { gltf.animations().at("Run") });
 
-	RenderMaterialsComponent mat;
-	mat.materials() = gltf.materials();
-	entityManager.addComponent(manEntComp, mat);	
+		RenderMaterialsComponent mat;
+		mat.materials() = gltf.materials();
+		entityManager.addComponent(manEntComp, mat);	
 
-	return manEntComp;
+		return manEntComp;
+	}
+	else
+	if (path.extension() == ".dae") {
+		auto model = ModelImporterCollada{ AssetFile{strFile}};
+		std::map<std::string, MeshComponent> mMeshes;
+		std::map<std::string, AnimatedMeshComponent> mAniMeshes;
+		model.import(mMeshes, mAniMeshes);
+		SkeletonComponent skel;
+		model.toSkeletonComponent(skel);
+		ModelAnimationComponent aniComp;
+		model.toModelAnimationComponent(aniComp);
+
+		auto manEntComp = entityManager.createEntity();
+		entityManager.addComponent(manEntComp, mMeshes.begin()->second);
+		auto& meshCompAni = entityManager.getComponent<MeshComponent>(manEntComp);
+		meshCompAni.shaderId() = "AnimatedModel";
+		entityManager.addComponent(manEntComp, mAniMeshes.begin()->second);
+
+		RenderMaterialsComponent mat;
+		mat.materials() = model.materials();
+		entityManager.addComponent(manEntComp, mat);
+
+		entityManager.addComponent(manEntComp, skel);
+		entityManager.addComponent(manEntComp, aniComp);
+	}
+	throw std::runtime_error("Unsupported file format");
 }
 
 

@@ -18,6 +18,10 @@
 #include <Interfaces/IModelRenderer.h>
 #include <Components/SkeletonComponent.h>
 #include <System/Types.h>
+#include <Importers/ModelImporterOBJ.h>
+#include <Importers/ModelImporterGlTF.h>
+#include <filesystem>
+#include <System/File.h>
 
 namespace Ice {
 
@@ -77,5 +81,42 @@ Model ObjectRenderingSystem::makeModelStruct(Entity e) const
 	return ret;
 }
 
+Entity ObjectRenderingSystem::loadBlueprintFromExternalFile(std::string_view strFile) {
+	namespace fs = std::filesystem;
+	const auto path = fs::path{ strFile };
+	if (path.extension() == ".obj") {
+		auto model = ModelImporterOBJ{ AssetFile{ strFile} };
+		std::map<std::string, MeshComponent> mMeshes;
+		model.import(mMeshes);
+		RenderMaterialsComponent mat;
+		mat.materials() = model.materials();
+
+		auto ent = entityManager.createEntity();
+		entityManager.addComponent(ent, mMeshes.begin()->second);
+		entityManager.addComponent(ent, mat);
+		return ent;
+	}
+	else
+	if (path.extension() == ".gltf" || path.extension() == ".glb") {
+		auto model = ModelImporterGlTF{ AssetFile{ strFile }};
+		model.import();
+
+		auto ent = entityManager.createEntity();
+		entityManager.addComponent(ent, model.meshes().begin()->second);
+		RenderMaterialsComponent mat;
+		mat.materials() = model.materials();
+		entityManager.addComponent(ent, mat);
+		return ent;
+	}
+	throw std::runtime_error("Unsupported file format");
+}
+
+Entity ObjectRenderingSystem::createInstance(Entity blueprint, const glm::mat4& transform) {
+	auto ent = entityManager.createEntity();
+	entityManager.addComponent(ent, TransformComponent{ transform });
+	entityManager.addComponent(ent, ModelInstanceTagComponent{});
+	entityManager.addComponent(ent, ModelReferenceComponent{ blueprint });
+	return ent;
+}
 
 }

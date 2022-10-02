@@ -52,6 +52,8 @@ public:
 	void willRemoveComponent(Entity, EntityComponentId) noexcept;
 	void onSystemsInitialized() noexcept override;
 
+	static Entity loadBlueprintFromExternalFile(std::string_view strFile);
+	static Entity createInstance(Entity blueprint, const glm::mat4& transform);
 	// Inherited via BaseModelRenderingSystem
 };
 
