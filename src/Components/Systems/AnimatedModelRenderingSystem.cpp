@@ -20,6 +20,8 @@
 #include <System/SystemServices.h>
 #include <iostream>
 #include <glm/gtx/string_cast.hpp>
+#include <Importers/ModelImporterGlTF.h>
+#include <System/File.h>
 
 namespace Ice {
 
@@ -97,6 +99,37 @@ AnimatedModel AnimatedModelRenderingSystem::makeModelStruct(Entity e) const
     mod.pAnimatedMesh = &aniMesh;
 
 	return mod;
+}
+
+Entity AnimatedModelRenderingSystem::loadBlueprintFromGlTF(std::string_view strFile) {
+	ModelImporterGlTF gltf{ AssetFile{ strFile } };
+	gltf.import();
+	auto manEntComp = entityManager.createEntity();
+	entityManager.addComponent(manEntComp, gltf.meshes().begin()->second);
+	auto& meshCompAni = entityManager.getComponent<MeshComponent>(manEntComp);
+	meshCompAni.shaderId() = "AnimatedModel";
+	entityManager.addComponent(manEntComp, gltf.animatedMeshes().begin()->second);
+	entityManager.addComponent(manEntComp, gltf.skeletonComponents().begin()->second);
+	entityManager.addComponent(manEntComp, ModelAnimationComponent { gltf.animations().at("Run") });
+
+	RenderMaterialsComponent mat;
+	mat.materials() = gltf.materials();
+	entityManager.addComponent(manEntComp, mat);	
+
+	return manEntComp;
+}
+
+
+Entity AnimatedModelRenderingSystem::createInstance(Entity blueprint, const glm::mat4& transform) {
+	auto manInst = entityManager.createEntity();
+	entityManager.addComponent(manInst, TransformComponent{ transform });
+	entityManager.addComponent(manInst, ModelReferenceComponent{ blueprint });
+	entityManager.addComponent(manInst, AnimatedModelInstanceTagComponent{});
+	const auto& aniComp = entityManager.getComponent<ModelAnimationComponent>(blueprint);
+	const auto& skelComp = entityManager.getComponent<SkeletonComponent>(blueprint);
+	entityManager.addComponent(manInst, aniComp);
+	entityManager.addComponent(manInst, skelComp);
+	return manInst;
 }
 
 }

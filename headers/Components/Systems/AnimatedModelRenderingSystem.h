@@ -41,6 +41,8 @@ protected:
 public:
     
     AnimatedModelRenderingSystem() noexcept;
+	Entity loadBlueprintFromGlTF(std::string_view strFile);
+	Entity createInstance(Entity blueprint, const glm::mat4& transform);
     void render(const RenderEnvironment&) noexcept;
 	bool update(float fDeltaTime) noexcept;
 	void onEntityAdded(Entity) noexcept;
