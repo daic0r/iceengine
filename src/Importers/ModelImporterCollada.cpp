@@ -96,12 +96,15 @@ void ModelImporterCollada::linkUpInputs(rapidxml::xml_node<char>* pParentNode, c
     auto pInput = pParentNode->first_node("input");
     if (pInput == nullptr)
         throw std::runtime_error("Node has no nested input node");
+    int nLastOffset = -1;
     while (pInput != nullptr && strcmp(pInput->name(), "input") == 0) {
         std::string strSemantic = pInput->first_attribute("semantic")->value();
         auto pOffsetAttr = pInput->first_attribute("offset");
         int nOffset = pOffsetAttr != nullptr ? std::stoi(pOffsetAttr->value()) : -1;
         if (nOffset == -1)
             throw std::runtime_error("Method can only be used for inputs with offsets");
+        if (nOffset == 0)
+            nOffset = nLastOffset + 1;
         mOutOffset2Semantic[nOffset] = strSemantic;
 
         std::string strSrc;
@@ -122,6 +125,7 @@ void ModelImporterCollada::linkUpInputs(rapidxml::xml_node<char>* pParentNode, c
         mOutInputs[nOffset] = &mSrcBuffers.at(strSrc.substr(1, strSrc.length() - 1));
 
         pInput = pInput->next_sibling();
+        nLastOffset = nOffset;
     }
 }
 
@@ -190,10 +194,13 @@ bool ModelImporterCollada::import(std::map<std::string, MeshComponent>& outMeshD
         auto pPolyNode = pMeshNode->first_node("polylist");
         pPolyNode = pPolyNode ? pPolyNode : pMeshNode->first_node("triangles");
         std::string strVertexIndicesTagName{ pPolyNode->name() };
+        auto materialIter = m_mMaterials.begin();
         while (pPolyNode != nullptr && std::string{ pPolyNode->name() } == strVertexIndicesTagName) {
 
             auto nVertexCount = std::stoi(pPolyNode->first_attribute("count")->value());
             std::string strCurrentMaterial{ pPolyNode->first_attribute("material")->value() };
+            if (std::ranges::none_of(m_mMaterials, [&strCurrentMaterial](const auto& kvp) { return kvp.first == strCurrentMaterial; }))
+                strCurrentMaterial = materialIter++->first;
 
             // Link up source buffers
             //////////////////////////////////////////////////////////////////////////
