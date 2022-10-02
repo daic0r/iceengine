@@ -125,10 +125,8 @@ std::unique_ptr<RenderObjectGL> RenderToolsGL::createRenderObjectAndLoadVBOsFrom
     }
     
     pRenderObj->addBuffer(nVertexBuffer);
-    if (nTexCoordBuffer > 0)
-        pRenderObj->addBuffer(nTexCoordBuffer);
-    if (nNormalBuffer > 0)
-        pRenderObj->addBuffer(nNormalBuffer);
+    pRenderObj->addBuffer(nTexCoordBuffer);
+    pRenderObj->addBuffer(nNormalBuffer);
     if (nElementBuffer > 0)
         pRenderObj->addIndexBuffer(nElementBuffer);
     
