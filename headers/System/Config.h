@@ -13,6 +13,7 @@
 #include <string_view>
 #include <string>
 #include <System/CameraConfig.h>
+#include <Components/SystemIds.h>
 
 namespace Ice {
 
@@ -31,6 +32,7 @@ class ICEENGINE_API Config {
     int m_nWindowPosX{ -1 }, m_nWindowPosY{ -1 };
     bool m_bFullScreen{ false };
     float m_fWaterLevel;
+    std::vector<SystemId> m_vSystemIds;
 
     CameraConfig m_camera;
     
@@ -63,6 +65,9 @@ public:
     std::string prependDataPath(std::string_view) const noexcept;
 
     auto& camera() noexcept { return m_camera; }
+
+    const auto& systemIds() const noexcept { return m_vSystemIds; }
+    void setSystemIds(const std::vector<SystemId>& v) { m_vSystemIds = v; }
 
 private:
     bool checkAndCorrectPath(std::string& strInOut, PathType pt) const noexcept;

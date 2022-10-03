@@ -28,6 +28,7 @@ class IGraphicsSystem;
 class IWidgetRenderer;
 class DayNightCycleSystem;
 class IEventQueue;
+class Config;
 
 class MasterRenderingSystem : public EntityComponentSystem<CameraComponent> {
 	friend class Engine;
@@ -51,7 +52,7 @@ class MasterRenderingSystem : public EntityComponentSystem<CameraComponent> {
     
 public:
     
-    MasterRenderingSystem() noexcept;
+    MasterRenderingSystem(const Config&) noexcept;
     bool update(float fDeltaTime) override;
 	void onSystemsInitialized() noexcept override;
 

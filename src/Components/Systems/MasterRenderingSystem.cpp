@@ -23,10 +23,11 @@
 #include <Interfaces/IShadowMapRenderer.h>
 #include <Events/EventQueue.h>
 #include <Events/WindowResizedEvent.h>
+#include <System/Config.h>
 
 namespace Ice {
 
-MasterRenderingSystem::MasterRenderingSystem() noexcept {
+MasterRenderingSystem::MasterRenderingSystem(const Config& config) noexcept {
     //m_pRenderer = systemServices.getMasterRenderer();
 
     m_pTerrainRenderingSystem = std::make_unique<TerrainRenderingSystem>();
@@ -35,8 +36,6 @@ MasterRenderingSystem::MasterRenderingSystem() noexcept {
     entityManager.registerComponentSystem<true>(m_pObjectRenderingSystem.get());
     m_pAnimatedModelRenderingSystem = std::make_unique<AnimatedModelRenderingSystem>();
     entityManager.registerComponentSystem<true>(m_pAnimatedModelRenderingSystem.get());
-    m_pSkyboxRenderingSystem = std::make_unique<SkyboxRenderingSystem>();
-    entityManager.registerComponentSystem<true>(m_pSkyboxRenderingSystem.get());
     //m_pPathSegmentRenderingSystem = std::make_unique<PathSegmentRenderingSystem>();
     //entityManager.registerComponentSystem<false>(m_pPathSegmentRenderingSystem.get());
 	//m_pParticleSystemSystem = std::make_unique<ParticleSystemSystem>();
@@ -45,6 +44,15 @@ MasterRenderingSystem::MasterRenderingSystem() noexcept {
 	entityManager.registerComponentSystem<false>(m_pSunRenderingSystem.get());
 	m_pWaterRenderingSystem = std::make_unique<WaterRenderingSystem>();
 	entityManager.registerComponentSystem<true>(m_pWaterRenderingSystem.get());
+
+    for (auto i : config.systemIds()) {
+        switch(i) {
+            case SystemId::SKYBOX:
+                m_pSkyboxRenderingSystem = std::make_unique<SkyboxRenderingSystem>();
+                entityManager.registerComponentSystem<true>(m_pSkyboxRenderingSystem.get());
+                break;
+        }
+    }
 
     m_pPostProcessingPipeline = std::make_unique<PostProcessingPipeline>();
 
@@ -100,7 +108,8 @@ bool MasterRenderingSystem::update(float fDeltaTime) {
 
     m_pPostProcessingPipeline->originalCanvas()->bind();
     m_pGraphicsSystem->beginRender();
-    //m_pSkyboxRenderingSystem->render(env);
+    if (m_pSkyboxRenderingSystem)
+        m_pSkyboxRenderingSystem->render(env);
 	dynamic_cast<IShadowMapRenderer*>(systemServices.getShadowMapRenderer())->clear();
     m_pObjectRenderingSystem->render(env);
     m_pAnimatedModelRenderingSystem->render(env);

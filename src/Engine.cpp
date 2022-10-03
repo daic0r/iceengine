@@ -75,26 +75,19 @@ bool Engine::init(const Config& config, ILoader *pLoader, std::unique_ptr<IGame>
     m_pGame = std::move(pGame);
     
     systemServices.getGraphicsSystem()->init();
-    _pMasterRenderingSystem = std::make_unique<MasterRenderingSystem>();
+    _pMasterRenderingSystem = std::make_unique<MasterRenderingSystem>(config);
     _pModelManager = std::make_unique<ModelManagerSystem>();
     _pAnimatedModelManager = std::make_unique<AnimatedModelManagerSystem>();
     _pCamSystem = std::make_unique<CameraControllerSystem>();
     _pEventSystem = std::make_unique<EventHandlingSystem>();
     _pModelAnimationSystem = std::make_unique<ModelAnimationSystem>();
-    _pPathAnimationSystem = std::make_unique<PathAnimationSystem>();
-    _pRoadNetworkSystem = std::make_unique<RoadNetworkSystem>();
     _pSaveSystem = std::make_unique<SaveSystem>();
     _pToolTipSystem = std::make_unique<ToolTipSystem>();
     _pMeshGroupSystem = std::make_unique<MeshGroupSystem>();
-	_pInfectionSystem = std::make_unique<InfectionSystem>();
-	_pDayNightCycleSystem = std::make_unique<DayNightCycleSystem>();
     _pTerrainSystem = std::make_unique<TerrainSystem>();
-    _pBiomeSystem = std::make_unique<BiomeSystem>();
-    _pBeeSystem = std::make_unique<BeeSystem>();
 
     entityManager.registerComponentSystem<false>(_pModelManager.get());
     entityManager.registerComponentSystem<false>(_pAnimatedModelManager.get());
-    entityManager.registerComponentSystem<false>(_pRoadNetworkSystem.get());
     entityManager.registerComponentSystem<false>(_pSaveSystem.get());
     entityManager.registerComponentSystem<false>(_pMasterRenderingSystem.get());
     entityManager.registerComponentSystem<false>(_pEventSystem.get());
@@ -102,13 +95,37 @@ bool Engine::init(const Config& config, ILoader *pLoader, std::unique_ptr<IGame>
     entityManager.registerComponentSystem<false>(_pTerrainSystem.get());
 
     entityManager.registerComponentSystem<true>(_pToolTipSystem.get());
-    entityManager.registerComponentSystem<true>(_pPathAnimationSystem.get());
     entityManager.registerComponentSystem<true>(_pModelAnimationSystem.get());
-	entityManager.registerComponentSystem<true>(_pInfectionSystem.get());
     entityManager.registerComponentSystem<true>(_pCamSystem.get());
-	entityManager.registerComponentSystem<true>(_pDayNightCycleSystem.get());
-    entityManager.registerComponentSystem<true>(_pBiomeSystem.get());
-    entityManager.registerComponentSystem<true>(_pBeeSystem.get());
+
+    for (auto i : config.systemIds()) {
+        switch (i) {
+            case SystemId::PATH_ANIMATION:
+                _pPathAnimationSystem = std::make_unique<PathAnimationSystem>();
+                entityManager.registerComponentSystem<true>(_pPathAnimationSystem.get());
+                break;
+            case SystemId::ROAD_NETWORK:
+                _pRoadNetworkSystem = std::make_unique<RoadNetworkSystem>();
+                entityManager.registerComponentSystem<false>(_pRoadNetworkSystem.get());
+                break;
+            case SystemId::INFECTION:
+                _pInfectionSystem = std::make_unique<InfectionSystem>();
+                entityManager.registerComponentSystem<true>(_pInfectionSystem.get());
+                break;
+            case SystemId::DAY_NIGHT:
+                _pDayNightCycleSystem = std::make_unique<DayNightCycleSystem>();
+                entityManager.registerComponentSystem<true>(_pDayNightCycleSystem.get());
+                break;
+            case SystemId::BIOME:
+                _pBiomeSystem = std::make_unique<BiomeSystem>();
+                entityManager.registerComponentSystem<true>(_pBiomeSystem.get());
+                break;
+            case SystemId::BEE:
+                _pBeeSystem = std::make_unique<BeeSystem>();
+                entityManager.registerComponentSystem<true>(_pBeeSystem.get());
+                break;
+        }
+    }
 
 	entityManager.notifySystemsInitialized();
 
