@@ -16,6 +16,9 @@
 #include <algorithm>
 #include <ranges>
 #include <Utils/ScopedTimeMeasurement.h>
+#include <chrono>
+#include <future>
+#include <System/thread_pool.h>
 
 namespace Ice {
 
@@ -24,7 +27,7 @@ class IModelRenderer;
 
 template<typename ModelStructType, typename ModelInstanceType>
 class BaseModelRenderingSystem {
-	static inline constexpr auto KDTREE_REFRESH_INTERVAL = 10;
+	static inline constexpr auto KDTREE_REFRESH_INTERVAL = 20;
 	static inline constexpr auto FRUSTUM_REFRESH_INTERVAL = 30;
 
 public:
@@ -39,6 +42,8 @@ public:
         ModelInstanceType *m_pInst;
     };
 
+	using kdtree_t = KdTree<ModelRenderingKdTreeNodeContainer, ModelRenderingKdTreeEmplaceValue>;
+
 protected:
 	//std::vector<std::pair<Model, std::vector<ModelInstance*>>> m_vInstances;
 	std::unordered_map<Model, std::vector<ModelInstance*>> m_vInstances;
@@ -49,7 +54,13 @@ protected:
 	IModelRenderer* m_pRenderer{ nullptr };
 	IModelRenderer* m_pShadowRenderer{ nullptr };
 	IGraphicsSystem* m_pGraphicsSystem{};
-	KdTree<ModelRenderingKdTreeNodeContainer, ModelRenderingKdTreeEmplaceValue> m_kdTree;
+	thread_pool m_pool{1};
+
+	kdtree_t m_kdTree;
+	std::future<kdtree_t> m_futKdTree;
+	bool m_bFirstRun{true};
+	std::mutex daMut;
+
 	std::vector<Entity> m_vVisibleEnts{};
 	int m_nFramesSinceNoKdRefresh{}, m_nFramesSinceFrustumRefresh{};
 	std::vector<glm::vec3> m_vKdTreeVertices;
@@ -79,7 +90,9 @@ protected:
 
 	void onEntityAdded(Entity e) noexcept {
 		auto& transf = entityManager.getSharedComponentOr<TransformComponent>(e);
+		daMut.lock();
 		auto [iter, _] = m_vEntity2ModelStruct.emplace(e, std::make_pair(makeModelStruct(e), ModelInstanceType{}));
+		daMut.unlock();
 		//std::ranges::sort(m_vEntity2ModelStruct, [e](const auto& a, const auto& b) { return a.first < b.first; });
 		iter->second.second.pTransform = &transf;
 		
@@ -104,11 +117,21 @@ protected:
 	}
 
 	bool update(float fDeltaTime, const std::set<Entity>& ents) noexcept {
-		if (m_nFramesSinceNoKdRefresh % KDTREE_REFRESH_INTERVAL == 0) {
-			buildKdTree();	
-			m_nFramesSinceNoKdRefresh %= KDTREE_REFRESH_INTERVAL;
+		//if (m_nFramesSinceNoKdRefresh % KDTREE_REFRESH_INTERVAL == 0) {
+		using namespace std::chrono_literals;
+		const auto bFutReady = m_futKdTree.valid() && m_futKdTree.wait_for(0ns) == std::future_status::ready;
+		if ((m_nFramesSinceNoKdRefresh % KDTREE_REFRESH_INTERVAL == 0 && bFutReady) || m_bFirstRun) {
+		 	if (!m_bFirstRun && bFutReady) {
+				m_kdTree = m_futKdTree.get();
+			}
+			m_futKdTree = m_pool.async([this]() {
+				return buildKdTree();
+			});
 			m_nFramesSinceNoKdRefresh = 1;
 			std::cout << "Bauta\n";
+			m_bFirstRun = false;
+		} else {
+			++m_nFramesSinceNoKdRefresh;
 		}
 		return true;
 	}
@@ -167,8 +190,10 @@ public:
 	auto& kdTree() noexcept { return m_kdTree; }
 
 	const auto& entitiesInFrustum() const noexcept { return m_vFrustumEnts; }
-	void buildKdTree() {
-		m_vKdTreeVertices.clear();
+	auto buildKdTree() {
+		std::vector<glm::vec3> kdTreeVertices;
+
+		std::scoped_lock l{ daMut };
 
 		// Measured: WAY faster >without< multithreading the loop below
 		for (const auto& [e, modelInstPair] : m_vEntity2ModelStruct) {
@@ -180,12 +205,16 @@ public:
 
 			const auto worldCorners = boxWorld.cornerVertices();
 			for (const auto& corner : worldCorners) {
-				m_vKdTreeVertices.emplace_back(corner[0], corner[1], corner[2]);
+				kdTreeVertices.emplace_back(corner[0], corner[1], corner[2]);
 			}
 /*				USE ALL CORNERS?
 */
 		}
 
+		kdtree_t kdTree;
+		kdTree.setGetVisibleObjectCollectionFunc(m_kdTree.getVisibleObjectCollectionFunc());
+		kdTree.setEmplaceFunc(m_kdTree.emplaceFunc());
+		kdTree.setIntersectsCollectionFunc(m_kdTree.intersectsCollectionFunc());
 		{
 			/*
 			ScopedTimeMeasurement m([](std::chrono::nanoseconds dur) {
@@ -193,15 +222,17 @@ public:
 			});
 			std::cout << "Constructing kd-Tree from " << m_vKdTreeVertices.size() << " points\n";
 			*/
-			m_kdTree.construct(std::move(m_vKdTreeVertices));
+			kdTree.construct(std::move(kdTreeVertices));
 		}
 		for (auto& [ent, modelInstPair] : m_vEntity2ModelStruct) {
 			AABB boxLocal{ modelInstPair.first.pMesh->extents() };
 
 			const auto boxWorld = boxLocal.transform(modelInstPair.second.pTransform->m_transform);
 	
-			m_kdTree.emplace(boxWorld, { ent, modelInstPair.first, &modelInstPair.second });
+			kdTree.emplace(boxWorld.center(), { ent, modelInstPair.first, &modelInstPair.second });
 		}
+	
+		return kdTree;
 	}
 };
 
