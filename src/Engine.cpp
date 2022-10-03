@@ -44,6 +44,7 @@
 #include <Components/Systems/TerrainSystem.h>
 #include <Components/Systems/BiomeSystem.h>
 #include <Components/Systems/BeeSystem.h>
+#include <Components/Systems/CharacterSystem.h>
 #include <chrono>
 #include <GUI/WidgetManager.h>
 #include <Utils/ScopedTimeMeasurement.h>
@@ -68,6 +69,7 @@ static std::unique_ptr<DayNightCycleSystem> _pDayNightCycleSystem;
 static std::unique_ptr<TerrainSystem> _pTerrainSystem;
 static std::unique_ptr<BiomeSystem> _pBiomeSystem;
 static std::unique_ptr<BeeSystem> _pBeeSystem;
+static std::unique_ptr<CharacterSystem> _pCharacterSystem;
 
 bool Engine::init(const Config& config, ILoader *pLoader, std::unique_ptr<IGame> pGame) {
     systemServices.setConfig(config);
@@ -123,6 +125,10 @@ bool Engine::init(const Config& config, ILoader *pLoader, std::unique_ptr<IGame>
             case SystemId::BEE:
                 _pBeeSystem = std::make_unique<BeeSystem>();
                 entityManager.registerComponentSystem<true>(_pBeeSystem.get());
+                break;
+            case SystemId::CHARACTER:
+                _pCharacterSystem = std::make_unique<CharacterSystem>();
+                entityManager.registerComponentSystem<true>(_pCharacterSystem.get());
                 break;
         }
     }

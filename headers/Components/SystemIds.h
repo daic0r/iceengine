@@ -10,7 +10,8 @@ namespace Ice
         ROAD_NETWORK,
         DAY_NIGHT,
         BIOME,
-        BEE
+        BEE,
+        CHARACTER
     };
 } // namespace Ice
 

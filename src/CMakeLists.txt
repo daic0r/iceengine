@@ -102,6 +102,7 @@ Components/Systems/DayNightCycleSystem.cpp
 Components/Systems/TerrainSystem.cpp
 Components/Systems/WaterRenderingSystem.cpp
 Components/Systems/BeeSystem.cpp
+Components/Systems/CharacterSystem.cpp
 Components/TerrainComponent.cpp
 Engine.cpp
 Particles/Particle.cpp
