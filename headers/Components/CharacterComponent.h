@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Components/ComponentIds.h>
+#include <deque>
 
 namespace Ice {
 
@@ -15,7 +16,7 @@ struct CharacterComponent {
 
 	std::string m_strName;
 	std::uint8_t m_nHealth{ 100 };
-	Action currentAction{};
+	std::deque<Action> actions;
 };
 
 }
