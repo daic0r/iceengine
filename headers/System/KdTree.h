@@ -57,6 +57,10 @@ namespace Ice
         void setGetVisibleObjectCollectionFunc(collection_func_t f) { m_getVisibleObjectCollectionFunc = std::move(f); }
         void setIntersectsCollectionFunc(intersects_collection_func_t f) { m_intersectsCollectionFunc = std::move(f); }
         void setEmplaceFunc(emplace_func_t f) { m_emplaceFunc = std::move(f); }
+
+        const auto& getVisibleObjectCollectionFunc() const noexcept { return m_getVisibleObjectCollectionFunc; }
+        const auto& intersectsCollectionFunc() const noexcept { return m_intersectsCollectionFunc; }
+        const auto& emplaceFunc() const noexcept { return m_emplaceFunc; }
    private:
         node_t* subdivide(std::vector<glm::vec3>, int nAxis, int nLevel = 0);
         void getVisibleObjects_impl(const Frustum*, const AABB& box, node_t* pCurNode, int nAxis) const;
@@ -243,6 +247,8 @@ namespace Ice
 
     template<typename LeafNodeContainerType, typename ValueType>
     void KdTree<LeafNodeContainerType, ValueType>::getVisibleObjects(const Frustum* pFrustum) const {
+        if (!m_pRoot)
+            return;
         getVisibleObjects_impl(pFrustum, m_outerBox, nullptr, 0);
     }
 
