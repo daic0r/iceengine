@@ -8,7 +8,7 @@
 
 #ifdef RENDERER_OPEN_GL
 
-#include <GL/glew.h>
+#include <GL/glad.h>
 #include <Renderer/OpenGL/WaterRendererGL.h>
 #include <Interfaces/IShaderConfigurator.h>
 #include <ShadersGL/WaterShaderConfigurator.h>

@@ -6,7 +6,7 @@
 //  Copyright © 2020 Matthias Gruen. All rights reserved.
 //
 
-#include <GL/glew.h>
+#include <GL/glad.h>
 #include <ShadersGL/LightShaderConfigurator.h>
 #include <Renderer/RenderEnvironment.h>
 #include <System/Light.h>

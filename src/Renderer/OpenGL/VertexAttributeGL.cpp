@@ -1,4 +1,4 @@
-#include <GL/glew.h>
+#include <GL/glad.h>
 #include <Renderer/OpenGL/VertexAttributeGL.h>
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>

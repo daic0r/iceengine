@@ -6,7 +6,6 @@
 //  Copyright © 2020 Matthias Gruen. All rights reserved.
 //
 
-#include <GL/glew.h>
 #include <Renderer/Frustum.h>
 #include <System/Camera.h>
 #include <glm/gtc/matrix_transform.hpp>

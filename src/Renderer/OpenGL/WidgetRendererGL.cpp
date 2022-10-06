@@ -6,7 +6,7 @@
 //  Copyright © 2020 Matthias Gruen. All rights reserved.
 //
 
-#include <GL/glew.h>
+#include <GL/glad.h>
 #include <Renderer/OpenGL/WidgetRendererGL.h>
 #include <Renderer/OpenGL/RenderToolsGL.h>
 #include <ShadersGL/WidgetShaderConfigurator.h>

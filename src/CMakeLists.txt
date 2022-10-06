@@ -10,6 +10,7 @@ set(CMAKE_BUILD_TYPE Debug)
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COMPILER_FLAGS}")
 
 add_library(iceengine SHARED
+../external/inc/GL/glad.c
 Utils/FinalAction.cpp
 Utils/SDLTools.cpp
 Utils/ScopedTimeMeasurement.cpp

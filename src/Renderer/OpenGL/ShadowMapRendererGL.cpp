@@ -1,4 +1,4 @@
-#include <GL/glew.h>
+#include <GL/glad.h>
 #include <Renderer/OpenGL/ShadowMapRendererGL.h>
 #include <Renderer/OpenGL/RenderToolsGL.h>
 #include <Renderer/Frustum.h>

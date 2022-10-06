@@ -1,4 +1,4 @@
-#include <GL/glew.h>
+#include <GL/glad.h>
 #include <ShadersGL/ShadowShaderConfigurator.h>
 #include <Interfaces/IShaderProgram.h>
 #include <Renderer/RenderEnvironment.h>

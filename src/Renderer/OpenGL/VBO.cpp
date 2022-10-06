@@ -1,4 +1,4 @@
-#include <GL/glew.h>
+#include <GL/glad.h>
 #include <Renderer/OpenGL/VBO.h>
 #include <utility>
 

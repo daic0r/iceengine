@@ -1,7 +1,7 @@
 #ifdef _DEBUG_OCTREE
 #ifdef RENDERER_OPEN_GL
 
-#include <GL/glew.h>
+#include <GL/glad.h>
 #include <Renderer/OpenGL/OctreeDebuggerGL.h>
 #include <array>
 #include <glm/vec3.hpp>

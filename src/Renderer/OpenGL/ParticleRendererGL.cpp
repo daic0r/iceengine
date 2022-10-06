@@ -8,7 +8,7 @@
 
 #ifdef RENDERER_OPEN_GL
 
-#include <GL/glew.h>
+#include <GL/glad.h>
 #include <Renderer/OpenGL/ParticleRendererGL.h>
 #include <Renderer/OpenGL/RenderToolsGL.h>
 #include <ShadersGL/ParticleShaderConfigurator.h>

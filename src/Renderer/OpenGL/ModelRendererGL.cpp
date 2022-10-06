@@ -6,7 +6,7 @@
 //  Copyright © 2020 Matthias Gruen. All rights reserved.
 //
 
-#include <GL/glew.h>
+#include <GL/glad.h>
 #include <Renderer/OpenGL/RenderToolsGL.h>
 
 #include <iostream>
@@ -153,11 +153,30 @@ void ModelRendererGL::_render(const RenderEnvironment& env, const std::unordered
 		size_t nInsCount = 0;
 		glBindBuffer(GL_ARRAY_BUFFER, pModel->bufferAt(3));
 		glm::mat4* arMatrices = static_cast<glm::mat4*>(glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY));
+
 		for (auto pInst : kvp.second) {
 			arMatrices[nInsCount++] = pInst->pTransform->m_transform;
 			if (m_compileInstanceDataFunc)
 				m_compileInstanceDataFunc(pModel->shaderConfigurator(), nInsCount++, pInst);
 		}
+		/*
+		std::size_t nStart{}, nCount{kvp.second.size() / 4};
+		std::array<std::future<void>, 4> arFuts;
+		for (int i = 0; i < 4; ++i) {
+			arFuts[i] = m_pool.async([&, this]() {
+				for (int nInsCount = nStart; nInsCount < nCount && nInsCount < kvp.second.size(); ++nInsCount) {
+					auto pInst = kvp.second.at(nInsCount);
+					arMatrices[nInsCount] = pInst->pTransform->m_transform;
+					if (m_compileInstanceDataFunc)
+						m_compileInstanceDataFunc(pModel->shaderConfigurator(), nInsCount, pInst);
+				}
+			});
+			nStart += nCount;
+		}
+		for (auto& fut : arFuts)
+			fut.wait();
+		*/
+
 		glUnmapBuffer(GL_ARRAY_BUFFER);
 
 		if (m_updateInstanceDataFunc)

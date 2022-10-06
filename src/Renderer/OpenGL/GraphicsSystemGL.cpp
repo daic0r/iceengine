@@ -6,7 +6,7 @@
 //  Copyright © 2020 Matthias Gruen. All rights reserved.
 //
 
-#include <GL/glew.h>
+#include <GL/glad.h>
 #include <iostream>
 #include <Renderer/OpenGL/GraphicsSystemGL.h>
 #include <SDL2/SDL.h>
@@ -132,11 +132,10 @@ bool GraphicsSystemGL::init() {
     if (m_context == nullptr)
         return false;
     
-    glewExperimental = GL_TRUE;
-    auto init_res = glewInit();
-    if(init_res != GLEW_OK)
-    {
-        std::cout << glewGetErrorString(glewInit()) << std::endl;
+
+    if (!gladLoadGLLoader((GLADloadproc) SDL_GL_GetProcAddress)) {
+        std::cout << glad_glGetError() << std::endl;
+        return false;
     }
     
     if( SDL_GL_SetSwapInterval( 1 ) < 0 )   // <-- vsync disabled

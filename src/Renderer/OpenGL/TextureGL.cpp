@@ -6,7 +6,7 @@
 //  Copyright © 2020 Matthias Gruen. All rights reserved.
 //
 
-#include <GL/glew.h>
+#include <GL/glad.h>
 #include <Renderer/OpenGL/TextureGL.h>
 #include <SDL2_image/SDL_image.h>
 #include <vector>

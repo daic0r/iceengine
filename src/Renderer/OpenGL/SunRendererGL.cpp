@@ -1,4 +1,4 @@
-#include <GL/glew.h>
+#include <GL/glad.h>
 #include <iostream>
 #include <Renderer/OpenGL/SunRendererGL.h>
 #include <Renderer/OpenGL/RenderToolsGL.h>

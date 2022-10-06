@@ -1,4 +1,4 @@
-#include <GL/glew.h>
+#include <GL/glad.h>
 #include <Renderer/OpenGL/ModelManagerGL.h>
 #include <ShadersGL/ModelShaderConfigurator.h>
 #include <System/Model.h>

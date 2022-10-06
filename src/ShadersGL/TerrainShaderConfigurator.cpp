@@ -6,7 +6,7 @@
 //  Copyright © 2020 Matthias Gruen. All rights reserved.
 //
 
-#include <GL/glew.h>
+#include <GL/glad.h>
 #include <SDL2/SDL_opengl.h>
 #include <ShadersGL/TerrainShaderConfigurator.h>
 #include <ShadersGL/ShaderProgramGL.h>
