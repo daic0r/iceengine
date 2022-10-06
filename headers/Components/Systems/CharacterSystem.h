@@ -4,14 +4,17 @@
 #include <Components/ComponentIds.h>
 #include <Entities/EntityComponentSystem.h>
 #include <Components/CharacterComponent.h>
+#include <Components/BiomeNodeComponent.h>
 
 namespace Ice
 {
     class TerrainSystem;
+    class BiomeSystem;
 
     class CharacterSystem : public EntityComponentSystem<CharacterComponent> {
 
         bool doWalk(Entity e, float fDeltaTime) noexcept; // return: done?
+        void doPlaceBiomeNode(Entity e) noexcept;
 
     public:
         bool update(float fDeltaTime) noexcept override;
@@ -19,6 +22,7 @@ namespace Ice
 
     private:
         TerrainSystem *m_pTerrainSystem{};
+        BiomeSystem *m_pBiomeSystem{};
     };
 } // namespace Ice
 

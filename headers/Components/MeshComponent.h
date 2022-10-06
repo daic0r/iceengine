@@ -40,6 +40,7 @@ public:
     SERIALIZABLE_ATTRIB(name, m_strName)
     SERIALIZABLE_ATTRIB(vertices, m_vVertices)
     SERIALIZABLE_ATTRIB(uv, m_vTexCoords)
+    //SERIALIZABLE_ATTRIB(colors, m_vColors)
     SERIALIZABLE_ATTRIB(normals, m_vNormals)
     SERIALIZABLE_ATTRIB(materialIndices, m_mMaterialIndices)
     SERIALIZABLE_ATTRIB(shader, m_strShader)

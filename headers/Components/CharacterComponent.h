@@ -11,7 +11,7 @@ struct CharacterComponent {
 	enum class Action {
 		NONE,
 		WALK,
-		PLACE_ITEM
+		PLACE_BIOME_NODE
 	};
 
 	std::string m_strName;
