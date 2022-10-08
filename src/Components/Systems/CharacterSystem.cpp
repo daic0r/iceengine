@@ -61,8 +61,9 @@ namespace Ice
         }
         auto curTarget = walk.vGridNodes.back();
 
-        auto diff = glm::normalize(curTarget - curPos) * 3.0f; // -> 1 unit per second
-        float fEntAngle = acosf(diff.x) * Math::sgn(asinf(diff.y));
+        auto diff = glm::normalize(curTarget - curPos); // -> 1 unit per second
+        float fEntAngle = acosf(diff.y) * Math::sgn(asinf(diff.x));
+        diff *= 3.0f;
         /*
         if (Math::equal(glm::length(diff), 0.0f)) {
             return true;
@@ -76,14 +77,17 @@ namespace Ice
             bNext = true;
         } else
             diff = diff * fDeltaTime;
+        curPos += diff;
+        /*
         trans.m_transform[3][0] += diff.x;
         trans.m_transform[3][2] += diff.y;
-        trans.m_transform[3][1] = m_pTerrainSystem->getHeight(trans.m_transform[3][0], trans.m_transform[3][2]);
+        */
+        m_pTerrainSystem->getHeight(curPos.x, curPos.y, &trans.m_transform);
 
         if (bNext) {
             walk.vGridNodes.pop_back();
         }
-        trans.m_transform = trans.m_transform * bindTransform;
+        trans.m_transform = trans.m_transform * glm::rotate(glm::mat4{1.0f}, fEntAngle, glm::vec3{0.0f, 1.0f, 0.0f}) * bindTransform;
 
         return walk.vGridNodes.empty();
     }
