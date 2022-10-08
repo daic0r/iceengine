@@ -163,6 +163,7 @@ World/LowPolyTerrain.cpp
 World/World.cpp
 World/Terrain.cpp
 World/WaterTile.cpp
+Algorithms/AStar.cpp
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
