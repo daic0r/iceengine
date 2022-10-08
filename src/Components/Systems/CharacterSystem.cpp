@@ -5,6 +5,7 @@
 #include <System/Math.h>
 #include <Components/Systems/TerrainSystem.h>
 #include <Components/Systems/BiomeSystem.h>
+#include <Algorithms/AStar.h>
 
 namespace Ice
 {
@@ -32,26 +33,59 @@ namespace Ice
         auto& trans = entityManager.getComponent<TransformComponent>(e);
 
         glm::vec2 curPos{ trans.m_transform[3][0], trans.m_transform[3][2] };
-        auto diff = glm::normalize(walk.target - curPos) * 3.0f; // -> 1 unit per second
+
+        if (walk.vGridNodes.empty()) {
+            AStar star{ 64, 64 };
+            const auto& terr = m_pTerrainSystem->getTerrainAt(curPos.x, curPos.y);
+            std::pair<int,int> from = std::make_pair((int) (curPos.x / 15.0f), (int) (curPos.y / 15.0f));
+            std::pair<int,int> to = std::make_pair((int) (walk.target.x / 15.0f), (int) (walk.target.y / 15.0f));
+            auto vPath = star.findPath(from, to, 
+                [&walk,this](const auto& nodeCoord) { 
+                    const auto pos = glm::vec2{ 15.0f * nodeCoord.first, 15.0f * nodeCoord.second };
+                    const auto fHeight = m_pTerrainSystem->getHeight(pos.x, pos.y);
+                    if (fHeight <= 25.0f)
+                        return 1000000000.0f;
+                    return glm::length(pos - walk.target);
+                },
+                [this](const auto& a, const auto& b) {
+                    const auto fHeightA = m_pTerrainSystem->getHeight(15.0f * a.first, 15.0f * a.second);
+                    const auto fHeightB = m_pTerrainSystem->getHeight(15.0f * b.first, 15.0f * b.second);
+                    glm::vec3 p1 { a.first * 15.0f, fHeightA, a.second * 15.0f };
+                    glm::vec3 p2 { b.first * 15.0f, fHeightB, b.second * 15.0f };
+                    return glm::length(p1 - p2);
+                }
+            );
+            for (const auto& rb : vPath) {
+                walk.vGridNodes.emplace_back(15.0f * rb.first, 15.0f * rb.second);
+            }
+        }
+        auto curTarget = walk.vGridNodes.back();
+
+        auto diff = glm::normalize(curTarget - curPos) * 3.0f; // -> 1 unit per second
         float fEntAngle = acosf(diff.x) * Math::sgn(asinf(diff.y));
+        /*
         if (Math::equal(glm::length(diff), 0.0f)) {
             return true;
         }
+        */
 
         const auto bindTransform = glm::mat4{1.0f};
-        bool bDone{};
-        if (const auto fMissingLength = glm::length(walk.target - curPos); glm::length(diff * fDeltaTime) > fMissingLength) {
+        bool bNext{};
+        if (const auto fMissingLength = glm::length(curTarget - curPos); glm::length(diff * fDeltaTime) > fMissingLength) {
             diff = glm::normalize(diff) * fMissingLength;
-            bDone = true;
+            bNext = true;
         } else
             diff = diff * fDeltaTime;
         trans.m_transform[3][0] += diff.x;
         trans.m_transform[3][2] += diff.y;
         trans.m_transform[3][1] = m_pTerrainSystem->getHeight(trans.m_transform[3][0], trans.m_transform[3][2]);
 
+        if (bNext) {
+            walk.vGridNodes.pop_back();
+        }
         trans.m_transform = trans.m_transform * bindTransform;
 
-        return bDone;
+        return walk.vGridNodes.empty();
     }
 
     bool CharacterSystem::update(float fDeltaTime) noexcept {

@@ -10,6 +10,7 @@ namespace Ice
         static constexpr EntityComponentId id() noexcept { return WALK_ACTION_COMPONENT; }
 
         glm::vec2 target{};
+        std::vector<glm::vec2> vGridNodes;
     };
 } // namespace Ice
 
