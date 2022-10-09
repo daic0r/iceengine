@@ -5,10 +5,6 @@ namespace Ice
     AStar::AStar(std::size_t nWidth, std::size_t nHeight)
         : m_nWidth{ nWidth }, m_nHeight{ nHeight }
     {
-        m_vGrid.resize(nHeight);
-        for (auto& vRow : m_vGrid) {
-            vRow.resize(nWidth);
-        }
     }
 
     std::vector<AStar::coord_t> AStar::findPath(const coord_t& p1, const coord_t& p2, const static_task<float(const coord_t&)>& hCost, const static_task<float(const coord_t&, const coord_t&)>& dist) const {
@@ -74,10 +70,6 @@ namespace Ice
         }
 
         return vRet;
-    }
-
-    bool AStar::at(const coord_t& coord) const {
-        return m_vGrid.at(coord.second).at(coord.first);
     }
 
     std::array<std::optional<AStar::coord_t>, 8> AStar::neighbors(const coord_t& coord) const {

@@ -35,30 +35,7 @@ namespace Ice
         glm::vec2 curPos{ trans.m_transform[3][0], trans.m_transform[3][2] };
 
         if (walk.vGridNodes.empty()) {
-            AStar star{ 64, 64 };
-            const auto& terr = m_pTerrainSystem->getTerrainAt(curPos.x, curPos.y);
-            std::pair<int,int> from = std::make_pair((int) (curPos.x / 15.0f), (int) (curPos.y / 15.0f));
-            std::pair<int,int> to = std::make_pair((int) (walk.target.x / 15.0f), (int) (walk.target.y / 15.0f));
-            auto vPath = star.findPath(from, to, 
-                [&walk,this](const auto& nodeCoord) { 
-                    const auto pos = glm::vec2{ 15.0f * nodeCoord.first, 15.0f * nodeCoord.second };
-                    const auto fHeight = m_pTerrainSystem->getHeight(pos.x, pos.y);
-                    if (fHeight <= 25.0f)
-                        return 1000000000.0f;
-                    return glm::length(pos - walk.target);
-                },
-                [this](const auto& a, const auto& b) {
-                    const auto fHeightA = m_pTerrainSystem->getHeight(15.0f * a.first, 15.0f * a.second);
-                    const auto fHeightB = m_pTerrainSystem->getHeight(15.0f * b.first, 15.0f * b.second);
-                    glm::vec3 p1 { a.first * 15.0f, fHeightA, a.second * 15.0f };
-                    glm::vec3 p2 { b.first * 15.0f, fHeightB, b.second * 15.0f };
-                    return glm::length(p1 - p2);
-                }
-            );
-            walk.vGridNodes.push_back(walk.target);
-            for (const auto& rb : vPath) {
-                walk.vGridNodes.emplace_back(15.0f * rb.first, 15.0f * rb.second);
-            }
+            walk.vGridNodes = m_pTerrainSystem->findPath(curPos.x, curPos.y, walk.target.x, walk.target.y);
         }
         auto curTarget = walk.vGridNodes.back();
 

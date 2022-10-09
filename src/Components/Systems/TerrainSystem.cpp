@@ -2,12 +2,16 @@
 #include <bitset>
 #include <glm/gtc/matrix_transform.hpp>
 #include <Components/MeshComponent.h>
-#include <System/Math.h>
 #include <glm/gtx/string_cast.hpp>
 #include <Interfaces/ITerrainRenderer.h>
+#include <Algorithms/AStar.h>
+#include <Components/Systems/WaterRenderingSystem.h>
 
 namespace Ice
 {
+    void TerrainSystem::onSystemsInitialized() noexcept {
+        m_pWaterSys = entityManager.getSystem<WaterRenderingSystem, true>();
+    }
 
     void TerrainSystem::onEntityAdded(Entity e) noexcept {
         const auto& mesh = entityManager.getComponent<MeshComponent>(e);
@@ -236,4 +240,58 @@ namespace Ice
 
     }
 
+    std::vector<glm::vec2> TerrainSystem::findPath(float x1, float z1, float x2, float z2) const {
+        const auto& terr1 = getTerrainAt(x1, z1);
+        const auto& terr2 = getTerrainAt(x2, z2);
+
+        assert(terr1.m_terrain.tileWidth() == terr2.m_terrain.tileWidth() && terr1.m_terrain.tileHeight() == terr2.m_terrain.tileHeight());
+
+        const auto nDiffGridX = Math::abs(terr1.m_terrain.gridX() - terr2.m_terrain.gridX());
+        const auto nDiffGridZ = Math::abs(terr1.m_terrain.gridZ() - terr2.m_terrain.gridZ());
+        const auto nNumTilesW = static_cast<int>(terr1.m_terrain.width() / terr1.m_terrain.tileWidth());
+        const auto nNumTilesH = static_cast<int>(terr1.m_terrain.height() / terr1.m_terrain.tileHeight());
+        const auto nGridWidth = (nDiffGridX + 1) * nNumTilesW;
+        const auto nGridHeight = (nDiffGridZ + 1) * nNumTilesH;
+
+        AStar star{ nGridWidth, nGridHeight };
+
+        const auto nTileX1 = static_cast<int>(x1 / terr1.m_terrain.tileWidth()) + (terr1.m_terrain.gridX() < terr2.m_terrain.gridX() ? 0 : nDiffGridX) * nNumTilesW; 
+        const auto nTileZ1 = static_cast<int>(z1 / terr1.m_terrain.tileHeight()) + (terr1.m_terrain.gridZ() < terr2.m_terrain.gridZ() ? 0 : nDiffGridZ) * nNumTilesH; 
+        const auto nTileX2 = static_cast<int>(x2 / terr2.m_terrain.tileWidth()) + (terr2.m_terrain.gridX() < terr1.m_terrain.gridX() ? 0 : nDiffGridX) * nNumTilesW; 
+        const auto nTileZ2 = static_cast<int>(z2 / terr2.m_terrain.tileHeight()) + (terr2.m_terrain.gridZ() < terr1.m_terrain.gridZ() ? 0 : nDiffGridZ) * nNumTilesH; 
+
+        std::pair<int,int> from = std::make_pair(nTileX1, nTileZ1);
+        std::pair<int,int> to = std::make_pair(nTileX2, nTileZ2);
+
+
+        //std::pair<int,int> from = std::make_pair((int) (x1 / 15.0f), (int) (curPos.y / 15.0f));
+        //std::pair<int,int> to = std::make_pair((int) (walk.target.x / 15.0f), (int) (walk.target.y / 15.0f));
+        auto vPath = star.findPath(from, to, 
+            [&,this](const auto& nodeCoord) { 
+                const auto pos = glm::vec2{ terr1.m_terrain.tileWidth() * nodeCoord.first, terr1.m_terrain.tileHeight() * nodeCoord.second };
+                const auto fHeightFrom = getHeight(pos.x, pos.y);
+                if (fHeightFrom <= m_pWaterSys->waterLevel())
+                    return std::numeric_limits<float>::max();
+                const auto fHeightTo = getHeight(x2, z2);
+                return glm::length(glm::vec3{ pos.x, fHeightFrom, pos.y } - glm::vec3{ x2, fHeightTo, z2 });
+            },
+            [&,this](const auto& a, const auto& b) {
+                const auto worldA = glm::vec2{ terr1.m_terrain.tileWidth() * a.first, terr1.m_terrain.tileHeight() * a.second };
+                const auto worldB = glm::vec2{ terr1.m_terrain.tileWidth() * b.first, terr1.m_terrain.tileHeight() * b.second };
+                const auto fHeightA = getHeight(worldA.x, worldA.y);
+                const auto fHeightB = getHeight(worldB.x, worldB.y);
+                glm::vec3 p1 { worldA.x, fHeightA, worldA.y };
+                glm::vec3 p2 { worldB.x, fHeightB, worldB.y };
+                return glm::length(p1 - p2);
+            }
+        );
+        std::vector<glm::vec2> vRet;
+        vRet.reserve(vPath.size() + 1);
+        vRet.push_back(glm::vec2{ x2, z2 });
+        for (const auto& rb : vPath) {
+            vRet.emplace_back(terr1.m_terrain.tileWidth() * rb.first, terr1.m_terrain.tileHeight() * rb.second);
+        }
+
+        return vRet;        
+    }
 } // namespace Ice

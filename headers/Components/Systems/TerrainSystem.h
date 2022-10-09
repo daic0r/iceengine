@@ -12,6 +12,8 @@
 
 namespace Ice
 {
+    class WaterRenderingSystem;
+
     class TerrainSystem : public EntityComponentSystem<TerrainComponent> {
         using triangle_t = Triangle;
         using tree_t = Octree<triangle_t>;
@@ -26,6 +28,7 @@ namespace Ice
             std::array<float, 3> barycentric;
         };
         void onEntityAdded(Entity) noexcept;
+        void onSystemsInitialized() noexcept override;
         
         bool hasTerrainAt(float x, float z) const;
         TerrainComponent& getTerrainAt(float x, float z) const;
@@ -38,7 +41,11 @@ namespace Ice
         glm::vec2 getTriangleRelativeCoords(TerrainComponent const& terrain, float x, float z) const;
         IntersectResult intersects(Entity e, const Ray& ray) const noexcept;
 
+        std::vector<glm::vec2> findPath(float x1, float z1, float x2, float z2) const;
+
     private:
+
+        WaterRenderingSystem* m_pWaterSys{};
  };
     
 } // namespace Ice
