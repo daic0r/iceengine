@@ -9,8 +9,12 @@ set(CMAKE_BUILD_TYPE Debug)
 #set(GCC_COMPILER_FLAGS "-O3 -std=c++2b")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COMPILER_FLAGS}")
 
+# https://cmake.org/cmake/help/latest/command/add_library.html#object-libraries
+add_library(glad OBJECT ../external/inc/GL/glad.c)
+target_compile_options(glad PRIVATE -fPIC)
+
 add_library(iceengine SHARED
-../external/inc/GL/glad.c
+$<TARGET_OBJECTS:glad>
 Utils/FinalAction.cpp
 Utils/SDLTools.cpp
 Utils/ScopedTimeMeasurement.cpp
@@ -217,6 +221,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE RENDERER_OPEN_GL _DEBUG)
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ../external/inc PUBLIC ../external/inc/SDL2) # PUBLIC . PUBLIC ${CMAKE_SYSTEM_INCLUDE_PATH})
 target_include_directories(${PROJECT_NAME} PUBLIC ../headers) # PUBLIC . PUBLIC ${CMAKE_SYSTEM_INCLUDE_PATH})
 target_link_libraries(${PROJECT_NAME} SDL2 GLEW crossguid SDL2_image uuid dl pthread profiler)
+target_precompile_headers(${PROJECT_NAME} PUBLIC ../headers/pch.h)
 
 install(TARGETS ${PROJECT_NAME}
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})

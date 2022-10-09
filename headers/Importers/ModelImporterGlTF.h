@@ -1,16 +1,12 @@
 #ifndef ModelImporterGlTF_h
 #define ModelImporterGlTF_h
 
-#include <string>
 #include <Components/MeshComponent.h>
 #include <Components/AnimatedMeshComponent.h>
 #include <System/RenderMaterial.h>
-#include <map>
-#include <string_view>
 #include <Components/SkeletonComponent.h>
 #include <ModelAnimation/ModelAnimation.h>
 #include <ModelAnimation/Joint.h>
-#include <vector>
 
 namespace tinygltf {
     class Model;

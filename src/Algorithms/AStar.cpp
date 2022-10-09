@@ -1,11 +1,4 @@
 #include <Algorithms/AStar.h>
-#include <queue>
-#include <list>
-#include <array>
-#include <map>
-#include <set>
-#include <algorithm>
-#include <ranges>
 
 namespace Ice
 {

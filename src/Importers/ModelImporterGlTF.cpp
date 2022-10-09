@@ -3,15 +3,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <tiny_gltf.h>
-#include <filesystem>
-#include <iostream>
-#include <vector>
-#include <glm/vec3.hpp>
-#include <ranges>
-#include <memory>
-#include <limits>
-#include <glm/mat4x4.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <ModelAnimation/JointAnimation.h>
 #include <ModelAnimation/JointTransform.h>
