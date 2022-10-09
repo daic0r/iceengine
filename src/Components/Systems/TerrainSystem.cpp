@@ -246,19 +246,22 @@ namespace Ice
 
         assert(terr1.m_terrain.tileWidth() == terr2.m_terrain.tileWidth() && terr1.m_terrain.tileHeight() == terr2.m_terrain.tileHeight());
 
+        const auto fTileWidth = terr1.m_terrain.tileWidth() / 3.0f;
+        const auto fTileHeight = terr1.m_terrain.tileHeight() / 3.0f;
+
         const auto nDiffGridX = Math::abs(terr1.m_terrain.gridX() - terr2.m_terrain.gridX());
         const auto nDiffGridZ = Math::abs(terr1.m_terrain.gridZ() - terr2.m_terrain.gridZ());
-        const auto nNumTilesW = static_cast<int>(terr1.m_terrain.width() / terr1.m_terrain.tileWidth());
-        const auto nNumTilesH = static_cast<int>(terr1.m_terrain.height() / terr1.m_terrain.tileHeight());
+        const auto nNumTilesW = static_cast<int>(terr1.m_terrain.width() / fTileWidth);
+        const auto nNumTilesH = static_cast<int>(terr1.m_terrain.height() / fTileHeight);
         const auto nGridWidth = (nDiffGridX + 1) * nNumTilesW;
         const auto nGridHeight = (nDiffGridZ + 1) * nNumTilesH;
 
         AStar star{ nGridWidth, nGridHeight };
 
-        const auto nTileX1 = static_cast<int>(x1 / terr1.m_terrain.tileWidth()) + (terr1.m_terrain.gridX() < terr2.m_terrain.gridX() ? 0 : nDiffGridX) * nNumTilesW; 
-        const auto nTileZ1 = static_cast<int>(z1 / terr1.m_terrain.tileHeight()) + (terr1.m_terrain.gridZ() < terr2.m_terrain.gridZ() ? 0 : nDiffGridZ) * nNumTilesH; 
-        const auto nTileX2 = static_cast<int>(x2 / terr2.m_terrain.tileWidth()) + (terr2.m_terrain.gridX() < terr1.m_terrain.gridX() ? 0 : nDiffGridX) * nNumTilesW; 
-        const auto nTileZ2 = static_cast<int>(z2 / terr2.m_terrain.tileHeight()) + (terr2.m_terrain.gridZ() < terr1.m_terrain.gridZ() ? 0 : nDiffGridZ) * nNumTilesH; 
+        const auto nTileX1 = static_cast<int>(x1 / fTileWidth) + (terr1.m_terrain.gridX() < terr2.m_terrain.gridX() ? 0 : nDiffGridX) * nNumTilesW; 
+        const auto nTileZ1 = static_cast<int>(z1 / fTileHeight) + (terr1.m_terrain.gridZ() < terr2.m_terrain.gridZ() ? 0 : nDiffGridZ) * nNumTilesH; 
+        const auto nTileX2 = static_cast<int>(x2 / fTileWidth) + (terr2.m_terrain.gridX() < terr1.m_terrain.gridX() ? 0 : nDiffGridX) * nNumTilesW; 
+        const auto nTileZ2 = static_cast<int>(z2 / fTileHeight) + (terr2.m_terrain.gridZ() < terr1.m_terrain.gridZ() ? 0 : nDiffGridZ) * nNumTilesH; 
 
         std::pair<int,int> from = std::make_pair(nTileX1, nTileZ1);
         std::pair<int,int> to = std::make_pair(nTileX2, nTileZ2);
@@ -268,7 +271,7 @@ namespace Ice
         //std::pair<int,int> to = std::make_pair((int) (walk.target.x / 15.0f), (int) (walk.target.y / 15.0f));
         auto vPath = star.findPath(from, to, 
             [&,this](const auto& nodeCoord) { 
-                const auto pos = glm::vec2{ terr1.m_terrain.tileWidth() * nodeCoord.first, terr1.m_terrain.tileHeight() * nodeCoord.second };
+                const auto pos = glm::vec2{ fTileWidth * nodeCoord.first, fTileHeight * nodeCoord.second };
                 const auto fHeightFrom = getHeight(pos.x, pos.y);
                 if (fHeightFrom <= m_pWaterSys->waterLevel())
                     return std::numeric_limits<float>::max();
@@ -276,8 +279,8 @@ namespace Ice
                 return glm::length(glm::vec3{ pos.x, fHeightFrom, pos.y } - glm::vec3{ x2, fHeightTo, z2 });
             },
             [&,this](const auto& a, const auto& b) {
-                const auto worldA = glm::vec2{ terr1.m_terrain.tileWidth() * a.first, terr1.m_terrain.tileHeight() * a.second };
-                const auto worldB = glm::vec2{ terr1.m_terrain.tileWidth() * b.first, terr1.m_terrain.tileHeight() * b.second };
+                const auto worldA = glm::vec2{ fTileWidth * a.first, fTileHeight * a.second };
+                const auto worldB = glm::vec2{ fTileWidth * b.first, fTileHeight * b.second };
                 const auto fHeightA = getHeight(worldA.x, worldA.y);
                 const auto fHeightB = getHeight(worldB.x, worldB.y);
                 glm::vec3 p1 { worldA.x, fHeightA, worldA.y };
@@ -289,7 +292,7 @@ namespace Ice
         vRet.reserve(vPath.size() + 1);
         vRet.push_back(glm::vec2{ x2, z2 });
         for (const auto& rb : vPath) {
-            vRet.emplace_back(terr1.m_terrain.tileWidth() * rb.first, terr1.m_terrain.tileHeight() * rb.second);
+            vRet.emplace_back(fTileWidth * rb.first, fTileHeight * rb.second);
         }
 
         return vRet;        
