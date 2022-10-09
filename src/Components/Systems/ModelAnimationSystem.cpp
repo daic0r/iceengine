@@ -24,6 +24,7 @@ bool ModelAnimationSystem::update(float fDeltaTime) {
 
         auto& skeleton = entityManager.getComponent<SkeletonComponent>(e);
         
+        animation.pCurrent->lastTime() = animation.pCurrent->currentTime();
         animation.pCurrent->currentTime() += fDeltaTime;
         animation.pCurrent->currentTime() = fmod(animation.pCurrent->currentTime(), animation.pCurrent->lengthSeconds());
         

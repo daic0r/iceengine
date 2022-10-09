@@ -14,7 +14,7 @@ namespace Ice
     class CharacterSystem : public EntityComponentSystem<CharacterComponent> {
 
         bool doWalk(Entity e, float fDeltaTime) noexcept; // return: done?
-        void doPlaceBiomeNode(Entity e) noexcept;
+        bool doPlaceBiomeNode(Entity e) noexcept;
 
     public:
         bool update(float fDeltaTime) noexcept override;

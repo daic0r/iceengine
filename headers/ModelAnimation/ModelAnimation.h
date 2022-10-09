@@ -21,6 +21,7 @@ class ModelAnimation {
 
     float m_fLengthSeconds{ 0.0f };
     float m_fCurrentTime{ 0.0f };
+    float m_fLastTime{};
     std::map<JointId, JointAnimation> m_mJointAnimations;
     
 public:
@@ -30,6 +31,8 @@ public:
     inline void setLengthSeconds(float fLength) noexcept { m_fLengthSeconds = fLength; }
     inline const auto& currentTime() const noexcept { return m_fCurrentTime; }
     inline auto& currentTime() noexcept { return m_fCurrentTime; }
+    const auto& lastTime() const noexcept { return m_fLastTime; }
+    auto& lastTime() noexcept { return m_fLastTime; }
     
     const auto& jointAnimations() const noexcept { return m_mJointAnimations; }
     auto& jointAnimations() noexcept { return m_mJointAnimations; }

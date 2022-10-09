@@ -5,6 +5,9 @@
 #include <System/Math.h>
 #include <Components/Systems/TerrainSystem.h>
 #include <Components/Systems/BiomeSystem.h>
+#include <Components/Systems/ModelAnimationSystem.h>
+#include <Components/ModelReferenceComponent.h>
+#include <Components/ModelAnimationComponent.h>
 #include <Algorithms/AStar.h>
 
 namespace Ice
@@ -14,12 +17,21 @@ namespace Ice
         m_pBiomeSystem = entityManager.getSystem<BiomeSystem, true>();
     }
 
-    void CharacterSystem::doPlaceBiomeNode(Entity e) noexcept {
-        const auto& action = entityManager.getComponent<PlaceBiomeNodeActionComponent>(e);
-        auto biomeEnt = entityManager.createEntity();
-        auto biomeTransform = entityManager.getComponent<TransformComponent>(e);
-        entityManager.addComponent(biomeEnt, biomeTransform);
-        entityManager.addComponent(biomeEnt, BiomeNodeComponent{ .type = action.biomeType, .color = RGBA( 255, 255, 255 ), .power = 0.0_pct, .fRadius = 200.0f, .state = BiomeNodeComponent::State::EXPANDING });
+    bool CharacterSystem::doPlaceBiomeNode(Entity e) noexcept {
+        auto& aniComp = entityManager.getComponent<ModelAnimationComponent>(e);
+        if (aniComp.pCurrent == nullptr || aniComp.pCurrent != &aniComp.animations.at("Place")) {
+            aniComp.pCurrent = &aniComp.animations.at("Place");
+        }
+        if (aniComp.pCurrent->currentTime() < aniComp.pCurrent->lastTime()) {
+            aniComp.pCurrent = &aniComp.animations.at("Idle");
+            const auto& action = entityManager.getComponent<PlaceBiomeNodeActionComponent>(e);
+            auto biomeEnt = entityManager.createEntity();
+            auto biomeTransform = entityManager.getComponent<TransformComponent>(e);
+            entityManager.addComponent(biomeEnt, biomeTransform);
+            entityManager.addComponent(biomeEnt, BiomeNodeComponent{ .type = action.biomeType, .color = RGBA( 255, 255, 255 ), .power = 0.0_pct, .fRadius = 200.0f, .state = BiomeNodeComponent::State::EXPANDING });
+            return true;
+        }
+        return false;
     }
 
     bool CharacterSystem::doWalk(Entity e, float fDeltaTime) noexcept {
@@ -38,6 +50,8 @@ namespace Ice
             walk.vGridNodes = m_pTerrainSystem->findPath(curPos.x, curPos.y, walk.target.x, walk.target.y);
         }
         auto curTarget = walk.vGridNodes.back();
+        if (curPos == curTarget)
+            return true;
 
         auto diff = glm::normalize(curTarget - curPos); // -> 1 unit per second
         float fEntAngle = acosf(diff.y) * Math::sgn(asinf(diff.x));
@@ -85,9 +99,11 @@ namespace Ice
                     }
                     break;
                 case CharacterComponent::Action::PLACE_BIOME_NODE:
-                    doPlaceBiomeNode(e);
-                    entityManager.removeComponent<PlaceBiomeNodeActionComponent>(e);
-                    [[fallthrough]];
+                    if (const auto bDone = doPlaceBiomeNode(e); bDone) {
+                        entityManager.removeComponent<PlaceBiomeNodeActionComponent>(e);
+                        character.actions.pop_front();
+                    }
+                    break;
                 default:
                     character.actions.pop_front();
                     break;
