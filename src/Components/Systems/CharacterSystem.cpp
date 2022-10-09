@@ -55,6 +55,7 @@ namespace Ice
                     return glm::length(p1 - p2);
                 }
             );
+            walk.vGridNodes.push_back(walk.target);
             for (const auto& rb : vPath) {
                 walk.vGridNodes.emplace_back(15.0f * rb.first, 15.0f * rb.second);
             }
