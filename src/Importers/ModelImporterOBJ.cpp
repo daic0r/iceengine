@@ -248,6 +248,7 @@ bool ModelImporterOBJ::loadMTL(const std::string& strFile)
 	glm::vec3 v3;
 
 	RenderMaterial mat{};
+	mat.setSpecularExponent(32.0f);
 	bool bFirstMaterial{ true };
 
 	while (std::getline(f, strLine)) {
@@ -287,10 +288,10 @@ bool ModelImporterOBJ::loadMTL(const std::string& strFile)
 			}
 			mat.setSpecular(v3);
 		} else
-		if (strType == "Ns") {
+		/*if (strType == "Ns") {
 			ss >> fValue;
 			mat.setSpecularExponent(fValue);
-		} else
+		} else*/
 		if (strType == "d") {
 			ss >> fValue;
 			mat.setAlpha(fValue);

@@ -12,6 +12,7 @@
 #include <ShadersGL/ShaderProgramGL.h>
 #include <iostream>
 #include <Renderer/RenderEnvironment.h>
+#include <System/Camera.h>
 
 namespace Ice {
 
@@ -34,6 +35,7 @@ const std::string ModelShaderConfigurator::m_strShadowDistanceUniformName{ "shad
 const std::string ModelShaderConfigurator::m_strShadowMarginUniformName{ "shadowMargin" };
 
 const std::string ModelShaderConfigurator::m_strWaterLevelClipPlaneYUniformName{ "waterLevelAndClipPlaneY" };
+const std::string ModelShaderConfigurator::m_strCameraPosUniformName{ "cameraPos" };
 
 //sunPosition
 // sunColor
@@ -68,6 +70,7 @@ void ModelShaderConfigurator::initialize() noexcept {
 void ModelShaderConfigurator::loadUniforms(const RenderEnvironment& env) noexcept {
     loadViewMatrix(env.viewMatrix);
     loadProjectionMatrix(env.projectionMatrix);
+    loadCameraPos(env.pCamera->position());
 }
 
 void ModelShaderConfigurator::getUniformLocations() noexcept {
@@ -89,6 +92,7 @@ void ModelShaderConfigurator::getUniformLocations() noexcept {
 	glCall(glUniformBlockBinding(m_pShaderProgram->id(), m_nCommonMatricesUBOIndex, 0));
 	//m_nShadowProjViewMatrixUniformId = m_pShaderProgram->getUniformLocation(m_strShadowProjViewMatrixUniformName);
 	m_nShadowMapTextureUniformId = m_pShaderProgram->getUniformLocation(m_strShadowMapTextureUniformName);
+    m_nCameraPosUniformId = m_pShaderProgram->getUniformLocation(m_strCameraPosUniformName);
 
     m_pShaderProgram->use();
 	// Use texture unit 1
@@ -162,9 +166,14 @@ void ModelShaderConfigurator::loadTextureUnit(GLuint nUnit) const noexcept {
 }
 
 void ModelShaderConfigurator::loadWaterLevelAndClipPlaneY(float fWaterLevel, int nClipPlaneY) noexcept {
-	m_pShaderProgram->loadVector2f(m_nWaterLevelClipPlaneYUniformId, glm::vec2{ fWaterLevel, nClipPlaneY });
+    if (m_nWaterLevelClipPlaneYUniformId != -1)
+        m_pShaderProgram->loadVector2f(m_nWaterLevelClipPlaneYUniformId, glm::vec2{ fWaterLevel, nClipPlaneY });
 }
 
+void ModelShaderConfigurator::loadCameraPos(const glm::vec3& pos) noexcept {
+    if (m_nCameraPosUniformId != -1)
+        m_pShaderProgram->loadVector3f(m_nCameraPosUniformId, pos);
+}
 /*
 void ModelShaderConfigurator::loadSunPosition(const glm::vec3& pos) const noexcept {
 	if (m_nSunPositionUniformId != -1) {

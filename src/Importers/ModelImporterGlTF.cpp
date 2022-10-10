@@ -86,8 +86,10 @@ namespace Ice
         for (const auto& material : model.materials) {
             RenderMaterial mat;
             mat.setDiffuse(glm::vec3{ material.pbrMetallicRoughness.baseColorFactor[0], material.pbrMetallicRoughness.baseColorFactor[1], material.pbrMetallicRoughness.baseColorFactor[2] });
+            mat.setSpecular(mat.diffuse());
             mat.setAmbient(mat.diffuse());
             mat.setName(material.name);
+            mat.setSpecularExponent(32.0f);
             vMaterials.push_back(mat);
             m_mMaterials.emplace(material.name, mat);
         }
