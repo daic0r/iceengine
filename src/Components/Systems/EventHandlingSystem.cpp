@@ -141,7 +141,7 @@ bool EventHandlingSystem::update(float fDeltaTime) {
                     systemServices.getEventQueue()->queueInternalEvent(std::move(pEvent));
                 }
                 if (SDL_IsTextInputActive() == SDL_FALSE) {
-                    auto pEvent = Event{ EventId::KEY_DOWN_EVENT, KeyDownEventArgs{ event.key.keysym.sym } };
+                    auto pEvent = Event{ EventId::KEY_DOWN_EVENT, KeyDownEventArgs(event.key.keysym.sym) };
                     systemServices.getEventQueue()->queueInternalEvent(std::move(pEvent));
                     invokeFunc(true);
                 }

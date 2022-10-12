@@ -31,7 +31,7 @@ namespace Ice {
 
 static constexpr char COMPONENT_FIELD_SEPARATOR = '|';
 
-class ICEENGINE_API StreamTools {
+class StreamTools {
 public:
     template<typename Key, typename Value> static void readMapFromStream(std::istream& is, std::map<Key, Value>& m, const std::function<void(std::stringstream&, Value&)>& readMapValueFunc) {
         m.clear();

@@ -16,7 +16,7 @@
 
 namespace Ice {
 
-class ICEENGINE_API SaveSystem : public EntityComponentSystem<SaveComponent> {
+class SaveSystem : public EntityComponentSystem<SaveComponent> {
    
 public:
     template<typename Output>

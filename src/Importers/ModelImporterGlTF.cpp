@@ -52,7 +52,7 @@ namespace Ice
         tinygltf::Model model;
         std::string strErr, strWarn;
         const auto path = std::filesystem::path{ m_strFile };
-        const auto strExt = std::string{ path.extension() };
+        const auto strExt = path.extension().string();
         if (strExt == ".gltf") {
             if (!gltf_ctx.LoadASCIIFromFile(&model, &strErr, &strWarn, m_strFile)) {
                 throw std::runtime_error("glTF couldn't be loaded");

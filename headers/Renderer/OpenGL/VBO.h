@@ -4,6 +4,7 @@
 #ifdef RENDERER_OPEN_GL
 
 #include <SDL2/SDL_opengl.h>
+#include <compare>
 
 namespace Ice
 {

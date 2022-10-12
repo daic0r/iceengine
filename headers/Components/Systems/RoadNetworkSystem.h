@@ -22,7 +22,7 @@ class World;
 struct LocationComponent;
 struct PathAnimationComponent;
 
-class ICEENGINE_API RoadNetworkSystem : public EntityComponentSystem<GraphNodeComponent> {
+class RoadNetworkSystem : public EntityComponentSystem<GraphNodeComponent> {
 	struct adjacency_info;
     std::unordered_map<Entity, std::set<adjacency_info>> m_mAdjacencyMatrix; // start node -> (end node, edge, exclusions)
 

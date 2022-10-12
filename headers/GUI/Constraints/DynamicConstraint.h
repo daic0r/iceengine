@@ -18,7 +18,7 @@ namespace Ice {
 
 namespace GUI {
 
-class ICEENGINE_API DynamicPointConstraint : public PointConstraint {
+class DynamicPointConstraint : public PointConstraint {
     using CallableType = std::function<float(Widget*)>;
     
     CallableType m_func;

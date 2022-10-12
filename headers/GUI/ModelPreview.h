@@ -20,7 +20,7 @@ class IWidgetRenderer;
 
 namespace GUI {
 
-class ICEENGINE_API ModelPreview : public Widget {
+class ModelPreview : public Widget {
     //Model *m_pModel{ nullptr };
     std::vector<Model> m_vModels;
     glm::mat4 m_viewMatrix;

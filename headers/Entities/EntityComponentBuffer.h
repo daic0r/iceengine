@@ -92,8 +92,8 @@ public:
 
 namespace detail {
 
-	ICEENGINE_API void* getInstance(const std::type_info& ti);
-	ICEENGINE_API void setInstance(const std::type_info& ti, void*);
+	 void* getInstance(const std::type_info& ti);
+	 void setInstance(const std::type_info& ti, void*);
 
 	template<typename T> T* getInstanceImpl() {
 		auto pInst = reinterpret_cast<T*>(detail::getInstance(typeid(T)));

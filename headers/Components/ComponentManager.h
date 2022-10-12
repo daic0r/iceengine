@@ -15,7 +15,7 @@ namespace Ice {
 
 struct BaseComponent;
 
-class ICEENGINE_API ComponentManager : public IComponentManager
+class ComponentManager : public IComponentManager
 {
 
 	std::unique_ptr<BaseComponent> createComponent();

@@ -18,10 +18,10 @@
 namespace Ice {
 
 template<typename PointType>
-struct ICEENGINE_API BaseExtents {};
+struct BaseExtents {};
 
 template<>
-struct ICEENGINE_API BaseExtents<glm::vec3> {
+struct BaseExtents<glm::vec3> {
     glm::vec3 minPoint{ std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max() };
     glm::vec3 maxPoint{ std::numeric_limits<float>::min(), std::numeric_limits<float>::min(), std::numeric_limits<float>::min() };
 
@@ -42,7 +42,7 @@ struct ICEENGINE_API BaseExtents<glm::vec3> {
 };
 
 template<>
-struct ICEENGINE_API BaseExtents<glm::vec2> {
+struct BaseExtents<glm::vec2> {
     glm::vec2 minPoint{ std::numeric_limits<float>::max(), std::numeric_limits<float>::max() };
     glm::vec2 maxPoint{ std::numeric_limits<float>::min(), std::numeric_limits<float>::min() };
 };
@@ -50,7 +50,7 @@ struct ICEENGINE_API BaseExtents<glm::vec2> {
 ////////
 
 template<typename PointType = glm::vec3>
-struct ICEENGINE_API Extents : public BaseExtents<PointType> {
+struct Extents : public BaseExtents<PointType> {
   
     bool contains(const Extents<PointType>& other) const {
         bool bContains{ true };

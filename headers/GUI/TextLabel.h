@@ -25,7 +25,7 @@ class IWidgetRenderer;
 
 namespace GUI {
 
-class ICEENGINE_API TextLabel : public Widget {
+class TextLabel : public Widget {
     friend class TextRendererGL;
 	friend class WidgetManager;
 

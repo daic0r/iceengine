@@ -22,7 +22,7 @@ enum class PathType {
     RELATIVE_PATH
 };
 
-class ICEENGINE_API Config {
+class Config {
 
     std::string m_strGameName;
     std::string m_strBasePath;
@@ -89,10 +89,10 @@ namespace Config {
     constexpr int WORLD_DIM = 4096;
     constexpr int WATER_LEVEL = 35;
 
-    extern ICEENGINE_API int posX, posY;
-    extern ICEENGINE_API int width, height;
-    extern ICEENGINE_API bool fullscreen;
-    extern ICEENGINE_API int currentProgramId;
+    extern int posX, posY;
+    extern int width, height;
+    extern bool fullscreen;
+    extern int currentProgramId;
 
 };
 */

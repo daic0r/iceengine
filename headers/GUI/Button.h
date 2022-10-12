@@ -20,7 +20,7 @@ class IWidgetRenderer;
 
 namespace GUI {
 
-class ICEENGINE_API Button : public Widget {
+class Button : public Widget {
   
     std::string m_strLabel;
     glm::vec4 m_oldColor;

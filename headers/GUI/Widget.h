@@ -32,7 +32,7 @@ namespace GUI {
 using WidgetHandle = std::uint16_t;
 using WidgetContainer = std::map<WidgetHandle, std::unique_ptr<Widget>>;
 
-class ICEENGINE_API Widget {
+class  Widget {
     friend class WidgetManager;
     friend class WidgetView;
 

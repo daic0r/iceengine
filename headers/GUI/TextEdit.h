@@ -8,7 +8,7 @@ namespace Ice {
 
 namespace GUI {
 
-class ICEENGINE_API TextEdit : public TextLabel {
+class TextEdit : public TextLabel {
 public:
 	TextEdit();
 	TextEdit(const std::string& strText, bool bMultiline, const TextStyle& style);

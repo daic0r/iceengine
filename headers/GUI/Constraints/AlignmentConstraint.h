@@ -17,7 +17,7 @@ namespace Ice {
 
 namespace GUI {
 
-class ICEENGINE_API HorizontalAlignmentConstraint : public PointConstraint {
+class HorizontalAlignmentConstraint : public PointConstraint {
     HorizontalAlignment m_align;
     
 public:
@@ -25,7 +25,7 @@ public:
     float getValue() const override;
 };
 
-class ICEENGINE_API VerticalAlignmentConstraint : public PointConstraint {
+class VerticalAlignmentConstraint : public PointConstraint {
     VerticalAlignment m_align;
     
 public:

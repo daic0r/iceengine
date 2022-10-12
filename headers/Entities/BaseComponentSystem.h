@@ -9,7 +9,7 @@
 
 namespace Ice {
 
-class ICEENGINE_API BaseComponentSystem
+class BaseComponentSystem
 {
 	friend class BaseEntityManager;
 

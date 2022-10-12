@@ -20,7 +20,7 @@ namespace Ice {
 
 class PathSegment;
 
-class ICEENGINE_API Path {
+class Path {
 private:
     static std::uint32_t nNextId;
 

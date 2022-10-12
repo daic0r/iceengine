@@ -25,10 +25,10 @@ Padding::Padding() {
 
 Padding::Padding(float fLeft, float fTop, float fRight, float fBottom) {
     auto pG = systemServices.getGraphicsSystem();
-    m_mPaddings[OrthogonalDirection::LEFT] = Pixels{ fLeft / pG->getHorizontalPixelScale() };
-    m_mPaddings[OrthogonalDirection::RIGHT] = Pixels{ fRight / pG->getHorizontalPixelScale() };
-    m_mPaddings[OrthogonalDirection::BOTTOM] = Pixels{ fBottom / pG->getVerticalPixelScale() };
-    m_mPaddings[OrthogonalDirection::TOP] = Pixels{ fTop / pG->getVerticalPixelScale() };
+    m_mPaddings[OrthogonalDirection::LEFT] = Pixels( fLeft / pG->getHorizontalPixelScale() );
+    m_mPaddings[OrthogonalDirection::RIGHT] = Pixels( fRight / pG->getHorizontalPixelScale() );
+    m_mPaddings[OrthogonalDirection::BOTTOM] = Pixels( fBottom / pG->getVerticalPixelScale() );
+    m_mPaddings[OrthogonalDirection::TOP] = Pixels( fTop / pG->getVerticalPixelScale() );
 }
 
 Padding::Padding(Pixels left, Pixels top, Pixels right, Pixels bottom) {

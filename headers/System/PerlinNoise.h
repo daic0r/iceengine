@@ -63,7 +63,7 @@ public:
 	}
 
 	// Get a noise value, for 2D images z can have any value
-	constexpr double noise(double x, double y, double z) {
+	double noise(double x, double y, double z) {
 		// Find the unit cube that contains the point
 		int X = (int) floor(x) & 255;
 		int Y = (int) floor(y) & 255;
@@ -91,7 +91,7 @@ public:
 		double res = lerp(w, lerp(v, lerp(u, grad(p[AA], x, y, z), grad(p[BA], x-1, y, z)), lerp(u, grad(p[AB], x, y-1, z), grad(p[BB], x-1, y-1, z))),	lerp(v, lerp(u, grad(p[AA+1], x, y, z-1), grad(p[BA+1], x-1, y, z-1)), lerp(u, grad(p[AB+1], x, y-1, z-1),	grad(p[BB+1], x-1, y-1, z-1))));
 		return (res + 1.0)/2.0;
 	}
-    constexpr double octave(int m, double x, double y, double z = 0.0) {
+    double octave(int m, double x, double y, double z = 0.0) {
 		return 1.0 / m * noise(m * x, m * y, z);
 	}
 private:

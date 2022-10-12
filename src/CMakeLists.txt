@@ -4,10 +4,22 @@ project(iceengine)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_LIBRARY_PATH {$CMAKE_LIBRARY_PATH} ../external/linux)
+if (UNIX)
+	set(CMAKE_LIBRARY_PATH {$CMAKE_LIBRARY_PATH} ../external/linux)
+elseif(WIN32)
+	set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+	set(CMAKE_LIBRARY_PATH {$CMAKE_LIBRARY_PATH} ../external/windows)
+endif(UNIX)
 set(CMAKE_BUILD_TYPE Debug)
 #set(GCC_COMPILER_FLAGS "-O3 -std=c++2b")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COMPILER_FLAGS}")
+if(MSVC)
+    add_compile_options(
+        $<$<CONFIG:>:/MT> #---------|
+        $<$<CONFIG:Debug>:/MTd> #---|-- Statically link the runtime libraries
+        $<$<CONFIG:Release>:/MT> #--|
+    )
+endif()
 
 # https://cmake.org/cmake/help/latest/command/add_library.html#object-libraries
 add_library(glad OBJECT ../external/inc/GL/glad.c)
@@ -172,21 +184,31 @@ Algorithms/AStar.cpp
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
 
-find_library(SDL2 SDL2)
-find_library(GLEW GLEW)
-find_library(crossguid crossguid)
-find_library(SDL2_image SDL2_image)
-find_library(uuid uuid)
-find_library(dl dl)
-find_library(pthread pthread)
-find_library(profiler profiler)
+	
+#set(CMAKE_STATIC_LIBRARY_PREFIX ${PROJECT_SOURCE_DIR}/../external/windows/lib)
+
+get_cmake_property(_variableNames VARIABLES)
+    foreach (_variableName ${_variableNames})
+        message(STATUS "${_variableName}=${${_variableName}}")
+    endforeach()
+
+if(UNIX)
+	find_library(SDL2 SDL2)
+	find_library(crossguid crossguid)
+	find_library(SDL2_image SDL2_image)
+else()
+	find_library(SDL2 NAMES SDL2 HINTS ${PROJECT_SOURCE_DIR}/../external/windows/lib NO_DEFAULT_PATH)
+	find_library(crossguid 
+		NAMES
+		$<$<CONFIG:Debug>:crossguid_dbg>
+		$<$<CONFIG:Release>:crossguid>
+		HINTS ${PROJECT_SOURCE_DIR}/../external/windows/lib NO_DEFAULT_PATH)
+	find_library(SDL2_image NAMES SDL2_image HINTS  ${PROJECT_SOURCE_DIR}/../external/windows/lib NO_DEFAULT_PATH)
+endif()
+
 
 if (NOT SDL2)
 	message(FATAL_ERROR "SDL2 not found")
-endif()
-
-if (NOT GLEW)
-	message(FATAL_ERROR "GLEW not found")
 endif()
 
 if (NOT crossguid)
@@ -197,30 +219,43 @@ if (NOT SDL2_image)
 	message(FATAL_ERROR "SDL2_image not found")
 endif()
 
-if (NOT uuid)
-	message(FATAL_ERROR "uuid not found")
-endif()
+if (UNIX)
+	find_library(dl dl)
+	find_library(uuid uuid)
+	find_library(pthread pthread)
+	find_library(profiler profiler)
+	if (NOT dl)
+		message(FATAL_ERROR "dl not found")
+	endif()
+	if (NOT uuid)
+		message(FATAL_ERROR "uuid not found")
+	endif()
 
-if (NOT dl)
-	message(FATAL_ERROR "dl not found")
-endif()
+	if (NOT pthread)
+		message(FATAL_ERROR "pthread not found")
+	endif()
 
-if (NOT pthread)
-	message(FATAL_ERROR "pthread not found")
-endif()
+	if (NOT profiler)
+		message(FATAL_ERROR "profiler not found")
+	endif()
+endif(UNIX)
 
-if (NOT profiler)
-	message(FATAL_ERROR "profiler not found")
+if (UNIX)
+	target_compile_options(${PROJECT_NAME} PRIVATE -O0 -g -fPIC -Wno-non-template-friend)
+	target_link_options(${PROJECT_NAME} PRIVATE -Wl,--no-as-needed)
 endif()
-
-target_compile_options(${PROJECT_NAME} PRIVATE -O0 -g -fPIC -Wno-non-template-friend)
-target_link_options(${PROJECT_NAME} PRIVATE -Wl,--no-as-needed)
 target_compile_definitions(${PROJECT_NAME} PRIVATE RENDERER_OPEN_GL _DEBUG)
 #target_link_options(${PROJECT_NAME} PRIVATE -pg)
 #target_link_directories(${PROJECT_NAME} PRIVATE ../external/linux PRIVATE /usr/local/lib PRIVATE /usr/lib)
-target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ../external/inc PUBLIC ../external/inc/SDL2) # PUBLIC . PUBLIC ${CMAKE_SYSTEM_INCLUDE_PATH})
+target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ../external/inc PUBLIC ../external/inc/SDL2 PUBLIC ../external/tinygltf) # PUBLIC . PUBLIC ${CMAKE_SYSTEM_INCLUDE_PATH})
 target_include_directories(${PROJECT_NAME} PUBLIC ../headers) # PUBLIC . PUBLIC ${CMAKE_SYSTEM_INCLUDE_PATH})
-target_link_libraries(${PROJECT_NAME} SDL2 GLEW crossguid SDL2_image uuid dl pthread profiler)
+
+if (UNIX)
+	target_link_libraries(${PROJECT_NAME} SDL2 crossguid SDL2_image uuid dl pthread profiler)
+elseif (WIN32)
+	target_link_directories(${PROJECT_NAME} PRIVATE ../external/windows/lib)
+	target_link_libraries(${PROJECT_NAME} SDL2 crossguid SDL2_image)
+endif()
 target_precompile_headers(${PROJECT_NAME} PUBLIC ../headers/pch.h)
 
 install(TARGETS ${PROJECT_NAME}

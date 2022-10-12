@@ -7,7 +7,7 @@ namespace Ice
 {
     class VertexAttribute {
     public:
-        constexpr VertexAttribute(std::size_t nAttribIdx) : m_nAttributeIdx{ nAttribIdx } {}
+        VertexAttribute(std::size_t nAttribIdx) : m_nAttributeIdx{ nAttribIdx } {}
 
         template<typename ElementType>
         void setData(std::vector<ElementType>* vBuf) {

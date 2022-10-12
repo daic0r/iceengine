@@ -16,7 +16,7 @@ namespace Ice {
 
 namespace GUI {
 
-class ICEENGINE_API TwoPointSizeConstraint : public SizeConstraint {
+class TwoPointSizeConstraint : public SizeConstraint {
   
     PointConstraint* m_pPoint1{ nullptr };
     std::unique_ptr<PointConstraint> m_pPoint2;

@@ -7,7 +7,7 @@
 
 namespace Ice {
 
-class ICEENGINE_API IComponentManager {
+class IComponentManager {
 public:
 	virtual std::vector<Entity> loadEntityFile(const std::string&) const = 0;
 	virtual std::vector<Entity> loadEntityFileJson(const std::string&) const = 0;

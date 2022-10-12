@@ -21,7 +21,7 @@ namespace GUI {
 
 struct FontInfo;
 
-class ICEENGINE_API TextStyle {
+class TextStyle {
     int m_nSize{ -1 };
     glm::vec4 m_color{ 1.0f, 1.0f, 1.0f, 1.0f };
     glm::vec4 m_borderColor{ 0.0f, 0.0f, 0.0f, 1.0f };

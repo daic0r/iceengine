@@ -38,7 +38,7 @@ enum class VerticalAlignment {
     TOP
 };
 
-class ICEENGINE_API ABaseConstraint : public IUIConstraint {
+class ABaseConstraint : public IUIConstraint {
     Widget* m_pParent{ nullptr };   // parent of the widget this constraint is added to
     bool m_bHonorPadding{ true };
     
@@ -52,13 +52,13 @@ public:
     bool dynamic() const noexcept override { return false; }
 };
 
-class ICEENGINE_API PointConstraint : public ABaseConstraint {
+class PointConstraint : public ABaseConstraint {
 
 public:
     PointConstraint(bool bHonorPadding = true, Widget* pParent = nullptr) noexcept : ABaseConstraint{ bHonorPadding, pParent } {}
 };
 
-class ICEENGINE_API SizeConstraint : public ABaseConstraint {
+class SizeConstraint : public ABaseConstraint {
     OrthogonalAxis m_axis;
 public:
     SizeConstraint(OrthogonalAxis axis = OrthogonalAxis::NONE, bool bHonorPadding = true, Widget* pParent = nullptr) noexcept : m_axis{ axis }, ABaseConstraint{ bHonorPadding, pParent } {}

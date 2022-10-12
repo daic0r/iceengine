@@ -18,7 +18,7 @@ namespace Ice {
 class ILoader;
 class IGame;
 
-class ICEENGINE_API Engine {
+class Engine {
     int m_nLastTicks{ -1 };
     std::unique_ptr<IGame> m_pGame;
     

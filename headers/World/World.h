@@ -19,7 +19,7 @@
 
 namespace Ice {
 
-class ICEENGINE_API World {
+class World {
     std::vector<std::vector<Ice::Entity>> m_vTiles;
     std::uint16_t m_nWorldSize = 256;
 

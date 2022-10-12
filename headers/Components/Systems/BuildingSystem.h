@@ -10,7 +10,7 @@ namespace Ice {
 class World;
 struct TransformComponent;
 
-class ICEENGINE_API BuildingSystem : public Ice::EntityComponentSystem<BuildingComponent>
+class BuildingSystem : public Ice::EntityComponentSystem<BuildingComponent>
 {
 	Ice::World* m_pWorld{ nullptr };
     Ice::Entity m_camEnt;

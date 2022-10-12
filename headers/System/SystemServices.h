@@ -48,7 +48,7 @@ namespace GUI {
 #define entityManager Ice::SystemServices::instance().getEntityManager()
 #define componentManager Ice::SystemServices::instance().getComponentManager()
 
-class ICEENGINE_API SystemServices {
+class SystemServices {
     std::unique_ptr<IParticleRenderer> m_pParticleRenderer;
     std::unique_ptr<IWaterRenderer> m_pWaterRenderer;
     std::unique_ptr<IModelRenderer> m_pModelRenderer;

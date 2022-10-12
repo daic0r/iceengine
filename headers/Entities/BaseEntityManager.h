@@ -18,7 +18,7 @@ class IEntityComponentBuffer;
 class IStreamSaver;
 class IJSONSaver;
 
-class ICEENGINE_API BaseEntityManager {
+class BaseEntityManager {
 protected:
 	static constexpr Entity MAX_ENTITIES{ 1024 * 1024 };
 	static constexpr Entity INVALID_ID{ 0 };

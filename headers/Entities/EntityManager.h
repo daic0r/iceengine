@@ -19,7 +19,7 @@
 
 namespace Ice {
 
-class ICEENGINE_API EntityManager : public BaseEntityManager {
+class EntityManager : public BaseEntityManager {
     static bool m_bInstanced;
 
     template<typename Component>

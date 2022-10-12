@@ -20,7 +20,7 @@
 
 namespace Ice {
 
-class ICEENGINE_API Camera {
+class Camera {
     friend class WaterRendererGL;
     
     glm::vec3 m_position;

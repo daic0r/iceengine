@@ -30,7 +30,7 @@ struct AnimatedMeshComponent;
 struct ModelAnimationComponent;
 struct MeshComponent;
 
-class ICEENGINE_API ModelImporterCollada {
+class ModelImporterCollada {
     
     struct sJoint;
     

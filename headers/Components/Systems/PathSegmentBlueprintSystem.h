@@ -18,7 +18,7 @@
 
 namespace Ice {
 
-class ICEENGINE_API PathSegmentBlueprintSystem : public Ice::EntityComponentSystem<Ice::MeshComponent, Ice::RenderMaterialsComponent, Ice::PathSegmentComponent> {
+class PathSegmentBlueprintSystem : public Ice::EntityComponentSystem<Ice::MeshComponent, Ice::RenderMaterialsComponent, Ice::PathSegmentComponent> {
     
 public:
     Ice::Entity createInstance(Ice::Entity, const glm::mat4& = glm::mat4{ 1.0f }, Ice::Entity addToEntity = INVALID_ENTITY_ID) const;

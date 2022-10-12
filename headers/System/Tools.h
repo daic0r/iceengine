@@ -24,7 +24,7 @@ namespace Ice {
 
 class Frustum;
 
-struct ICEENGINE_API Tools {
+struct Tools {
     static constexpr float EPSILON = .00001f;
     
     

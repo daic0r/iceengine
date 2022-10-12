@@ -256,7 +256,7 @@ namespace Ice
         const auto nGridWidth = (nDiffGridX + 1) * nNumTilesW;
         const auto nGridHeight = (nDiffGridZ + 1) * nNumTilesH;
 
-        AStar star{ nGridWidth, nGridHeight };
+        AStar star(nGridWidth, nGridHeight);
 
         const auto nTileX1 = static_cast<int>(x1 / fTileWidth) + (terr1.m_terrain.gridX() < terr2.m_terrain.gridX() ? 0 : nDiffGridX) * nNumTilesW; 
         const auto nTileZ1 = static_cast<int>(z1 / fTileHeight) + (terr1.m_terrain.gridZ() < terr2.m_terrain.gridZ() ? 0 : nDiffGridZ) * nNumTilesH; 

@@ -9,13 +9,13 @@
 #ifdef WINDOWS_SYSTEM
 
 #ifdef ICEENGINE_DLL_EXPORTS
-#define ICEENGINE_API __declspec(dllexport)
+#define __declspec(dllexport)
 #else
-#define ICEENGINE_API __declspec(dllimport)
+#define __declspec(dllimport)
 #endif
 
 #else
 
-#define ICEENGINE_API
+#define
 
 #endif

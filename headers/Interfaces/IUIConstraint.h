@@ -15,7 +15,7 @@ namespace Ice {
 
 namespace GUI {
 
-class ICEENGINE_API IUIConstraint {
+class IUIConstraint {
 public:
     virtual bool dynamic() const noexcept = 0;
     virtual float getValue() const = 0;

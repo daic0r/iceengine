@@ -26,7 +26,7 @@ class ITexture;
 class Ray;
 class Camera;
 
-struct ICEENGINE_API TerrainComponent {
+struct TerrainComponent {
 
     static constexpr EntityComponentId id() noexcept { return TERRAIN_COMPONENT; }
 

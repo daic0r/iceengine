@@ -11,7 +11,7 @@ namespace Ice {
 
 struct MeshComponent;
 
-class ICEENGINE_API ModelImporterOBJ
+class ModelImporterOBJ
 {
 	std::string m_strFile;
 	std::map<std::string, RenderMaterial> m_mMaterials;

@@ -20,7 +20,7 @@ template<OrthogonalAxis>
 class StackPanel;
 class Button;
 
-class ICEENGINE_API ScrollWidget : public Widget {
+class ScrollWidget : public Widget {
     static constexpr auto BUTTON_SIZE = 25_px;
     
     float m_fScrollPositionVertical{ 0.0 };

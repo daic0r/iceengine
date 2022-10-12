@@ -21,7 +21,7 @@
 
 namespace Ice {
 
-struct ICEENGINE_API MeshComponent {
+struct MeshComponent {
 private:
     std::vector<glm::vec3> m_vVertices;
     std::vector<glm::vec2> m_vTexCoords;
@@ -72,12 +72,12 @@ public:
     
     static constexpr EntityComponentId id() noexcept { return MESH_COMPONENT; }
 
-    friend ICEENGINE_API std::ostream& operator<<(std::ostream& os, const MeshComponent& c);
-    friend ICEENGINE_API std::istream& operator>>(std::istream& is, MeshComponent& c);
+    friend std::ostream& operator<<(std::ostream& os, const MeshComponent& c);
+    friend std::istream& operator>>(std::istream& is, MeshComponent& c);
 };
 
-ICEENGINE_API std::ostream& operator<<(std::ostream& os, const MeshComponent& c);
-ICEENGINE_API std::istream& operator>>(std::istream& is, MeshComponent& c);
+ std::ostream& operator<<(std::ostream& os, const MeshComponent& c);
+ std::istream& operator>>(std::istream& is, MeshComponent& c);
 
 }
 

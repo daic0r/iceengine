@@ -19,7 +19,7 @@
 
 namespace Ice {
 
-class ICEENGINE_API PathSegment {
+class PathSegment {
     std::map<OrthogonalDirection, std::vector<glm::vec3>> m_mVertices;
     std::map<OrthogonalDirection, EdgeOrientation> m_mOrientations;
 	std::map<OrthogonalDirection, std::vector<OrthogonalDirection>> m_mExclusions;
@@ -52,12 +52,12 @@ public:
         p.m_mExclusions = j.at("exclusions").get<std::map<OrthogonalDirection, std::vector<OrthogonalDirection>>>();
     }
     
-    friend ICEENGINE_API std::ostream& operator<<(std::ostream&, const PathSegment&);
-    friend ICEENGINE_API std::istream& operator>>(std::istream&, PathSegment&);
+    friend std::ostream& operator<<(std::ostream&, const PathSegment&);
+    friend std::istream& operator>>(std::istream&, PathSegment&);
 };
 
-ICEENGINE_API std::ostream& operator<<(std::ostream&, const PathSegment&);
-ICEENGINE_API std::istream& operator>>(std::istream&, PathSegment&);
+ std::ostream& operator<<(std::ostream&, const PathSegment&);
+ std::istream& operator>>(std::istream&, PathSegment&);
 
 }
 

@@ -33,12 +33,12 @@ public:
     const RenderMaterial& getMaterial(const std::string&) const;
     inline auto& materials() noexcept { return m_mMaterials; }
 
-	friend ICEENGINE_API std::ostream& operator<<(std::ostream&, const RenderMaterialsComponent&);
-	friend ICEENGINE_API std::istream& operator>>(std::istream&, RenderMaterialsComponent&);
+	friend std::ostream& operator<<(std::ostream&, const RenderMaterialsComponent&);
+	friend std::istream& operator>>(std::istream&, RenderMaterialsComponent&);
 };
 
-ICEENGINE_API std::ostream& operator<<(std::ostream&, const RenderMaterialsComponent&);
-ICEENGINE_API std::istream& operator>>(std::istream&, RenderMaterialsComponent&);
+ std::ostream& operator<<(std::ostream&, const RenderMaterialsComponent&);
+ std::istream& operator>>(std::istream&, RenderMaterialsComponent&);
 
 }
 
