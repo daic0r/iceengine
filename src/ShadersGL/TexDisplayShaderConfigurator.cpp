@@ -12,7 +12,7 @@ void TexDisplayShaderConfigurator::bindAttributes() const noexcept {
 void TexDisplayShaderConfigurator::getUniformLocations() noexcept {
 	m_nTexUniformId = m_pShaderProgram->getUniformLocation("tex");
 	m_pShaderProgram->use();
-	glCall(m_pShaderProgram->loadInt(m_nTexUniformId, 0));
+	m_pShaderProgram->loadInt(m_nTexUniformId, 0);
 	m_pShaderProgram->unuse();
 }
 

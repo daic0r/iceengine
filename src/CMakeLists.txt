@@ -16,14 +16,14 @@ set(CMAKE_BUILD_TYPE Debug)
 if(MSVC)
     add_compile_options(
         $<$<CONFIG:>:/MT> #---------|
-        $<$<CONFIG:Debug>:/MTd> #---|-- Statically link the runtime libraries
+        $<$<CONFIG:Debug>:/MDd> #---|-- Statically link the runtime libraries
         $<$<CONFIG:Release>:/MT> #--|
     )
 endif()
 
 # https://cmake.org/cmake/help/latest/command/add_library.html#object-libraries
 add_library(glad OBJECT ../external/inc/GL/glad.c)
-target_compile_options(glad PRIVATE -fPIC)
+set_property(TARGET glad PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 add_library(iceengine SHARED
 $<TARGET_OBJECTS:glad>
@@ -194,14 +194,18 @@ get_cmake_property(_variableNames VARIABLES)
 
 if(UNIX)
 	find_library(SDL2 SDL2)
-	find_library(crossguid crossguid)
+	find_library(crossguidXX crossguid)
 	find_library(SDL2_image SDL2_image)
-else()
+elseif (WIN32)
 	find_library(SDL2 NAMES SDL2 HINTS ${PROJECT_SOURCE_DIR}/../external/windows/lib NO_DEFAULT_PATH)
-	find_library(crossguid 
-		NAMES
-		$<$<CONFIG:Debug>:crossguid_dbg>
-		$<$<CONFIG:Release>:crossguid>
+	if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+		set(CROSSGUID_FILE_NAME "crossguid-dgb")
+	else()
+		set(CROSSGUID_FILE_NAME "crossguid")
+	endif()
+	message(STATUS "Datei: ${CROSSGUID_FILE_NAME}")
+	find_library(crossguid
+		NAMES ${CROSSGUID_FILE_NAME}
 		HINTS ${PROJECT_SOURCE_DIR}/../external/windows/lib NO_DEFAULT_PATH)
 	find_library(SDL2_image NAMES SDL2_image HINTS  ${PROJECT_SOURCE_DIR}/../external/windows/lib NO_DEFAULT_PATH)
 endif()
@@ -247,14 +251,14 @@ endif()
 target_compile_definitions(${PROJECT_NAME} PRIVATE RENDERER_OPEN_GL _DEBUG)
 #target_link_options(${PROJECT_NAME} PRIVATE -pg)
 #target_link_directories(${PROJECT_NAME} PRIVATE ../external/linux PRIVATE /usr/local/lib PRIVATE /usr/lib)
-target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ../external/inc PUBLIC ../external/inc/SDL2 PUBLIC ../external/tinygltf) # PUBLIC . PUBLIC ${CMAKE_SYSTEM_INCLUDE_PATH})
+target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ../external/inc PUBLIC ../external/inc/SDL2 PUBLIC ../external/inc/tinygltf) # PUBLIC . PUBLIC ${CMAKE_SYSTEM_INCLUDE_PATH})
 target_include_directories(${PROJECT_NAME} PUBLIC ../headers) # PUBLIC . PUBLIC ${CMAKE_SYSTEM_INCLUDE_PATH})
 
 if (UNIX)
-	target_link_libraries(${PROJECT_NAME} SDL2 crossguid SDL2_image uuid dl pthread profiler)
+	target_link_libraries(${PROJECT_NAME} ${SDL2} ${crossguid} ${SDL2_image} ${uuid} ${dl} ${pthread} ${profiler})
 elseif (WIN32)
 	target_link_directories(${PROJECT_NAME} PRIVATE ../external/windows/lib)
-	target_link_libraries(${PROJECT_NAME} SDL2 crossguid SDL2_image)
+	target_link_libraries(${PROJECT_NAME} ${SDL2} ${crossguid} ${SDL2_image})
 endif()
 target_precompile_headers(${PROJECT_NAME} PUBLIC ../headers/pch.h)
 
