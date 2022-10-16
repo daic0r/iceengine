@@ -8,18 +8,12 @@ if (UNIX)
 	set(CMAKE_LIBRARY_PATH {$CMAKE_LIBRARY_PATH} ../external/linux)
 elseif(WIN32)
 	set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
-	set(CMAKE_LIBRARY_PATH {$CMAKE_LIBRARY_PATH} ../external/windows)
+	set(CMAKE_PREFIX_PATH {$CMAKE_LIBRARY_PATH} ../external/windows/lib) # #IMPORTANT, CMake looks here
 endif(UNIX)
-set(CMAKE_BUILD_TYPE Debug)
 #set(GCC_COMPILER_FLAGS "-O3 -std=c++2b")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COMPILER_FLAGS}")
-if(MSVC)
-    add_compile_options(
-        $<$<CONFIG:>:/MT> #---------|
-        $<$<CONFIG:Debug>:/MDd> #---|-- Statically link the runtime libraries
-        $<$<CONFIG:Release>:/MT> #--|
-    )
-endif()
+#set(CMAKE_DEBUG_POSTFIX "d")
+#set(FORCE_STATIC_VCRT ON)
 
 # https://cmake.org/cmake/help/latest/command/add_library.html#object-libraries
 add_library(glad OBJECT ../external/inc/GL/glad.c)
@@ -183,7 +177,6 @@ Algorithms/AStar.cpp
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
-
 	
 #set(CMAKE_STATIC_LIBRARY_PREFIX ${PROJECT_SOURCE_DIR}/../external/windows/lib)
 
@@ -194,20 +187,15 @@ get_cmake_property(_variableNames VARIABLES)
 
 if(UNIX)
 	find_library(SDL2 SDL2)
-	find_library(crossguidXX crossguid)
+	find_library(crossguid crossguid)
 	find_library(SDL2_image SDL2_image)
 elseif (WIN32)
-	find_library(SDL2 NAMES SDL2 HINTS ${PROJECT_SOURCE_DIR}/../external/windows/lib NO_DEFAULT_PATH)
-	if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-		set(CROSSGUID_FILE_NAME "crossguid-dgb")
-	else()
-		set(CROSSGUID_FILE_NAME "crossguid")
-	endif()
-	message(STATUS "Datei: ${CROSSGUID_FILE_NAME}")
-	find_library(crossguid
-		NAMES ${CROSSGUID_FILE_NAME}
-		HINTS ${PROJECT_SOURCE_DIR}/../external/windows/lib NO_DEFAULT_PATH)
-	find_library(SDL2_image NAMES SDL2_image HINTS  ${PROJECT_SOURCE_DIR}/../external/windows/lib NO_DEFAULT_PATH)
+	find_library(SDL2 SDL2 HINTS ${PROJECT_SOURCE_DIR}/../external/windows/lib NO_DEFAULT_PATH)
+	#find_library(SDL2dbg SDL2d) # HINTS ${PROJECT_SOURCE_DIR}/../external/windows/lib NO_DEFAULT_PATH)
+	find_library(crossguid crossguid)
+	find_library(crossguiddbg crossguid-dgb)
+	find_library(SDL2_image SDL2_image HINTS  ${PROJECT_SOURCE_DIR}/../external/windows/lib NO_DEFAULT_PATH)
+	#find_library(SDL2_imagedbg SDL2_imaged) # HINTS  ${PROJECT_SOURCE_DIR}/../external/windows/lib NO_DEFAULT_PATH)
 endif()
 
 
@@ -248,19 +236,24 @@ if (UNIX)
 	target_compile_options(${PROJECT_NAME} PRIVATE -O0 -g -fPIC -Wno-non-template-friend)
 	target_link_options(${PROJECT_NAME} PRIVATE -Wl,--no-as-needed)
 endif()
-target_compile_definitions(${PROJECT_NAME} PRIVATE RENDERER_OPEN_GL _DEBUG)
+target_compile_definitions(${PROJECT_NAME} PRIVATE RENDERER_OPEN_GL)
 #target_link_options(${PROJECT_NAME} PRIVATE -pg)
 #target_link_directories(${PROJECT_NAME} PRIVATE ../external/linux PRIVATE /usr/local/lib PRIVATE /usr/lib)
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ../external/inc PUBLIC ../external/inc/SDL2 PUBLIC ../external/inc/tinygltf) # PUBLIC . PUBLIC ${CMAKE_SYSTEM_INCLUDE_PATH})
 target_include_directories(${PROJECT_NAME} PUBLIC ../headers) # PUBLIC . PUBLIC ${CMAKE_SYSTEM_INCLUDE_PATH})
+#set_target_properties(${PROJECT_NAME} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 if (UNIX)
 	target_link_libraries(${PROJECT_NAME} ${SDL2} ${crossguid} ${SDL2_image} ${uuid} ${dl} ${pthread} ${profiler})
 elseif (WIN32)
 	target_link_directories(${PROJECT_NAME} PRIVATE ../external/windows/lib)
-	target_link_libraries(${PROJECT_NAME} ${SDL2} ${crossguid} ${SDL2_image})
+	target_link_libraries(${PROJECT_NAME} ${SDL2} $<$<CONFIG:Debug>:${crossguiddbg}> $<$<CONFIG:Release>:${crossguid}> ${SDL2_image})
 endif()
 target_precompile_headers(${PROJECT_NAME} PUBLIC ../headers/pch.h)
 
+set(CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_PREFIX}/include)
+
 install(TARGETS ${PROJECT_NAME}
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(DIRECTORY "../headers" 
+		DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
