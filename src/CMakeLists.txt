@@ -12,7 +12,7 @@ elseif(WIN32)
 endif(UNIX)
 #set(GCC_COMPILER_FLAGS "-O3 -std=c++2b")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COMPILER_FLAGS}")
-#set(CMAKE_DEBUG_POSTFIX "d")
+set(CMAKE_DEBUG_POSTFIX "d")
 #set(FORCE_STATIC_VCRT ON)
 
 # https://cmake.org/cmake/help/latest/command/add_library.html#object-libraries
@@ -246,14 +246,22 @@ target_include_directories(${PROJECT_NAME} PUBLIC ../headers) # PUBLIC . PUBLIC 
 if (UNIX)
 	target_link_libraries(${PROJECT_NAME} ${SDL2} ${crossguid} ${SDL2_image} ${uuid} ${dl} ${pthread} ${profiler})
 elseif (WIN32)
+	target_compile_options(${PROJECT_NAME} PRIVATE /permissive-)
 	target_link_directories(${PROJECT_NAME} PRIVATE ../external/windows/lib)
 	target_link_libraries(${PROJECT_NAME} ${SDL2} $<$<CONFIG:Debug>:${crossguiddbg}> $<$<CONFIG:Release>:${crossguid}> ${SDL2_image})
+	set_target_properties(${PROJECT_NAME} 
+		PROPERTIES 
+			RUNTIME_OUTPUT_DIRECTORY "../../Colonizer/build/$<CONFIG>"
+			DEBUG_POSTFIX "${CMAKE_DEBUG_POSTFIX}")
+			
+			
 endif()
 target_precompile_headers(${PROJECT_NAME} PUBLIC ../headers/pch.h)
 
 set(CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_PREFIX}/include)
 
 install(TARGETS ${PROJECT_NAME}
+	CONFIGURATIONS Debug
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install(DIRECTORY "../headers" 
 		DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")

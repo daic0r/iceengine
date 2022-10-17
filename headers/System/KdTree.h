@@ -19,6 +19,7 @@
 #include <iostream>
 #include <System/Math.h>
 #include <stack>
+#include <cassert>
 
 namespace Ice
 {
@@ -143,11 +144,14 @@ namespace Ice
         std::cout << "--------\n";
 #endif
         static const auto getMedian = [](std::vector<glm::vec3>& v) {
+            if (v.empty())
+                return v.end();
             auto median = v.begin() + (v.size() / 2);
             if (v.size() % 2 == 0)
                 --median;
             return median;
         };
+        assert(!vPoint3.empty());
         auto median = getMedian(vPoint3);
 
 #ifdef _LOG

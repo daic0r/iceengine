@@ -123,14 +123,14 @@ template<typename Component, typename = void>
 class EntityComponentBuffer : public EntityComponentBufferBase<Component> {
 public:
     static EntityComponentBuffer<Component>& instance() noexcept {
-		//auto pInst = detail::getInstanceImpl<EntityComponentBuffer<Component>>();
-        static auto inst = EntityComponentBuffer{};
-        return inst;
+		auto pInst = detail::getInstanceImpl<EntityComponentBuffer<Component>>();
+        //static auto inst = EntityComponentBuffer{};
+        return *pInst;
     }
 
 	~EntityComponentBuffer() {
 		std::cout << "Freed buffer " << typeid(*this).name() << "\n";
-		//detail::freeInstanceImpl<EntityComponentBuffer<Component>>();
+		detail::freeInstanceImpl<EntityComponentBuffer<Component>>();
 	}
 };
 
@@ -141,14 +141,14 @@ class EntityComponentBuffer<Component, typename std::enable_if_t<has_ostream_ope
 public:
 public:
     static EntityComponentBuffer<Component>& instance() noexcept {
-		//auto pInst = detail::getInstanceImpl<EntityComponentBuffer<Component>>();
-        static auto inst = EntityComponentBuffer{};
-        return inst;
+		auto pInst = detail::getInstanceImpl<EntityComponentBuffer<Component>>();
+        //static auto inst = EntityComponentBuffer{};
+        return *pInst;
     }
 
 	~EntityComponentBuffer() {
 		std::cout << "Freed buffer " << typeid(*this).name() << "\n";
-		//detail::freeInstanceImpl<EntityComponentBuffer<Component>>();
+		detail::freeInstanceImpl<EntityComponentBuffer<Component>>();
 	}
 
     void save(std::ostream& os, Entity e) const override {
@@ -167,14 +167,14 @@ class EntityComponentBuffer<Component, typename std::enable_if_t<IsSavable<Compo
 public:
 public:
     static EntityComponentBuffer<Component>& instance() noexcept {
-		//auto pInst = detail::getInstanceImpl<EntityComponentBuffer<Component>>();
-        static auto inst = EntityComponentBuffer{};
-        return inst;
+		auto pInst = detail::getInstanceImpl<EntityComponentBuffer<Component>>();
+        //static auto inst = EntityComponentBuffer{};
+        return *pInst;
     }
 
 	~EntityComponentBuffer() {
 		std::cout << "Freed buffer " << typeid(*this).name() << "\n";
-		//detail::freeInstanceImpl<EntityComponentBuffer<Component>>();
+		detail::freeInstanceImpl<EntityComponentBuffer<Component>>();
 	}
 
 /*

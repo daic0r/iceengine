@@ -167,7 +167,7 @@ namespace Ice::MeshGeneration
             const auto colorContainerIdx = static_cast<std::size_t>(fContainerPos);
             const auto fBlendFactor = Ice::Math::map0to1Range(fNormHeight, colorContainerIdx*fIntervalSize, (colorContainerIdx+1)*fIntervalSize);
             const auto lowerColor = arColors[colorContainerIdx];
-            const auto upperColor = arColors[colorContainerIdx+1]; 
+            const auto upperColor = arColors[colorContainerIdx+1 < arColors.size() ? colorContainerIdx + 1 : colorContainerIdx];
             return std::make_tuple( 
                 Ice::Math::mix((float)lowerColor.r, (float)upperColor.r, fBlendFactor), 
                 Ice::Math::mix((float)lowerColor.g, (float)upperColor.g, fBlendFactor),
