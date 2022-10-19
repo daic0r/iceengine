@@ -11,7 +11,7 @@ echo Installing required packages...
 .\vcpkg\vcpkg.exe install tinygltf --triplet x64-windows
 .\vcpkg\vcpkg.exe install crossguid --triplet x64-windows
 .\vcpkg\vcpkg.exe install rapidxml --triplet x64-windows
-.\vcpkg\vcpkg.exe install glad --triplet x64-windows
+.\vcpkg\vcpkg.exe install glad[extensions,gl-api-latest] --recurse --triplet x64-windows
 .\vcpkg\vcpkg.exe install date --triplet x64-windows
 .\vcpkg\vcpkg.exe install nlohmann_json --triplet x64-windows
 cd ..
