@@ -8,7 +8,7 @@ if (UNIX)
 	set(CMAKE_LIBRARY_PATH {$CMAKE_LIBRARY_PATH} ../external/linux)
 elseif(WIN32)
 	set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
-	set(CMAKE_PREFIX_PATH {$CMAKE_LIBRARY_PATH} ../external/windows/lib) # #IMPORTANT, CMake looks here
+	#set(CMAKE_PREFIX_PATH {$CMAKE_LIBRARY_PATH} ../external/windows/lib) # #IMPORTANT, CMake looks here
 endif(UNIX)
 #set(GCC_COMPILER_FLAGS "-O3 -std=c++2b")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COMPILER_FLAGS}")
@@ -16,11 +16,11 @@ set(CMAKE_DEBUG_POSTFIX "d")
 #set(FORCE_STATIC_VCRT ON)
 
 # https://cmake.org/cmake/help/latest/command/add_library.html#object-libraries
-add_library(glad OBJECT ../external/inc/GL/glad.c)
-set_property(TARGET glad PROPERTY POSITION_INDEPENDENT_CODE ON)
+#add_library(glad OBJECT ../external/inc/GL/glad.c)
+#set_property(TARGET glad PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 add_library(iceengine SHARED
-$<TARGET_OBJECTS:glad>
+#$<TARGET_OBJECTS:glad>
 Utils/FinalAction.cpp
 Utils/SDLTools.cpp
 Utils/ScopedTimeMeasurement.cpp
@@ -185,31 +185,41 @@ get_cmake_property(_variableNames VARIABLES)
         message(STATUS "${_variableName}=${${_variableName}}")
     endforeach()
 
-if(UNIX)
-	find_library(SDL2 SDL2)
-	find_library(crossguid crossguid)
-	find_library(SDL2_image SDL2_image)
-elseif (WIN32)
-	find_library(SDL2 SDL2 HINTS ${PROJECT_SOURCE_DIR}/../external/windows/lib NO_DEFAULT_PATH)
-	#find_library(SDL2dbg SDL2d) # HINTS ${PROJECT_SOURCE_DIR}/../external/windows/lib NO_DEFAULT_PATH)
-	find_library(crossguid crossguid)
-	find_library(crossguiddbg crossguid-dgb)
-	find_library(SDL2_image SDL2_image HINTS  ${PROJECT_SOURCE_DIR}/../external/windows/lib NO_DEFAULT_PATH)
-	#find_library(SDL2_imagedbg SDL2_imaged) # HINTS  ${PROJECT_SOURCE_DIR}/../external/windows/lib NO_DEFAULT_PATH)
-endif()
+#if(UNIX)
+#	find_library(SDL2 SDL2)
+#	find_library(crossguid crossguid)
+#	find_library(SDL2_image SDL2_image)
+#elseif (WIN32)
+#	find_library(SDL2 SDL2 HINTS ${PROJECT_SOURCE_DIR}/../external/windows/lib NO_DEFAULT_PATH)
+#	#find_library(SDL2dbg SDL2d) # HINTS ${PROJECT_SOURCE_DIR}/../external/windows/lib NO_DEFAULT_PATH)
+#	find_library(crossguid crossguid)
+#	find_library(crossguiddbg crossguid-dgb)
+#	find_library(SDL2_image SDL2_image HINTS  ${PROJECT_SOURCE_DIR}/../external/windows/lib NO_DEFAULT_PATH)
+#	#find_library(SDL2_imagedbg SDL2_imaged) # HINTS  ${PROJECT_SOURCE_DIR}/../external/windows/lib NO_DEFAULT_PATH)
+#endif()
+
+find_package(SDL2 REQUIRED)
+find_package(SDL2-image REQUIRED)
+find_package(crossguid REQUIRED)
+find_package(nlohmann_json REQUIRED)
+find_package(glad REQUIRED)
+find_package(date REQUIRED)
+find_package(glm REQUIRED)
+find_path(TINYGLTF_INCLUDE_DIRS "tiny_gltf.h")
+find_path(RAPIDXML_INCLUDE_DIRS "rapidxml/rapidxml.hpp")
 
 
-if (NOT SDL2)
-	message(FATAL_ERROR "SDL2 not found")
-endif()
+#if (NOT SDL2)
+#	message(FATAL_ERROR "SDL2 not found")
+#endif()
 
-if (NOT crossguid)
-	message(FATAL_ERROR "Crossguid not found")
-endif()
+#if (NOT crossguid)
+#	message(FATAL_ERROR "Crossguid not found")
+#endif()
 
-if (NOT SDL2_image)
-	message(FATAL_ERROR "SDL2_image not found")
-endif()
+#if (NOT SDL2_image)
+#	message(FATAL_ERROR "SDL2_image not found")
+#endif()
 
 if (UNIX)
 	find_library(dl dl)
@@ -237,24 +247,20 @@ if (UNIX)
 	target_link_options(${PROJECT_NAME} PRIVATE -Wl,--no-as-needed)
 endif()
 target_compile_definitions(${PROJECT_NAME} PRIVATE RENDERER_OPEN_GL)
-#target_link_options(${PROJECT_NAME} PRIVATE -pg)
-#target_link_directories(${PROJECT_NAME} PRIVATE ../external/linux PRIVATE /usr/local/lib PRIVATE /usr/lib)
-target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ../external/inc PUBLIC ../external/inc/SDL2 PUBLIC ../external/inc/tinygltf) # PUBLIC . PUBLIC ${CMAKE_SYSTEM_INCLUDE_PATH})
+#target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ../external/inc PUBLIC ../external/inc/SDL2 PUBLIC ../external/inc/tinygltf) # PUBLIC . PUBLIC ${CMAKE_SYSTEM_INCLUDE_PATH})
+target_include_directories(${PROJECT_NAME} PRIVATE ${RAPIDXML_INCLUDE_DIRS} PRIVATE ${TINYGLTF_INCLUDE_DIRS}) # PRIVATE ${GLM_INCLUDE_DIRS})
 target_include_directories(${PROJECT_NAME} PUBLIC ../headers) # PUBLIC . PUBLIC ${CMAKE_SYSTEM_INCLUDE_PATH})
-#set_target_properties(${PROJECT_NAME} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 if (UNIX)
 	target_link_libraries(${PROJECT_NAME} ${SDL2} ${crossguid} ${SDL2_image} ${uuid} ${dl} ${pthread} ${profiler})
 elseif (WIN32)
 	target_compile_options(${PROJECT_NAME} PRIVATE /permissive-)
-	target_link_directories(${PROJECT_NAME} PRIVATE ../external/windows/lib)
-	target_link_libraries(${PROJECT_NAME} ${SDL2} $<$<CONFIG:Debug>:${crossguiddbg}> $<$<CONFIG:Release>:${crossguid}> ${SDL2_image})
+	#target_link_directories(${PROJECT_NAME} PRIVATE ../external/windows/lib)
+	target_link_libraries(${PROJECT_NAME} SDL2::SDL2 SDL2::SDL2_image crossguid glm::glm nlohmann_json::nlohmann_json glad::glad date::date)
 	set_target_properties(${PROJECT_NAME} 
 		PROPERTIES 
 			RUNTIME_OUTPUT_DIRECTORY "../../Colonizer/build/$<CONFIG>"
 			DEBUG_POSTFIX "${CMAKE_DEBUG_POSTFIX}")
-			
-			
 endif()
 target_precompile_headers(${PROJECT_NAME} PUBLIC ../headers/pch.h)
 
@@ -265,3 +271,7 @@ install(TARGETS ${PROJECT_NAME}
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install(DIRECTORY "../headers" 
 		DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+install(IMPORTED_RUNTIME_ARTIFACTS
+	SDL2::SDL2 SDL2::SDL2_image
+	RUNTIME DESTINATION "../../Colonizer/build/$<CONFIG>")
+	

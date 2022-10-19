@@ -6,7 +6,7 @@
 //  Copyright © 2020 Matthias Gruen. All rights reserved.
 //
 
-#include <GL/glad.h>
+#include <glad/glad.h>
 #include <Renderer/OpenGL/AnimatedModelRendererGL.h>
 #include <iostream>
 #include <Renderer/OpenGL/RenderToolsGL.h>

@@ -1,6 +1,6 @@
 #ifdef RENDERER_OPEN_GL
 
-#include <GL/glad.h>
+#include <glad/glad.h>
 #include <Renderer/PostProcessing/OpenGL/BasePostProcessorGL.h>
 #include <ShadersGL/ShaderProgramGL.h>
 #include <System/SystemServices.h>

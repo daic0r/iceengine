@@ -8,7 +8,7 @@
 
 #include <World/World.h>
 //#include <SDL2/SDL.h>
-//#include <SDL2_image/SDL_image.h>
+//#include <SDL2/SDL_image.h>
 #include <glm/vec4.hpp>
 #include <iostream>
 #include <glm/gtx/string_cast.hpp>

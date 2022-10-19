@@ -6,7 +6,7 @@
 //  Copyright © 2020 Matthias Gruen. All rights reserved.
 //
 
-#include <GL/glad.h>
+#include <glad/glad.h>
 #include <ShadersGL/ShaderProgramGL.h>
 #include <fstream>
 #include <SDL2/SDL_opengl.h>

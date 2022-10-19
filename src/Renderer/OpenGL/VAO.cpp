@@ -1,4 +1,4 @@
-#include <GL/glad.h>
+#include <glad/glad.h>
 #include <Renderer/OpenGL/VAO.h>
 #include <utility>
 

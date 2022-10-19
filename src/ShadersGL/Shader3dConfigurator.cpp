@@ -6,7 +6,7 @@
 //  Copyright © 2020 Matthias Gruen. All rights reserved.
 //
 
-#include <GL/glad.h>
+#include <glad/glad.h>
 #include <ShadersGL/Shader3dConfigurator.h>
 #include <Renderer/RenderEnvironment.h>
 
