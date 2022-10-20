@@ -1,4 +1,8 @@
 @echo off
+if exist src\vcpkg\ (
+	echo src\vcpkg already exists. Nothing to do.
+	exit
+)
 cd src
 echo Cloning vcpkg repo...
 git clone https://github.com/microsoft/vcpkg.git
