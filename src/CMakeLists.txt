@@ -259,7 +259,7 @@ elseif (WIN32)
 	target_link_libraries(${PROJECT_NAME} SDL2::SDL2 SDL2::SDL2_image crossguid glm::glm nlohmann_json::nlohmann_json glad::glad date::date)
 	set_target_properties(${PROJECT_NAME} 
 		PROPERTIES 
-			RUNTIME_OUTPUT_DIRECTORY "../../Colonizer/build/$<CONFIG>"
+			RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/../../Colonizer/build/$<CONFIG>"
 			DEBUG_POSTFIX "${CMAKE_DEBUG_POSTFIX}")
 endif()
 target_precompile_headers(${PROJECT_NAME} PUBLIC ../headers/pch.h)
@@ -271,8 +271,23 @@ install(TARGETS ${PROJECT_NAME}
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install(DIRECTORY "../headers" 
 		DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+		
+# Copy SDL2 and SDL2-image DLLs to game's binary dir
 install(IMPORTED_RUNTIME_ARTIFACTS
 	SDL2::SDL2 SDL2::SDL2_image
 	CONFIGURATIONS Debug Release
 	RUNTIME DESTINATION "${PROJECT_SOURCE_DIR}/../../Colonizer/build/$<CONFIG>")
-	
+
+# Copy the DLLs that SDL2-image depends on to our binary dir
+install(
+	FILES
+		${_VCPKG_INSTALLED_DIR}/x64-windows/debug/bin/zlibd1.dll
+		${_VCPKG_INSTALLED_DIR}/x64-windows/debug/bin/libpng16d.dll
+	CONFIGURATIONS Debug
+	DESTINATION "${PROJECT_SOURCE_DIR}/../../Colonizer/build/$<CONFIG>")
+install(
+	FILES
+		${_VCPKG_INSTALLED_DIR}/x64-windows/bin/zlib1.dll
+		${_VCPKG_INSTALLED_DIR}/x64-windows/bin/libpng16.dll
+	CONFIGURATIONS Release
+	DESTINATION "${PROJECT_SOURCE_DIR}/../../Colonizer/build/$<CONFIG>")
