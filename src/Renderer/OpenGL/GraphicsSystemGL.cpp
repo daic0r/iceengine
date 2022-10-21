@@ -95,6 +95,7 @@ bool GraphicsSystemGL::init() {
     }
     else
     {
+        std::cout << "SDL failed to initialize: " << SDL_GetError() << std::endl;
         return false;
     }
     

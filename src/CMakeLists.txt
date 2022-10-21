@@ -5,11 +5,16 @@ project(iceengine)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if (UNIX)
-	set(CMAKE_LIBRARY_PATH {$CMAKE_LIBRARY_PATH} ../external/linux)
+   #	set(CMAKE_LIBRARY_PATH {$CMAKE_LIBRARY_PATH} ../external/linux)
+   set(GAME_DIR_NAME "colonizer")
+   if (NOT CMAKE_BUILD_TYPE)
+      set(CMAKE_BUILD_TYPE "Debug")
+   endif()
 elseif(WIN32)
 	set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 	#set(CMAKE_PREFIX_PATH {$CMAKE_LIBRARY_PATH} ../external/windows/lib) # #IMPORTANT, CMake looks here
-endif(UNIX)
+   set(GAME_DIR_NAME "Colonizer")
+endif()
 #set(GCC_COMPILER_FLAGS "-O3 -std=c++2b")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COMPILER_FLAGS}")
 set(CMAKE_DEBUG_POSTFIX "d")
@@ -199,7 +204,7 @@ get_cmake_property(_variableNames VARIABLES)
 #endif()
 
 find_package(SDL2 REQUIRED)
-find_package(SDL2-image REQUIRED)
+find_package(sdl2-image REQUIRED)
 find_package(crossguid REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(glad REQUIRED)
@@ -207,19 +212,6 @@ find_package(date REQUIRED)
 find_package(glm REQUIRED)
 find_path(TINYGLTF_INCLUDE_DIRS "tiny_gltf.h")
 find_path(RAPIDXML_INCLUDE_DIRS "rapidxml/rapidxml.hpp")
-
-
-#if (NOT SDL2)
-#	message(FATAL_ERROR "SDL2 not found")
-#endif()
-
-#if (NOT crossguid)
-#	message(FATAL_ERROR "Crossguid not found")
-#endif()
-
-#if (NOT SDL2_image)
-#	message(FATAL_ERROR "SDL2_image not found")
-#endif()
 
 if (UNIX)
 	find_library(dl dl)
@@ -247,47 +239,58 @@ if (UNIX)
 	target_link_options(${PROJECT_NAME} PRIVATE -Wl,--no-as-needed)
 endif()
 target_compile_definitions(${PROJECT_NAME} PRIVATE RENDERER_OPEN_GL)
-#target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ../external/inc PUBLIC ../external/inc/SDL2 PUBLIC ../external/inc/tinygltf) # PUBLIC . PUBLIC ${CMAKE_SYSTEM_INCLUDE_PATH})
 target_include_directories(${PROJECT_NAME} PRIVATE ${RAPIDXML_INCLUDE_DIRS} PRIVATE ${TINYGLTF_INCLUDE_DIRS}) # PRIVATE ${GLM_INCLUDE_DIRS})
 target_include_directories(${PROJECT_NAME} PUBLIC ../headers) # PUBLIC . PUBLIC ${CMAKE_SYSTEM_INCLUDE_PATH})
 
 if (UNIX)
-	target_link_libraries(${PROJECT_NAME} ${SDL2} ${crossguid} ${SDL2_image} ${uuid} ${dl} ${pthread} ${profiler})
+   target_link_libraries(${PROJECT_NAME} SDL2::SDL2 SDL2::SDL2main SDL2::SDL2-static SDL2::SDL2_image crossguid glm::glm nlohmann_json::nlohmann_json glad::glad date::date ${uuid} ${dl} ${pthread} ${profiler})
+	set_target_properties(${PROJECT_NAME} 
+		PROPERTIES 
+			DEBUG_POSTFIX "${CMAKE_DEBUG_POSTFIX}")
 elseif (WIN32)
 	target_compile_options(${PROJECT_NAME} PRIVATE /permissive-)
 	#target_link_directories(${PROJECT_NAME} PRIVATE ../external/windows/lib)
 	target_link_libraries(${PROJECT_NAME} SDL2::SDL2 SDL2::SDL2_image crossguid glm::glm nlohmann_json::nlohmann_json glad::glad date::date)
 	set_target_properties(${PROJECT_NAME} 
 		PROPERTIES 
-			RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/../../Colonizer/build/$<CONFIG>"
+      RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/../../${GAME_DIR_NAME}/build/$<CONFIG>"
 			DEBUG_POSTFIX "${CMAKE_DEBUG_POSTFIX}")
 endif()
 target_precompile_headers(${PROJECT_NAME} PUBLIC ../headers/pch.h)
 
-set(CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_PREFIX}/include)
+if (WIN32)
+   set(CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_PREFIX}/include)
+elseif (UNIX)
+   set(CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_PREFIX}/include/iceengine)
+endif()
+
+# To make CMAKE_INSTALL_LIBDIR available
+include(GNUInstallDirs)
 
 install(TARGETS ${PROJECT_NAME}
-	CONFIGURATIONS Debug
+   CONFIGURATIONS Debug Release
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
-install(DIRECTORY "../headers" 
+install(DIRECTORY "../headers/" # <--- trailing slash to avoid creating a headers folder at the target location
 		DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 		
-# Copy SDL2 and SDL2-image DLLs to game's binary dir
-install(IMPORTED_RUNTIME_ARTIFACTS
-	SDL2::SDL2 SDL2::SDL2_image
-	CONFIGURATIONS Debug Release
-	RUNTIME DESTINATION "${PROJECT_SOURCE_DIR}/../../Colonizer/build/$<CONFIG>")
 
-# Copy the DLLs that SDL2-image depends on to our binary dir
-install(
-	FILES
-		${_VCPKG_INSTALLED_DIR}/x64-windows/debug/bin/zlibd1.dll
-		${_VCPKG_INSTALLED_DIR}/x64-windows/debug/bin/libpng16d.dll
-	CONFIGURATIONS Debug
-	DESTINATION "${PROJECT_SOURCE_DIR}/../../Colonizer/build/$<CONFIG>")
-install(
-	FILES
-		${_VCPKG_INSTALLED_DIR}/x64-windows/bin/zlib1.dll
-		${_VCPKG_INSTALLED_DIR}/x64-windows/bin/libpng16.dll
-	CONFIGURATIONS Release
-	DESTINATION "${PROJECT_SOURCE_DIR}/../../Colonizer/build/$<CONFIG>")
+if (WIN32)
+   # Copy SDL2 and SDL2-image DLLs to game's binary dir
+   install(IMPORTED_RUNTIME_ARTIFACTS
+      SDL2::SDL2 SDL2::SDL2_image
+      CONFIGURATIONS Debug Release
+      RUNTIME DESTINATION "${PROJECT_SOURCE_DIR}/../../${GAME_DIR_NAME}/build/$<CONFIG>")
+   # Copy the DLLs that SDL2-image depends on to our binary dir
+   install(
+      FILES
+         ${_VCPKG_INSTALLED_DIR}/x64-windows/debug/bin/zlibd1.dll
+         ${_VCPKG_INSTALLED_DIR}/x64-windows/debug/bin/libpng16d.dll
+      CONFIGURATIONS Debug
+      DESTINATION "${PROJECT_SOURCE_DIR}/../../${GAME_DIR_NAME}/build/$<CONFIG>")
+   install(
+      FILES
+         ${_VCPKG_INSTALLED_DIR}/x64-windows/bin/zlib1.dll
+         ${_VCPKG_INSTALLED_DIR}/x64-windows/bin/libpng16.dll
+      CONFIGURATIONS Release
+      DESTINATION "${PROJECT_SOURCE_DIR}/../../${GAME_DIR_NAME}/build/$<CONFIG>")
+endif()

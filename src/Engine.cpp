@@ -76,7 +76,9 @@ bool Engine::init(const Config& config, ILoader *pLoader, std::unique_ptr<IGame>
     
     m_pGame = std::move(pGame);
     
-    systemServices.getGraphicsSystem()->init();
+    if (!systemServices.getGraphicsSystem()->init()) {
+        return false;
+    }
     _pMasterRenderingSystem = std::make_unique<MasterRenderingSystem>(config);
     _pModelManager = std::make_unique<ModelManagerSystem>();
     _pAnimatedModelManager = std::make_unique<AnimatedModelManagerSystem>();

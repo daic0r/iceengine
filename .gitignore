@@ -1,5 +1,7 @@
 build/
 *.swp
+*.bak
 .cache/
 settings.json
 .vs
+vcpkg/
