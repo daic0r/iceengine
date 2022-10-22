@@ -4,16 +4,16 @@ project(iceengine)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(GAME_DIR_NAME "colonizer")
 if (UNIX)
    #	set(CMAKE_LIBRARY_PATH {$CMAKE_LIBRARY_PATH} ../external/linux)
-   set(GAME_DIR_NAME "colonizer")
    if (NOT CMAKE_BUILD_TYPE)
       set(CMAKE_BUILD_TYPE "Debug")
    endif()
 elseif(WIN32)
+	# Export everything on Windows so we don't need __declspec
 	set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 	#set(CMAKE_PREFIX_PATH {$CMAKE_LIBRARY_PATH} ../external/windows/lib) # #IMPORTANT, CMake looks here
-   set(GAME_DIR_NAME "Colonizer")
 endif()
 #set(GCC_COMPILER_FLAGS "-O3 -std=c++2b")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COMPILER_FLAGS}")
@@ -239,7 +239,7 @@ if (UNIX)
 	target_link_options(${PROJECT_NAME} PRIVATE -Wl,--no-as-needed)
 endif()
 target_compile_definitions(${PROJECT_NAME} PRIVATE RENDERER_OPEN_GL)
-target_include_directories(${PROJECT_NAME} PRIVATE ${RAPIDXML_INCLUDE_DIRS} PRIVATE ${TINYGLTF_INCLUDE_DIRS}) # PRIVATE ${GLM_INCLUDE_DIRS})
+target_include_directories(${PROJECT_NAME} PRIVATE ${RAPIDXML_INCLUDE_DIRS} PRIVATE ${TINYGLTF_INCLUDE_DIRS})
 target_include_directories(${PROJECT_NAME} PUBLIC ../headers) # PUBLIC . PUBLIC ${CMAKE_SYSTEM_INCLUDE_PATH})
 
 if (UNIX)
@@ -249,7 +249,6 @@ if (UNIX)
 			DEBUG_POSTFIX "${CMAKE_DEBUG_POSTFIX}")
 elseif (WIN32)
 	target_compile_options(${PROJECT_NAME} PRIVATE /permissive-)
-	#target_link_directories(${PROJECT_NAME} PRIVATE ../external/windows/lib)
 	target_link_libraries(${PROJECT_NAME} SDL2::SDL2 SDL2::SDL2_image crossguid glm::glm nlohmann_json::nlohmann_json glad::glad date::date)
 	set_target_properties(${PROJECT_NAME} 
 		PROPERTIES 
@@ -273,7 +272,8 @@ install(TARGETS ${PROJECT_NAME}
 install(DIRECTORY "../headers/" # <--- trailing slash to avoid creating a headers folder at the target location
 		DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 		
-
+# We link statically on Linux and dynamically on Windows for now
+# Dynamic linking leads to rpath errors on linux, haven't investigated further
 if (WIN32)
    # Copy SDL2 and SDL2-image DLLs to game's binary dir
    install(IMPORTED_RUNTIME_ARTIFACTS
