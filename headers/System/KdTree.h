@@ -170,7 +170,7 @@ namespace Ice
         vPoint3.erase(median);
         median = getMedian(vPoint3);
         
-        if (vPoint3.size() > 1 || (vPoint3.size() == 1 && vPoint3.front()[nAxis] > node.m_fLocation))
+        if (nLevel < 8 && vPoint3.size() > 1 || (vPoint3.size() == 1 && vPoint3.front()[nAxis] > node.m_fLocation))
         {
             std::vector<glm::vec3> vRightOfMedian( std::make_move_iterator(median + (vPoint3.size() == 1 ? 0 : 1)), std::make_move_iterator(vPoint3.end()) );
 #ifdef _LOG
@@ -185,7 +185,7 @@ namespace Ice
             m_vNodes.emplace_back(leaf_node{});
             node.m_pRight = &m_vNodes.back();
         }
-        if (vPoint3.size() > 1 || (vPoint3.size() == 1 && vPoint3.front()[nAxis] <= node.m_fLocation))
+        if (nLevel < 8 && vPoint3.size() > 1 || (vPoint3.size() == 1 && vPoint3.front()[nAxis] <= node.m_fLocation))
         {
             std::vector<glm::vec3> vLeftOfMedian( std::make_move_iterator(vPoint3.begin()), std::make_move_iterator(median + 1) );
 #ifdef _LOG

@@ -19,6 +19,7 @@
 #include <chrono>
 #include <future>
 #include <System/thread_pool.h>
+#include <System/static_task.h>
 
 namespace Ice {
 
@@ -136,7 +137,7 @@ protected:
 		return true;
 	}
 
-	void render(const RenderEnvironment& env, const std::function<void(Entity, ModelInstanceType&)>& extendedUpdateInstanceFunc) noexcept {
+	void render(const RenderEnvironment& env, const static_task<void(Entity, ModelInstanceType&)>& extendedUpdateInstanceFunc) noexcept {
 		/*
 		if (m_nFramesSinceFrustumRefresh % FRUSTUM_REFRESH_INTERVAL == 0) {
 			const auto& ents = entitiesInFrustum();
@@ -176,8 +177,10 @@ protected:
 				++m_nFramesSinceFrustumRefresh;
 			}
 
-			for (auto e : m_vFrustumEnts) {
-				extendedUpdateInstanceFunc(e, m_vEntity2ModelStruct[e].second);
+			if (extendedUpdateInstanceFunc) {
+				for (auto e : m_vFrustumEnts) {
+					extendedUpdateInstanceFunc(e, m_vEntity2ModelStruct[e].second);
+				}
 			}
 	
 			if (m_pShadowRenderer)

@@ -35,7 +35,7 @@ bool ObjectRenderingSystem::update(float fDeltaTime) noexcept {
 
 void ObjectRenderingSystem::render(const RenderEnvironment& env) noexcept {
     
-	BaseClassType::render(env, [](Entity, ModelInstance&) {});
+	BaseClassType::render(env, nullptr);
     
     m_pRenderer->render(env, m_vInstances);
 }
