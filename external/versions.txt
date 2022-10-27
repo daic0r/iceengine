@@ -1,6 +1,0 @@
-SDL devel 2.0.14
-glew 2.1.0
-SDL_image devel 2.0.5
-crossguid 0.2.2: https://github.com/graeme-hill/crossguid
-rapidxml 1.13: https://sourceforge.net/projects/rapidxml/
-GLM 0.9.9.8: https://github.com/g-truc/glm/releases/tag/0.9.9.8
