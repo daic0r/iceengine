@@ -14,6 +14,7 @@
 #include <stack>
 #include <System/Types.h>
 #include <System/static_task.h>
+#include <System/SubdivisionBase.h>
 
 namespace Ice
 {
@@ -33,8 +34,8 @@ namespace Ice
     };
 #endif
 
-    template<typename T>
-    class Octree 
+    template<typename LeafNodeContainerType, typename ValueType>
+    class Octree : public SubdivisionBase<LeafNodeContainerType, ValueType>
 #ifdef _DEBUG_OCTREE
         : public IOctreeTraversal
 #endif
@@ -62,8 +63,9 @@ namespace Ice
         struct leaf_node;
         struct branch_node;
 
+        using base = SubdivisionBase<LeafNodeContainerType, ValueType>;
         using node_t = std::variant<branch_node, leaf_node>;
-        using onhitleafnodefunc_t = static_task<SubdivisionIntersectionBehavior(const std::vector<T>&)>;
+        //using base::onhitleafnodefunc_t = static_task<SubdivisionIntersectionBehavior(const std::vector<T>&)>;
 
         struct base_node {
 #ifdef _DEBUG_OCTREE
@@ -73,16 +75,17 @@ namespace Ice
             AABB box;
         };
         struct leaf_node : base_node {
-            std::vector<T> vObjects;
+            //std::vector<T> vObjects;
+            LeafNodeContainerType m_container;
         };
         struct branch_node : base_node {
             std::array<std::unique_ptr<node_t>, 8> arNodes;
         };
 
-        void construct(const std::vector<std::pair<AABB, T>>&, std::unique_ptr<node_t>& node, const AABB& originalBox, int nLevel = 0);
+        void construct_impl(const std::vector<std::pair<AABB, ValueType>>&, std::unique_ptr<node_t>& node, const AABB& originalBox, int nLevel = 0);
         
         template<typename NodePositionMappingFunc>
-        SubdivisionIntersectionBehavior intersects_impl(const Ray&, const node_t* node, const sIntersectParams& params, NodePositionMappingFunc&& mappingFunc, const onhitleafnodefunc_t& onHitLeafNode) const;
+        SubdivisionIntersectionBehavior intersects_impl(const Ray&, const node_t* node, const sIntersectParams& params, NodePositionMappingFunc&& mappingFunc, const base::onhitleafnodefunc_t& onHitLeafNode) const;
 
         node_t* find(const glm::vec3& point, node_t* pStart = nullptr) const noexcept;
 
@@ -93,10 +96,11 @@ namespace Ice
         const branch_node& root() const noexcept { return std::get<branch_node>(*m_root); };
         const AABB& boundingBox() const noexcept { return root().box; }
     public:
-        Octree() = default;
-        Octree(const std::vector<std::pair<AABB, T>>& vBoxes, const AABB& outerBox, std::size_t nMaxDepth = 6);
-        bool intersects(Ray, const onhitleafnodefunc_t& onHitLeafNode) const;
-        void emplace(const AABB& box,const T& val);
+        Octree(std::size_t nMaxDepth = 6) : m_nMaxDepth{nMaxDepth} {}
+        Octree(const std::vector<std::pair<AABB, ValueType>>& vBoxes, const AABB& outerBox, std::size_t nMaxDepth = 6);
+        void construct(const std::vector<std::pair<AABB, ValueType>>&, const AABB& originalBox);
+        bool intersects(Ray, const base::onhitleafnodefunc_t& onHitLeafNode) const;
+        void emplace(const AABB& box,const ValueType& val);
 
 
         /////////////////////////////////////////////////////////
@@ -142,17 +146,17 @@ namespace Ice
 #endif   
     };
     
-    template<typename T>
-    Octree<T>::Octree(const std::vector<std::pair<AABB, T>>& vBoxes, const AABB& outerBox, std::size_t nMaxDepth) : m_nMaxDepth{nMaxDepth} {
-        construct(vBoxes, m_root, outerBox);
+    template<typename LeafNodeContainerType, typename ValueType>
+    Octree<LeafNodeContainerType, ValueType>::Octree(const std::vector<std::pair<AABB, ValueType>>& vBoxes, const AABB& outerBox, std::size_t nMaxDepth) : m_nMaxDepth{nMaxDepth} {
+        construct_impl(vBoxes, m_root, outerBox);
     }
 
-    template<typename T>
-    void Octree<T>::construct(const std::vector<std::pair<AABB, T>>& vPoints, std::unique_ptr<node_t>& node, const AABB& originalBox, int nLevel) {
+    template<typename LeafNodeContainerType, typename ValueType>
+    void Octree<LeafNodeContainerType, ValueType>::construct_impl(const std::vector<std::pair<AABB, ValueType>>& vPoints, std::unique_ptr<node_t>& node, const AABB& originalBox, int nLevel) {
         const auto center = originalBox.center();
 
         struct sNodeInfo {
-            std::vector<std::pair<AABB, T>> vNodeContents;
+            std::vector<std::pair<AABB, ValueType>> vNodeContents;
             AABB box;
         };
         std::array<sNodeInfo, 8> arSubNodes;
@@ -164,7 +168,7 @@ namespace Ice
                     box.maxVertex().y = center[1];
                     box.minVertex().z = center[2];
                     break;
-                 case BOTTOM_RIGHT_BACK:
+                case BOTTOM_RIGHT_BACK:
                     box.minVertex().x = center[0];
                     box.maxVertex().y = center[1];
                     box.minVertex().z = center[2];
@@ -174,7 +178,7 @@ namespace Ice
                     box.maxVertex().y = center[1];
                     box.maxVertex().z = center[2];
                     break;
-                 case BOTTOM_RIGHT_FRONT:
+                case BOTTOM_RIGHT_FRONT:
                     box.minVertex().x = center[0];
                     box.maxVertex().y = center[1];
                     box.maxVertex().z = center[2];
@@ -184,7 +188,7 @@ namespace Ice
                     box.minVertex().y = center[1];
                     box.minVertex().z = center[2];
                     break;
-                 case TOP_RIGHT_BACK:
+                case TOP_RIGHT_BACK:
                     box.minVertex().x = center[0];
                     box.minVertex().y = center[1];
                     box.minVertex().z = center[2];
@@ -194,7 +198,7 @@ namespace Ice
                     box.minVertex().y = center[1];
                     box.maxVertex().z = center[2];
                     break;
-                 case TOP_RIGHT_FRONT:
+                case TOP_RIGHT_FRONT:
                     box.minVertex().x = center[0];
                     box.minVertex().y = center[1];
                     box.maxVertex().z = center[2];
@@ -214,22 +218,32 @@ namespace Ice
             auto& thisNode = std::get<branch_node>(*node);
             thisNode.box = originalBox;
             for (int i = 0; i < 8; ++i) {
-                construct(arSubNodes[i].vNodeContents, thisNode.arNodes[i], arSubNodes[i].box, nLevel + 1);
+                construct_impl(arSubNodes[i].vNodeContents, thisNode.arNodes[i], arSubNodes[i].box, nLevel + 1);
             }
         }
         else {
             *node = leaf_node{};
             auto& thisNode = std::get<leaf_node>(*node);
             thisNode.box = originalBox;
+            for (const auto& [box, value] : vPoints) {
+                base::m_emplaceFunc(thisNode.m_container, value);
+            }
+            /*
             auto& v = thisNode.vObjects;
             std::ranges::transform(vPoints, std::back_inserter(v), [](const std::pair<AABB, T>& kvp) {
                 return kvp.second;
             });
+            */
         }
     }
 
-    template<typename T>
-    Octree<T>::node_t* Octree<T>::find(const glm::vec3& point, node_t* pStart) const noexcept {
+    template<typename LeafNodeContainerType, typename ValueType>
+    void Octree<LeafNodeContainerType, ValueType>::construct(const std::vector<std::pair<AABB, ValueType>>& vPoints, const AABB& originalBox) {
+        construct_impl(vPoints, m_root, originalBox, 0);
+    }
+
+    template<typename LeafNodeContainerType, typename ValueType>
+    Octree<LeafNodeContainerType, ValueType>::node_t* Octree<LeafNodeContainerType, ValueType>::find(const glm::vec3& point, node_t* pStart) const noexcept {
         auto pCurNode = pStart ? pStart : m_root.get();
         if (!std::visit([&point](const auto& start) { return start.box.contains(point); }, *pCurNode))
             return nullptr;
@@ -259,9 +273,9 @@ namespace Ice
         return pRet;
     }
 
-    template<typename T>
+    template<typename LeafNodeContainerType, typename ValueType>
     template<typename NodePositionMappingFunc>
-    SubdivisionIntersectionBehavior Octree<T>::intersects_impl(const Ray& ray, const node_t* node, const sIntersectParams& params, NodePositionMappingFunc&& mappingFunc, const onhitleafnodefunc_t& onHitLeafNode) const {
+    SubdivisionIntersectionBehavior Octree<LeafNodeContainerType, ValueType>::intersects_impl(const Ray& ray, const node_t* node, const sIntersectParams& params, NodePositionMappingFunc&& mappingFunc, const base::onhitleafnodefunc_t& onHitLeafNode) const {
         if (params.t1.x < 0.0f || params.t1.y < 0.0f || params.t1.z < 0.0f)
             return SubdivisionIntersectionBehavior::CONTINUE;
         const auto intersectBehavior = std::visit(visitor {
@@ -324,16 +338,17 @@ namespace Ice
 #ifdef _DEBUG_OCTREE
                 this->m_vIntersectLeaves.push_back(leaf.nID);
 #endif
-                if (!leaf.vObjects.empty())
-                    return onHitLeafNode(leaf.vObjects);
-                return SubdivisionIntersectionBehavior::CONTINUE;
+                //if (!leaf.vObjects.empty())
+                    //return onHitLeafNode(leaf.vObjects);
+                //return SubdivisionIntersectionBehavior::CONTINUE;
+                return onHitLeafNode(leaf.m_container);
             }
         }, *node);
         return intersectBehavior;
     }
 
-    template<typename T>
-    bool Octree<T>::intersects(Ray ray, const onhitleafnodefunc_t& onHitLeafNode) const {
+    template<typename LeafNodeContainerType, typename ValueType>
+    bool Octree<LeafNodeContainerType, ValueType>::intersects(Ray ray, const base::onhitleafnodefunc_t& onHitLeafNode) const {
 #ifdef _DEBUG_OCTREE
         m_vIntersectLeaves.clear();
 #endif
@@ -347,8 +362,8 @@ namespace Ice
         return intersects_impl(ray, m_root.get(), params, mapNodeFunc, onHitLeafNode) == SubdivisionIntersectionBehavior::ABORT_SUCCESS;
     }
 
-    template<typename T>
-    Octree<T>::NodePosition Octree<T>::getFirstSubNodeIndex(const sIntersectParams& params) noexcept {
+    template<typename LeafNodeContainerType, typename ValueType>
+    Octree<LeafNodeContainerType, ValueType>::NodePosition Octree<LeafNodeContainerType, ValueType>::getFirstSubNodeIndex(const sIntersectParams& params) noexcept {
         int nRetOctant{};
         const std::array<float, 3> arT0 = { params.t0.x, params.t0.y, params.t0.z };
         const auto maxt0dim = static_cast<Plane>(std::distance(arT0.begin(), std::ranges::max_element(arT0)));
@@ -369,8 +384,8 @@ namespace Ice
         return static_cast<NodePosition>(nRetOctant);
     }
 
-    template<typename T>
-    Octree<T>::NodePosition Octree<T>::getNextSubNode(NodePosition current, const sIntersectParams& params) {
+    template<typename LeafNodeContainerType, typename ValueType>
+    Octree<LeafNodeContainerType, ValueType>::NodePosition Octree<LeafNodeContainerType, ValueType>::getNextSubNode(NodePosition current, const sIntersectParams& params) {
         static const auto minIndex = [](float a, float b, float c) {
             const std::array<float, 3> ar{a,b,c};
             return static_cast<Plane>(std::distance(ar.begin(), std::ranges::min_element(ar)));
@@ -475,8 +490,8 @@ namespace Ice
         throw std::logic_error("Invalid node position");
     }
 
-    template<typename T>
-    auto Octree<T>::transformRayAndGetNodeMappingFunction(Ray& ray) const noexcept {
+    template<typename LeafNodeContainerType, typename ValueType>
+    auto Octree<LeafNodeContainerType, ValueType>::transformRayAndGetNodeMappingFunction(Ray& ray) const noexcept {
         auto dir = ray.direction();
         auto origin = ray.origin();
         int nXORMask{};
@@ -494,8 +509,8 @@ namespace Ice
         };
     }
 
-    template<typename T>
-    void Octree<T>::emplace(const AABB& box, const T& value) {
+    template<typename LeafNodeContainerType, typename ValueType>
+    void Octree<LeafNodeContainerType, ValueType>::emplace(const AABB& box, const ValueType& value) {
         auto curNode = m_root.get();
         bool bDone{};
         while (!bDone) {
@@ -516,8 +531,9 @@ namespace Ice
                     if (!bFound)
                         throw std::logic_error("No fitting box found!");
                 },
-                [&value,&bDone](leaf_node& leaf) {
-                    leaf.vObjects.push_back(value); 
+                [this,&value,&bDone](leaf_node& leaf) {
+                    //leaf.vObjects.push_back(value); 
+                    this->m_emplaceFunc(leaf.m_container, value);
                     bDone = true; 
                 }
             }, *curNode);

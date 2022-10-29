@@ -16,7 +16,7 @@ namespace Ice
 
     class TerrainSystem : public EntityComponentSystem<TerrainComponent> {
         using triangle_t = Triangle;
-        using tree_t = Octree<triangle_t>;
+        using tree_t = Octree<std::vector<triangle_t>, triangle_t>;
 
         std::unordered_map<Entity, tree_t> m_mOctrees;
 

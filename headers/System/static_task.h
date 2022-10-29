@@ -16,6 +16,7 @@ class static_task<R(Args...), MaxSize> {
     concept_interface_t* m_pFunc{};
 
 public:
+    constexpr static_task() = default;
     constexpr static_task(std::nullptr_t) {}
 
     template<typename Func, typename = std::enable_if_t<!std::is_same_v<std::remove_reference_t<std::decay_t<Func>>, static_task>, void>>
@@ -30,7 +31,7 @@ public:
     }
 
     constexpr static_task(const static_task& rhs) : 
-        m_pFunc{ rhs.m_pFunc->clone(reinterpret_cast<void*>(&m_buf[0])) }
+        m_pFunc{ rhs.m_pFunc ? rhs.m_pFunc->clone(reinterpret_cast<void*>(&m_buf[0])) : nullptr }
     {}
     constexpr static_task& operator=(const static_task& rhs) {
         static_task copy{ rhs };
@@ -66,7 +67,7 @@ private:
 
     constexpr void swap(static_task& rhs) noexcept {
         m_buf.swap(rhs.m_buf);
-        using namespace std;
+        using std::swap;
         swap(m_pFunc, rhs.m_pFunc);
     }
 

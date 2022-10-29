@@ -39,7 +39,12 @@ namespace Ice
         //const auto fAddHeight = (outerBox.width() - outerBox.height()) / 2.0f;
         //outerBox.minVertex().y -= fAddHeight;
         //outerBox.maxVertex().y += fAddHeight;
-        auto [iter, _] = m_mOctrees.emplace(std::piecewise_construct, std::forward_as_tuple(e), std::forward_as_tuple(vTriangles, outerBox));
+        //auto [iter, _] = m_mOctrees.emplace(std::piecewise_construct, std::forward_as_tuple(e), std::forward_as_tuple(vTriangles, outerBox));
+        auto [iter, _] = m_mOctrees.emplace(e, tree_t{});
+        iter->second.setEmplaceFunc([](std::vector<triangle_t>& vContainer, const triangle_t& triangle) {
+            vContainer.push_back(triangle);
+        });
+        iter->second.construct(vTriangles, outerBox);
  #ifdef _DEBUG_OCTREE
         for (auto info = iter->second.startTraversal(); info.box != nullptr; info = iter->second.next()) {
             const auto &[nID, pBB, bIsLeaf] = info; 
