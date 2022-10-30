@@ -91,6 +91,8 @@ namespace Ice
 
         static NodePosition getFirstSubNodeIndex(const sIntersectParams& params) noexcept;
         static NodePosition getNextSubNode(NodePosition current, const sIntersectParams& params);
+        static AABB getSubNodeBox(const AABB& originalBox, NodePosition pos);
+
         auto transformRayAndGetNodeMappingFunction(Ray&) const noexcept;
         branch_node& root() noexcept { return std::get<branch_node>(*m_root); };
         const branch_node& root() const noexcept { return std::get<branch_node>(*m_root); };
@@ -161,56 +163,11 @@ namespace Ice
         };
         std::array<sNodeInfo, 8> arSubNodes;
         for (int i = 0; i < 8; ++i) {
-            AABB box = originalBox;
-            switch (i) {
-                case BOTTOM_LEFT_BACK:
-                    box.maxVertex().x = center[0];
-                    box.maxVertex().y = center[1];
-                    box.minVertex().z = center[2];
-                    break;
-                case BOTTOM_RIGHT_BACK:
-                    box.minVertex().x = center[0];
-                    box.maxVertex().y = center[1];
-                    box.minVertex().z = center[2];
-                    break;
-                case BOTTOM_LEFT_FRONT:
-                    box.maxVertex().x = center[0];
-                    box.maxVertex().y = center[1];
-                    box.maxVertex().z = center[2];
-                    break;
-                case BOTTOM_RIGHT_FRONT:
-                    box.minVertex().x = center[0];
-                    box.maxVertex().y = center[1];
-                    box.maxVertex().z = center[2];
-                    break;
-                case TOP_LEFT_BACK:
-                    box.maxVertex().x = center[0];
-                    box.minVertex().y = center[1];
-                    box.minVertex().z = center[2];
-                    break;
-                case TOP_RIGHT_BACK:
-                    box.minVertex().x = center[0];
-                    box.minVertex().y = center[1];
-                    box.minVertex().z = center[2];
-                    break;
-                case TOP_LEFT_FRONT:
-                    box.maxVertex().x = center[0];
-                    box.minVertex().y = center[1];
-                    box.maxVertex().z = center[2];
-                    break;
-                case TOP_RIGHT_FRONT:
-                    box.minVertex().x = center[0];
-                    box.minVertex().y = center[1];
-                    box.maxVertex().z = center[2];
-                    break;
-                default:
-                    throw std::logic_error("Invalid index");
-            }
-            arSubNodes[i].box = box;
+            arSubNodes[i].box = getSubNodeBox(originalBox, NodePosition{ i });
             std::ranges::copy_if(vPoints, std::back_inserter(arSubNodes[i].vNodeContents), [&box](const auto& elem) {
                 return box.intersects(elem.first);
             });
-       }
+        }
 
         node = std::make_unique<node_t>();
         if (nLevel <= m_nMaxDepth && vPoints.size() > 2) {
@@ -507,6 +464,56 @@ namespace Ice
         return [nXORMask](NodePosition nNodePosition) {
             return static_cast<NodePosition>(static_cast<int>(nNodePosition) ^ nXORMask);
         };
+    }
+
+    template<typename LeafNodeContainerType, typename ValueType>
+    AABB Octree<LeafNodeContainerType, ValueType>::getSubNodeBox(const AABB& originalBox, NodePosition pos) {
+        AABB box = originalBox;
+        switch (pos) {
+            case BOTTOM_LEFT_BACK:
+                box.maxVertex().x = center[0];
+                box.maxVertex().y = center[1];
+                box.minVertex().z = center[2];
+                break;
+            case BOTTOM_RIGHT_BACK:
+                box.minVertex().x = center[0];
+                box.maxVertex().y = center[1];
+                box.minVertex().z = center[2];
+                break;
+            case BOTTOM_LEFT_FRONT:
+                box.maxVertex().x = center[0];
+                box.maxVertex().y = center[1];
+                box.maxVertex().z = center[2];
+                break;
+            case BOTTOM_RIGHT_FRONT:
+                box.minVertex().x = center[0];
+                box.maxVertex().y = center[1];
+                box.maxVertex().z = center[2];
+                break;
+            case TOP_LEFT_BACK:
+                box.maxVertex().x = center[0];
+                box.minVertex().y = center[1];
+                box.minVertex().z = center[2];
+                break;
+            case TOP_RIGHT_BACK:
+                box.minVertex().x = center[0];
+                box.minVertex().y = center[1];
+                box.minVertex().z = center[2];
+                break;
+            case TOP_LEFT_FRONT:
+                box.maxVertex().x = center[0];
+                box.minVertex().y = center[1];
+                box.maxVertex().z = center[2];
+                break;
+            case TOP_RIGHT_FRONT:
+                box.minVertex().x = center[0];
+                box.minVertex().y = center[1];
+                box.maxVertex().z = center[2];
+                break;
+            default:
+                throw std::logic_error("Invalid position");
+        }
+        return box; 
     }
 
     template<typename LeafNodeContainerType, typename ValueType>
