@@ -51,8 +51,11 @@ struct BaseExtents<glm::vec2> {
 
 template<typename PointType = glm::vec3>
 struct Extents : public BaseExtents<PointType> {
+
+    using BaseExtents<PointType>::minPoint;
+    using BaseExtents<PointType>::maxPoint;
   
-    bool contains(const Extents<PointType>& other) const {
+    constexpr bool contains(const Extents<PointType>& other) const {
         bool bContains{ true };
         for (int i = 0; i < other.length(); ++i) {
             if (other.minPoint[i] < BaseExtents<PointType>::minPoint[i] || other.maxPoint[i] > BaseExtents<PointType>::maxPoint[i]) {
@@ -62,8 +65,15 @@ struct Extents : public BaseExtents<PointType> {
         }
         return bContains;
     }
+
+    constexpr void extend(const PointType& p) {
+        for (glm::length_t i = 0; i < PointType::length(); ++i) {
+            if (p[i] < BaseExtents<PointType>::minPoint[i]) BaseExtents<PointType>::minPoint[i] = p[i];
+            if (p[i] > BaseExtents<PointType>::maxPoint[i]) BaseExtents<PointType>::maxPoint[i] = p[i];
+        }
+    }
     
-    inline float dim(size_t nDim) const { return this->maxPoint[nDim] - this->minPoint[nDim]; }
+    constexpr float dim(size_t nDim) const { return this->maxPoint[nDim] - this->minPoint[nDim]; }
 };
 
 using Extents2 = Extents<glm::vec2>;

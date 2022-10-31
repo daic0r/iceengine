@@ -15,6 +15,7 @@
 #include <System/Types.h>
 #include <System/static_task.h>
 #include <System/SubdivisionBase.h>
+#include <Renderer/Frustum.h>
 
 namespace Ice
 {
@@ -73,10 +74,10 @@ namespace Ice
             std::size_t nID = NEXT_ID++;
 #endif
             AABB box;
+            LeafNodeContainerType m_container;
         };
         struct leaf_node : base_node {
             //std::vector<T> vObjects;
-            LeafNodeContainerType m_container;
         };
         struct branch_node : base_node {
             std::array<std::unique_ptr<node_t>, 8> arNodes;
@@ -86,12 +87,13 @@ namespace Ice
         
         template<typename NodePositionMappingFunc>
         SubdivisionIntersectionBehavior intersects_impl(const Ray&, const node_t* node, const sIntersectParams& params, NodePositionMappingFunc&& mappingFunc, const base::onhitleafnodefunc_t& onHitLeafNode) const;
+        void getVisibleObjects_impl(const node_t* pCurNode, const Frustum& frustum) const noexcept;
 
         node_t* find(const glm::vec3& point, node_t* pStart = nullptr) const noexcept;
 
         static NodePosition getFirstSubNodeIndex(const sIntersectParams& params) noexcept;
         static NodePosition getNextSubNode(NodePosition current, const sIntersectParams& params);
-        static AABB getSubNodeBox(const AABB& originalBox, NodePosition pos);
+        static constexpr AABB getSubNodeBox(const AABB& originalBox, NodePosition pos);
 
         auto transformRayAndGetNodeMappingFunction(Ray&) const noexcept;
         branch_node& root() noexcept { return std::get<branch_node>(*m_root); };
@@ -103,6 +105,7 @@ namespace Ice
         void construct(const std::vector<std::pair<AABB, ValueType>>&, const AABB& originalBox);
         bool intersects(Ray, const base::onhitleafnodefunc_t& onHitLeafNode) const;
         void emplace(const AABB& box,const ValueType& val);
+        void getVisibleObjects(const Frustum& frustum) const noexcept;
 
 
         /////////////////////////////////////////////////////////
@@ -155,17 +158,15 @@ namespace Ice
 
     template<typename LeafNodeContainerType, typename ValueType>
     void Octree<LeafNodeContainerType, ValueType>::construct_impl(const std::vector<std::pair<AABB, ValueType>>& vPoints, std::unique_ptr<node_t>& node, const AABB& originalBox, int nLevel) {
-        const auto center = originalBox.center();
-
         struct sNodeInfo {
             std::vector<std::pair<AABB, ValueType>> vNodeContents;
             AABB box;
         };
         std::array<sNodeInfo, 8> arSubNodes;
         for (int i = 0; i < 8; ++i) {
-            arSubNodes[i].box = getSubNodeBox(originalBox, NodePosition{ i });
-            std::ranges::copy_if(vPoints, std::back_inserter(arSubNodes[i].vNodeContents), [&box](const auto& elem) {
-                return box.intersects(elem.first);
+            arSubNodes[i].box = getSubNodeBox(originalBox, static_cast<NodePosition>(i));
+            std::ranges::copy_if(vPoints, std::back_inserter(arSubNodes[i].vNodeContents), [i, &arSubNodes](const auto& elem) {
+                return arSubNodes[i].box.intersects(elem.first);
             });
         }
 
@@ -174,6 +175,9 @@ namespace Ice
             *node = branch_node{};
             auto& thisNode = std::get<branch_node>(*node);
             thisNode.box = originalBox;
+            for (const auto& [box, value] : vPoints) {
+                base::m_emplaceFunc(thisNode.m_container, value);
+            }
             for (int i = 0; i < 8; ++i) {
                 construct_impl(arSubNodes[i].vNodeContents, thisNode.arNodes[i], arSubNodes[i].box, nLevel + 1);
             }
@@ -309,6 +313,8 @@ namespace Ice
 #ifdef _DEBUG_OCTREE
         m_vIntersectLeaves.clear();
 #endif
+        if (!m_root)
+            return false;
         auto mapNodeFunc = transformRayAndGetNodeMappingFunction(ray);
         sIntersectParams params;
         params.t0 = (boundingBox().minVertex() - ray.origin()) / ray.direction();
@@ -467,7 +473,9 @@ namespace Ice
     }
 
     template<typename LeafNodeContainerType, typename ValueType>
-    AABB Octree<LeafNodeContainerType, ValueType>::getSubNodeBox(const AABB& originalBox, NodePosition pos) {
+    constexpr AABB Octree<LeafNodeContainerType, ValueType>::getSubNodeBox(const AABB& originalBox, NodePosition pos) {
+        const auto center = originalBox.center();
+
         AABB box = originalBox;
         switch (pos) {
             case BOTTOM_LEFT_BACK:
@@ -545,6 +553,37 @@ namespace Ice
                 }
             }, *curNode);
         }
+    }
+
+
+    template<typename LeafNodeContainerType, typename ValueType>
+    void Octree<LeafNodeContainerType, ValueType>::getVisibleObjects(const Frustum& frustum) const noexcept {
+        if (!m_root)
+            return;
+        getVisibleObjects_impl(m_root.get(), frustum);
+    }
+
+
+    template<typename LeafNodeContainerType, typename ValueType>
+    void Octree<LeafNodeContainerType, ValueType>::getVisibleObjects_impl(const node_t* pCurNode, const Frustum& frustum) const noexcept {
+        std::visit(visitor{ [this, &frustum](const branch_node& node) {
+            if (const auto intersectRes = frustum.intersects(node.box, true); intersectRes != FrustumAABBIntersectionType::NO_INTERSECTION) {
+                if (intersectRes == FrustumAABBIntersectionType::CONTAINED) {
+                    base::m_getVisibleObjectCollectionFunc(node.m_container);
+                } else {
+                    for (const auto& pSubNode : node.arNodes) {
+                        this->getVisibleObjects_impl(pSubNode.get(), frustum);
+                    }
+                }
+            }
+        },
+            [this, &frustum](const leaf_node& node) {
+                if (const auto intersectRes = frustum.intersects(node.box, true); intersectRes != FrustumAABBIntersectionType::NO_INTERSECTION) {
+                    base::m_getVisibleObjectCollectionFunc(node.m_container);
+                }
+            } 
+        },
+        *pCurNode);
     }
 } // namespace Ice
 

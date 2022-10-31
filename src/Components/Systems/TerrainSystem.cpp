@@ -15,6 +15,10 @@ namespace Ice
 
     void TerrainSystem::onEntityAdded(Entity e) noexcept {
         const auto& mesh = entityManager.getComponent<MeshComponent>(e);
+        const auto& terrain = entityManager.getComponent<TerrainComponent>(e);
+        m_worldExtents.extend(glm::vec2{ terrain.m_terrain.gridX() * terrain.m_terrain.width(),  terrain.m_terrain.gridZ() * terrain.m_terrain.height() });
+        m_worldExtents.extend(glm::vec2{ terrain.m_terrain.gridX() * terrain.m_terrain.width() + terrain.m_terrain.width(),  terrain.m_terrain.gridZ() * terrain.m_terrain.height() + terrain.m_terrain.height() });
+
         std::vector<std::pair<AABB, triangle_t>> vTriangles;
         AABB outerBox;
         for (std::size_t i = 0, nCount = mesh.indices().size() / 3; i < mesh.indices().size(); i+=3) { // 3 indices at a time => 1 triangle

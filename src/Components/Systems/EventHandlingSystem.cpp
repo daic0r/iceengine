@@ -88,7 +88,10 @@ bool EventHandlingSystem::update(float fDeltaTime) {
             const Ray mouseRay{ camComp.m_camera.position(), pick.getMouseRay() };
 
             m_vEntBuffer.clear(); 
-            m_pObjRenderingSystem->kdTree().intersects(mouseRay); //, m_vEntBuffer);
+            m_pObjRenderingSystem->tree().intersects(mouseRay, [this](const ObjectRenderingSystem::ModelRenderingTreeNodeContainer& container) {
+                this->m_vEntBuffer.insert(this->m_vEntBuffer.end(), container.m_vObjects.begin(), container.m_vObjects.end());
+                return SubdivisionIntersectionBehavior::ABORT_SUCCESS; 
+            }); //, m_vEntBuffer);
             std::ranges::sort(m_vEntBuffer);
 
             auto checkEnts = ents | std::views::filter([this](auto e) {
@@ -171,6 +174,7 @@ bool EventHandlingSystem::update(float fDeltaTime) {
 void EventHandlingSystem::onSystemsInitialized() noexcept {
 	m_pObjRenderingSystem = entityManager.getSystem<ObjectRenderingSystem, true>();
 	m_pAnimObjRenderingSystem = entityManager.getSystem<AnimatedModelRenderingSystem, true>();
+    /*
     m_pObjRenderingSystem->kdTree().setIntersectsCollectionFunc([this](const Ray&, const ObjectRenderingSystem::ModelRenderingKdTreeNodeContainer& container) {
         this->m_vEntBuffer.insert(this->m_vEntBuffer.end(), container.m_vObjects.begin(), container.m_vObjects.end());
         return !container.m_vObjects.empty();
@@ -179,6 +183,7 @@ void EventHandlingSystem::onSystemsInitialized() noexcept {
         this->m_vEntBuffer.insert(this->m_vEntBuffer.end(), container.m_vObjects.begin(), container.m_vObjects.end());
         return !container.m_vObjects.empty();
     });
+    */
 }
 
 }

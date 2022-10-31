@@ -13,8 +13,8 @@ namespace Ice
     template<typename LeafNodeContainerType, typename ValueType>
     class SubdivisionBase {
     public:
-        using collection_func_t = static_task<void(const LeafNodeContainerType&)>;
-        using onhitleafnodefunc_t = static_task<SubdivisionIntersectionBehavior(const LeafNodeContainerType&)>;
+        using collection_func_t = std::function<void(const LeafNodeContainerType&)>;
+        using onhitleafnodefunc_t = std::function<SubdivisionIntersectionBehavior(const LeafNodeContainerType&)>;
         using emplace_func_t = std::function<void(LeafNodeContainerType&, const ValueType&)>;
 
     protected:

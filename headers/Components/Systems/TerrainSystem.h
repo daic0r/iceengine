@@ -9,6 +9,7 @@
 #include <array>
 #include <System/Octree.h>
 #include <System/Triangle.h>
+#include <System/Extents.h>
 
 namespace Ice
 {
@@ -19,6 +20,7 @@ namespace Ice
         using tree_t = Octree<std::vector<triangle_t>, triangle_t>;
 
         std::unordered_map<Entity, tree_t> m_mOctrees;
+        Extents2 m_worldExtents;
 
     public:
         struct IntersectResult {
@@ -42,6 +44,8 @@ namespace Ice
         IntersectResult intersects(Entity e, const Ray& ray) const noexcept;
 
         std::vector<glm::vec2> findPath(float x1, float z1, float x2, float z2) const;
+
+        const auto& worldExtents() const noexcept { return m_worldExtents; }
 
     private:
 

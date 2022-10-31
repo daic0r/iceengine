@@ -68,6 +68,13 @@ public:
         return true;
     }
 
+    constexpr void extend(const glm::vec3& p) {
+        for (glm::length_t i = 0; i < glm::vec3::length(); ++i) {
+            if (p[i] < minVertex()[i]) minVertex()[i] = p[i];
+            if (p[i] > maxVertex()[i]) maxVertex()[i] = p[i];
+        }
+    }
+
     bool intersects(const AABB& other) const noexcept;
     //bool intersects(const Ray& r, float* fpDistance = nullptr) const noexcept;
     bool intersects(const Ray& r, sRayAABBIntersectResult* pResult = nullptr) const noexcept;
