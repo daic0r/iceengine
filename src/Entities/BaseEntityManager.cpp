@@ -11,13 +11,13 @@
 namespace Ice {
 
 Entity BaseEntityManager::createEntity() noexcept {
-    std::scoped_lock<std::recursive_mutex> lck{ m_cmpIdMtx };
+    //std::scoped_lock<std::recursive_mutex> lck{ m_cmpIdMtx };
 	m_mComponentIds[currentScene()][m_nNextId] = std::set<EntityComponentId>{};
 	return m_nNextId++;
 }
 
 bool BaseEntityManager::deleteEntity(Entity e) noexcept {
-    std::scoped_lock<std::recursive_mutex> lck{ m_cmpIdMtx };
+    //std::scoped_lock<std::recursive_mutex> lck{ m_cmpIdMtx };
 
     auto compIter = m_mComponentIds.find(currentScene());
 

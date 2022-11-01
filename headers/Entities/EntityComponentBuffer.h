@@ -222,7 +222,7 @@ template<typename Component> EntityComponentBufferBase<Component>::EntityCompone
 }
 
 template<typename Component> bool EntityComponentBufferBase<Component>::addComponent(Entity entId, const Component& comp, SceneId scId) noexcept {
-    std::scoped_lock<std::mutex> lck{ m_dataMtx };
+    //std::scoped_lock<std::mutex> lck{ m_dataMtx };
     
     typename decltype(m_mEntity2Index)::iterator entIter;
     entIter = m_mEntity2Index.find(scId);
@@ -246,7 +246,7 @@ template<typename Component> bool EntityComponentBufferBase<Component>::addCompo
 }
 
 template<typename Component> bool EntityComponentBufferBase<Component>::removeComponent(Entity entId, SceneId scId) noexcept {
-    std::scoped_lock<std::mutex> lck{ m_dataMtx };
+    //std::scoped_lock<std::mutex> lck{ m_dataMtx };
     
     auto entIter = m_mEntity2Index.find(scId);
     if (entIter == m_mEntity2Index.end()) {
@@ -273,12 +273,12 @@ template<typename Component> bool EntityComponentBufferBase<Component>::removeCo
 }
 
 template<typename Component> size_t EntityComponentBufferBase<Component>::size(SceneId scId) const noexcept {
-    std::scoped_lock<std::mutex> lck{ m_dataMtx };
+    //std::scoped_lock<std::mutex> lck{ m_dataMtx };
     return m_vCompData[scId].size();
 }
 
 template<typename Component> const Component& EntityComponentBufferBase<Component>::getComponent(Entity entId, const std::function<void(const Component&)>& func, SceneId scId) const {
-    std::scoped_lock<std::mutex> lck{ m_dataMtx };
+    //std::scoped_lock<std::mutex> lck{ m_dataMtx };
     
     auto entIter = m_mEntity2Index.find(scId);
 	if (entIter == m_mEntity2Index.end()) {
@@ -296,7 +296,7 @@ template<typename Component> const Component& EntityComponentBufferBase<Componen
 }
 
 template<typename Component> Component& EntityComponentBufferBase<Component>::getComponent(Entity entId, const std::function<void(Component&)>& func, SceneId scId) {
-    std::scoped_lock<std::mutex> lck{ m_dataMtx };
+    //std::scoped_lock<std::mutex> lck{ m_dataMtx };
 
     auto entIter = m_mEntity2Index.find(scId);
     if (entIter == m_mEntity2Index.end()) {
@@ -314,7 +314,7 @@ template<typename Component> Component& EntityComponentBufferBase<Component>::ge
 }
 
 template<typename Component> Entity EntityComponentBufferBase<Component>::findEntity(const std::function<bool(const Component&)>& pred, SceneId scId) noexcept {
-    std::scoped_lock<std::mutex> lck{ m_dataMtx };
+    //std::scoped_lock<std::mutex> lck{ m_dataMtx };
 
     Entity retEnt{ INVALID_ENTITY_ID };
     
@@ -334,7 +334,7 @@ template<typename Component> Entity EntityComponentBufferBase<Component>::findEn
 }
 
 template<typename Component> bool EntityComponentBufferBase<Component>::hasComponent(Entity entId, SceneId scId) const noexcept {
-    std::scoped_lock<std::mutex> lck{ m_dataMtx };
+    //std::scoped_lock<std::mutex> lck{ m_dataMtx };
 
     auto entIter = m_mEntity2Index.find(scId);
     if (entIter == m_mEntity2Index.end()) {
