@@ -14,7 +14,7 @@ namespace Ice
     class SubdivisionBase {
     public:
         using collection_func_t = std::function<void(const LeafNodeContainerType&)>;
-        using onhitleafnodefunc_t = std::function<SubdivisionIntersectionBehavior(const LeafNodeContainerType&)>;
+        using onhitleafnodefunc_t = static_task<SubdivisionIntersectionBehavior(const LeafNodeContainerType&)>;
         using emplace_func_t = std::function<void(LeafNodeContainerType&, const ValueType&)>;
 
     protected:
