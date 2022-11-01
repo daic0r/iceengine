@@ -20,6 +20,7 @@
 #include <System/Math.h>
 #include <stack>
 #include <cassert>
+#include <System/SubdivisionBase.h>
 
 namespace Ice
 {
@@ -27,14 +28,13 @@ namespace Ice
     class Ray;
 
     template<typename LeafNodeContainerType, typename ValueType>
-    class KdTree {
+    class KdTree : public SubdivisionBase<LeafNodeContainerType, ValueType> {
     public:
         struct leaf_node;
         struct branch_node;
+        using base = SubdivisionBase<LeafNodeContainerType, ValueType>;
         using node_t = std::variant<branch_node, leaf_node>;
-        using collection_func_t = std::function<void(const LeafNodeContainerType&)>;
         using intersects_collection_func_t = std::function<bool(const Ray&, const LeafNodeContainerType&)>;
-        using emplace_func_t = std::function<void(LeafNodeContainerType&, const ValueType&)>;
 
         struct leaf_node {
            LeafNodeContainerType m_container;
@@ -55,13 +55,9 @@ namespace Ice
         void getVisibleObjects(const Frustum*) const;
         bool intersects(const Ray&) const;
         const auto& boundingBox() const noexcept { return m_outerBox; }
-        void setGetVisibleObjectCollectionFunc(collection_func_t f) { m_getVisibleObjectCollectionFunc = std::move(f); }
         void setIntersectsCollectionFunc(intersects_collection_func_t f) { m_intersectsCollectionFunc = std::move(f); }
-        void setEmplaceFunc(emplace_func_t f) { m_emplaceFunc = std::move(f); }
 
-        const auto& getVisibleObjectCollectionFunc() const noexcept { return m_getVisibleObjectCollectionFunc; }
         const auto& intersectsCollectionFunc() const noexcept { return m_intersectsCollectionFunc; }
-        const auto& emplaceFunc() const noexcept { return m_emplaceFunc; }
    private:
         node_t* subdivide(std::vector<glm::vec3>, int nAxis, int nLevel = 0);
         void getVisibleObjects_impl(const Frustum*, const AABB& box, node_t* pCurNode, int nAxis) const;
@@ -70,9 +66,7 @@ namespace Ice
         node_t* m_pRoot{};
         std::vector<node_t> m_vNodes{};
         AABB m_outerBox{};
-        collection_func_t m_getVisibleObjectCollectionFunc;
         intersects_collection_func_t m_intersectsCollectionFunc;
-        emplace_func_t m_emplaceFunc;
     };
     
 
@@ -84,11 +78,11 @@ namespace Ice
         while (pCurNode) {
             std::visit(visitor{ 
                 [this,&p,&pCurNode,nAxis,obj=std::forward<U>(u)](branch_node& branch) {
-                    this->m_emplaceFunc(branch.m_container, obj);
+                    this->base::m_emplaceFunc(branch.m_container, obj);
                     pCurNode = p[nAxis] <= branch.m_fLocation ? branch.m_pLeft : branch.m_pRight;
                 },
                 [this,obj=std::forward<U>(u),&pCurNode](leaf_node& branch) {
-                    this->m_emplaceFunc(branch.m_container, obj);
+                    this->base::m_emplaceFunc(branch.m_container, obj);
                     pCurNode = nullptr;
                 }
             }, *pCurNode);
@@ -107,7 +101,7 @@ namespace Ice
             sNodes.pop();
             std::visit(visitor{ 
                 [this,&box,nAxis,&sNodes,obj=std::forward<U>(u),nodeBox=curNode.first](branch_node& branch) {
-                    this->m_emplaceFunc(branch.m_container, obj);
+                    this->base::m_emplaceFunc(branch.m_container, obj);
                     AABB tmpBox = nodeBox;
                     tmpBox.maxVertex()[nAxis] = branch.m_fLocation;
                     if (box.intersects(tmpBox)) {
@@ -120,7 +114,7 @@ namespace Ice
                     }
                 },
                 [this,obj=std::forward<U>(u),nodeBox=curNode.first](leaf_node& branch) {
-                    this->m_emplaceFunc(branch.m_container, obj);
+                    this->base::m_emplaceFunc(branch.m_container, obj);
                 }
             }, *curNode.second);
             nAxis = (nAxis + 1) % 3;
