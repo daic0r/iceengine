@@ -119,6 +119,7 @@ Components/Systems/TerrainSystem.cpp
 Components/Systems/WaterRenderingSystem.cpp
 Components/Systems/BeeSystem.cpp
 Components/Systems/CharacterSystem.cpp
+Components/Systems/SceneGraphSystem.cpp
 Components/TerrainComponent.cpp
 Engine.cpp
 Particles/Particle.cpp

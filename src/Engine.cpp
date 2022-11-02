@@ -45,6 +45,7 @@
 #include <Components/Systems/BiomeSystem.h>
 #include <Components/Systems/BeeSystem.h>
 #include <Components/Systems/CharacterSystem.h>
+#include <Components/Systems/SceneGraphSystem.h>
 #include <chrono>
 #include <GUI/WidgetManager.h>
 #include <Utils/ScopedTimeMeasurement.h>
@@ -70,6 +71,7 @@ static std::unique_ptr<TerrainSystem> _pTerrainSystem;
 static std::unique_ptr<BiomeSystem> _pBiomeSystem;
 static std::unique_ptr<BeeSystem> _pBeeSystem;
 static std::unique_ptr<CharacterSystem> _pCharacterSystem;
+static std::unique_ptr<SceneGraphSystem> _pSceneGraphSystem;
 
 bool Engine::init(const Config& config, ILoader *pLoader, std::unique_ptr<IGame> pGame) {
     systemServices.setConfig(config);
@@ -89,6 +91,7 @@ bool Engine::init(const Config& config, ILoader *pLoader, std::unique_ptr<IGame>
     _pToolTipSystem = std::make_unique<ToolTipSystem>();
     _pMeshGroupSystem = std::make_unique<MeshGroupSystem>();
     _pTerrainSystem = std::make_unique<TerrainSystem>();
+    _pSceneGraphSystem = std::make_unique<SceneGraphSystem>();
 
     entityManager.registerComponentSystem<false>(_pModelManager.get());
     entityManager.registerComponentSystem<false>(_pAnimatedModelManager.get());
@@ -101,6 +104,7 @@ bool Engine::init(const Config& config, ILoader *pLoader, std::unique_ptr<IGame>
     entityManager.registerComponentSystem<true>(_pToolTipSystem.get());
     entityManager.registerComponentSystem<true>(_pModelAnimationSystem.get());
     entityManager.registerComponentSystem<true>(_pCamSystem.get());
+    entityManager.registerComponentSystem<true>(_pSceneGraphSystem.get());
 
     for (auto i : config.systemIds()) {
         switch (i) {

@@ -25,5 +25,8 @@
 #include <limits>
 #include <string_view>
 #include <System/Math.h>
+#include <Entities/Entity.h>
+#include <Entities/EntityManager.h>
+#include <Entities/EntityComponentSystem.h>
 
 #endif
