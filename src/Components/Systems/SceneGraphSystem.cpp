@@ -1,9 +1,23 @@
 #include <Components/Systems/SceneGraphSystem.h>
 #include <Components/TransformComponent.h>
+#include <Components/Systems/TerrainSystem.h>
+#include <ranges>
 
 namespace Ice
 {
-    
+    SceneGraphSystem::SceneGraphSystem() {
+        m_tree.setEmplaceFunc([](TreeNodeContainer& container, const TreeEmplaceValue& value) {
+            if (std::ranges::none_of(container.m_vObjects, [&value](auto&& v) { return v == value.m_ent; })) {
+                container.m_vObjects.emplace_back(value.m_ent);
+                container.m_mModels[value.m_model].push_back(value.m_pInst);
+            }
+        });
+    }
+
+    void SceneGraphSystem::onSystemsInitialized() noexcept {
+		m_pTerrainSystem = entityManager.getSystem<TerrainSystem, false>();
+    }
+
     void SceneGraphSystem::onEntityAdded(Entity e) noexcept {
         /*
         const auto& comp = entityManager.getComponent<EntityHierarchyComponent>(e);
@@ -11,6 +25,17 @@ namespace Ice
             comp.entRootEntity = findRoot(e);
         }
         */
+    }
+
+    void SceneGraphSystem::buildTree() noexcept {
+        const auto& worldExt = m_pTerrainSystem->worldExtents();
+        const Extents3 ext3{ 
+            glm::vec3{ worldExt.minPoint[0], -std::numeric_limits<float>::max(), worldExt.minPoint[1] },
+            glm::vec3{ worldExt.maxPoint[0], std::numeric_limits<float>::max(), worldExt.maxPoint[1] }
+        };
+        const AABB worldBox{ ext3 };
+
+        m_tree.construct(worldBox);
     }
 
     Entity SceneGraphSystem::findRoot(Entity e) const {

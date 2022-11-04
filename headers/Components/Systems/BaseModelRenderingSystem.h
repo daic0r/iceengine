@@ -22,6 +22,7 @@
 #include <System/static_task.h>
 #include <System/Octree.h>
 #include <Components/Systems/TerrainSystem.h>
+#include <Components/Systems/SceneGraphSystem.h>
 
 namespace Ice {
 
@@ -34,19 +35,6 @@ class BaseModelRenderingSystem {
 	static inline constexpr auto FRUSTUM_REFRESH_INTERVAL = 30;
 
 public:
-    struct ModelRenderingTreeNodeContainer {
-        std::vector<Entity> m_vObjects;
-        std::unordered_map<ModelStructType, std::vector<ModelInstanceType*>> m_mModels;
-    };
-
-    struct ModelRenderingTreeEmplaceValue {
-        Entity m_ent;
-        ModelStructType m_model;
-        ModelInstanceType *m_pInst;
-    };
-
-	using tree_t = Octree<ModelRenderingTreeNodeContainer, ModelRenderingTreeEmplaceValue>;
-
 protected:
 	//std::vector<std::pair<Model, std::vector<ModelInstance*>>> m_vInstances;
 	std::unordered_map<Model, std::vector<ModelInstance*>> m_vInstances;
@@ -58,16 +46,15 @@ protected:
 	IModelRenderer* m_pShadowRenderer{ nullptr };
 	IGraphicsSystem* m_pGraphicsSystem{};
 	TerrainSystem* m_pTerrainSystem{};
-	thread_pool m_pool{1};
+	SceneGraphSystem* m_pSceneGraphSystem{};
 
-	tree_t m_tree{8};
-	std::future<tree_t> m_futTree;
-	bool m_bFirstRun{true};
-	std::mutex daMut;
+	//tree_t m_tree{8};
+	//std::future<tree_t> m_futTree;
+	//bool m_bFirstRun{true};
+	//std::mutex daMut;
 
 	std::vector<Entity> m_vVisibleEnts{};
 	int m_nFramesSinceNoKdRefresh{}, m_nFramesSinceFrustumRefresh{};
-	std::vector<glm::vec3> m_vTreeVertices;
 
 	virtual ModelStructType makeModelStruct(Entity) const = 0;
 	virtual bool isEntityEligibleForRendering(Entity e) const = 0;
@@ -77,33 +64,33 @@ protected:
 		m_pCameraControllerSystem = entityManager.getSystem<CameraControllerSystem, true>();
 		m_pTerrainSystem = entityManager.getSystem<TerrainSystem, false>();
 		m_pGraphicsSystem = systemServices.getGraphicsSystem();
+		m_pSceneGraphSystem = entityManager.getSystem<SceneGraphSystem, true>();
 //		m_pShadowRenderer = systemServices.getShadowMapRenderer();
-		m_tree.setEmplaceFunc([](ModelRenderingTreeNodeContainer& container, const ModelRenderingTreeEmplaceValue& value) {
-			if (std::ranges::none_of(container.m_vObjects, [&value](auto&& v) { return v == value.m_ent; })) {
-				container.m_vObjects.emplace_back(value.m_ent);
-				container.m_mModels[value.m_model].push_back(value.m_pInst);
-			}
-		});
-		m_tree.setGetVisibleObjectCollectionFunc([this](const ModelRenderingTreeNodeContainer& container) {
+		m_pSceneGraphSystem->tree().setGetVisibleObjectCollectionFunc([this](const SceneGraphSystem::TreeNodeContainer& container) {
 			this->m_vFrustumEnts.insert(this->m_vFrustumEnts.end(), container.m_vObjects.begin(), container.m_vObjects.end());
 			for (const auto& [model, vInst] : container.m_mModels) {
-				auto& v = this->m_vInstances[model];
-				v.insert(v.end(), vInst.begin(), vInst.end());
+				auto& v = this->m_vInstances[std::get<ModelStructType>(model)];
+				std::ranges::transform(vInst, std::back_inserter(v), [](const auto& inst) {
+					return std::get<ModelInstanceType*>(inst);
+				});
 			}
 		});
 	}
 
 	void onEntityAdded(Entity e) noexcept {
 		auto& transf = entityManager.getSharedComponentOr<TransformComponent>(e);
-		daMut.lock();
 		auto [iter, _] = m_vEntity2ModelStruct.emplace(e, std::make_pair(makeModelStruct(e), ModelInstanceType{}));
-		daMut.unlock();
 		//std::ranges::sort(m_vEntity2ModelStruct, [e](const auto& a, const auto& b) { return a.first < b.first; });
 		iter->second.second.pTransform = &transf;
 		
 		if (std::ranges::none_of(m_vInstances, [iter](const auto& kvp) { return kvp.first.pMesh == iter->second.first.pMesh; })) {
 			m_vInstances.emplace(iter->second.first, std::vector<ModelInstance*>{});
 		}
+
+		const AABB boxLocal{ iter->second.first.pMesh->extents() };
+		const auto boxWorld = boxLocal.transform(iter->second.second.pTransform->m_transform);
+		m_pSceneGraphSystem->tree().emplace(boxWorld, SceneGraphSystem::TreeEmplaceValue{ e, iter->second.first, &iter->second.second });
+
 		if (m_pShadowRenderer == nullptr)
 			m_pShadowRenderer = systemServices.getShadowMapRenderer();
 
@@ -122,7 +109,7 @@ protected:
 	}
 
 	bool update(float fDeltaTime, const std::set<Entity>& ents) noexcept {
-		//if (m_nFramesSinceNoKdRefresh % tree_REFRESH_INTERVAL == 0) {
+		/*
 		using namespace std::chrono_literals;
 		const auto bFutReady = m_futTree.valid() && m_futTree.wait_for(0ns) == std::future_status::ready;
 		if ((m_nFramesSinceNoKdRefresh % TREE_REFRESH_INTERVAL == 0 && bFutReady) || m_bFirstRun) {
@@ -138,6 +125,7 @@ protected:
 		} else {
 			++m_nFramesSinceNoKdRefresh;
 		}
+		*/
 		return true;
 	}
 
@@ -175,7 +163,7 @@ protected:
 				for (auto& kvp : m_vInstances) {
 					kvp.second.clear();
 				}
-				m_tree.getVisibleObjects(env.frustum); //, m_vFrustumEnts, m_vInstances);
+				m_pSceneGraphSystem->tree().getVisibleObjects(env.frustum); //, m_vFrustumEnts, m_vInstances);
 				m_nFramesSinceFrustumRefresh = 1;
 			} else {
 				++m_nFramesSinceFrustumRefresh;
@@ -193,10 +181,8 @@ protected:
 	}
 
 public:
-	const auto& tree() const noexcept { return m_tree; }
-	auto& tree() noexcept { return m_tree; }
-
 	const auto& entitiesInFrustum() const noexcept { return m_vFrustumEnts; }
+	/*
 	auto buildTree() {
 		std::vector<glm::vec3> treeVertices;
 
@@ -212,14 +198,6 @@ public:
 			const auto boxWorld = boxLocal.transform(modelInstPair.second.pTransform->m_transform);
 			vValues.emplace_back(boxWorld, ModelRenderingTreeEmplaceValue{ e, modelInstPair.first, &modelInstPair.second });
 
-/*
-			const auto worldCorners = boxWorld.cornerVertices();
-			for (const auto& corner : worldCorners) {
-				treeVertices.emplace_back(corner[0], corner[1], corner[2]);
-			}
-*/
-/*				USE ALL CORNERS?
-*/
 		}
 
 		tree_t tree;
@@ -227,12 +205,6 @@ public:
 		tree.setEmplaceFunc(m_tree.emplaceFunc());
 		//tree.setIntersectsCollectionFunc(m_tree.intersectsCollectionFunc());
 		{
-			/*
-			ScopedTimeMeasurement m([](std::chrono::nanoseconds dur) {
-				std::cout << "Took " << dur.count() << "ns\n";
-			});
-			std::cout << "Constructing kd-Tree from " << m_vTreeVertices.size() << " points\n";
-			*/
 		  	const auto& worldExt = m_pTerrainSystem->worldExtents();
 			const Extents3 ext3{ 
 				glm::vec3{ worldExt.minPoint[0], -std::numeric_limits<float>::max(), worldExt.minPoint[1] },
@@ -241,18 +213,10 @@ public:
 		 	AABB worldBox{ ext3 };
 			tree.construct(vValues, worldBox);
 		}
-		/*
-		for (auto& [ent, modelInstPair] : m_vEntity2ModelStruct) {
-			AABB boxLocal{ modelInstPair.first.pMesh->extents() };
 
-			const auto boxWorld = boxLocal.transform(modelInstPair.second.pTransform->m_transform);
-	
-			//tree.emplace(boxWorld.center(), );
-		}
-		*/
-	
 		return tree;
 	}
+	*/
 };
 
 }

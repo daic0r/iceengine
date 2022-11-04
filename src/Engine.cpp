@@ -147,6 +147,7 @@ bool Engine::init(const Config& config, ILoader *pLoader, std::unique_ptr<IGame>
     //ParticleManager::instance().init();
     
     m_pGame->init();
+    _pSceneGraphSystem->buildTree();
     
     return bSuccess;
 }

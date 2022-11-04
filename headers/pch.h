@@ -23,6 +23,7 @@
 #include <memory>
 #include <filesystem>
 #include <limits>
+#include <variant>
 #include <string_view>
 #include <System/Math.h>
 #include <Entities/Entity.h>

@@ -83,11 +83,12 @@ namespace Ice
             std::array<std::unique_ptr<node_t>, 8> arNodes;
         };
 
-        void construct_impl(const std::vector<std::pair<AABB, ValueType>>&, std::unique_ptr<node_t>& node, const AABB& originalBox, int nLevel = 0);
+        void construct_impl(std::unique_ptr<node_t>& node, const AABB& originalBox, const std::vector<std::pair<AABB, ValueType>>* pvValues, int nLevel = 0);
         
         template<typename NodePositionMappingFunc>
         SubdivisionIntersectionBehavior intersects_impl(const Ray&, const node_t* node, const sIntersectParams& params, NodePositionMappingFunc&& mappingFunc, const base::onhitleafnodefunc_t& onHitLeafNode) const;
         void getVisibleObjects_impl(const node_t* pCurNode, const Frustum& frustum) const noexcept;
+        void emplace_impl(node_t* pCurNode, const AABB& box,const ValueType& val);
 
         node_t* find(const glm::vec3& point, node_t* pStart = nullptr) const noexcept;
 
@@ -102,7 +103,7 @@ namespace Ice
     public:
         Octree(std::size_t nMaxDepth = 6) : m_nMaxDepth{nMaxDepth} {}
         Octree(const std::vector<std::pair<AABB, ValueType>>& vBoxes, const AABB& outerBox, std::size_t nMaxDepth = 6);
-        void construct(const std::vector<std::pair<AABB, ValueType>>&, const AABB& originalBox);
+        void construct(const AABB& originalBox, const std::vector<std::pair<AABB, ValueType>>* = nullptr);
         bool intersects(Ray, const base::onhitleafnodefunc_t& onHitLeafNode) const;
         void emplace(const AABB& box,const ValueType& val);
         void getVisibleObjects(const Frustum& frustum) const noexcept;
@@ -157,7 +158,7 @@ namespace Ice
     }
 
     template<typename LeafNodeContainerType, typename ValueType>
-    void Octree<LeafNodeContainerType, ValueType>::construct_impl(const std::vector<std::pair<AABB, ValueType>>& vPoints, std::unique_ptr<node_t>& node, const AABB& originalBox, int nLevel) {
+    void Octree<LeafNodeContainerType, ValueType>::construct_impl(std::unique_ptr<node_t>& node, const AABB& originalBox, const std::vector<std::pair<AABB, ValueType>>* pvValues, int nLevel) {
         struct sNodeInfo {
             std::vector<std::pair<AABB, ValueType>> vNodeContents;
             AABB box;
@@ -165,42 +166,42 @@ namespace Ice
         std::array<sNodeInfo, 8> arSubNodes;
         for (int i = 0; i < 8; ++i) {
             arSubNodes[i].box = getSubNodeBox(originalBox, static_cast<NodePosition>(i));
-            std::ranges::copy_if(vPoints, std::back_inserter(arSubNodes[i].vNodeContents), [i, &arSubNodes](const auto& elem) {
-                return arSubNodes[i].box.intersects(elem.first);
-            });
+            if (pvValues) {
+                std::ranges::copy_if(*pvValues, std::back_inserter(arSubNodes[i].vNodeContents), [i, &arSubNodes](const auto& elem) {
+                    return arSubNodes[i].box.intersects(elem.first);
+                });
+            }
         }
 
         node = std::make_unique<node_t>();
-        if (nLevel <= m_nMaxDepth && vPoints.size() > 2) {
+        if (nLevel <= m_nMaxDepth && (!pvValues || (pvValues && pvValues->size() > 2))) {
             *node = branch_node{};
             auto& thisNode = std::get<branch_node>(*node);
             thisNode.box = originalBox;
-            for (const auto& [box, value] : vPoints) {
-                base::m_emplaceFunc(thisNode.m_container, value);
+            if (pvValues) {
+                for (const auto& [box, value] : *pvValues) {
+                    base::m_emplaceFunc(thisNode.m_container, value);
+                }
             }
             for (int i = 0; i < 8; ++i) {
-                construct_impl(arSubNodes[i].vNodeContents, thisNode.arNodes[i], arSubNodes[i].box, nLevel + 1);
+                construct_impl(thisNode.arNodes[i], arSubNodes[i].box, &arSubNodes[i].vNodeContents, nLevel + 1);
             }
         }
         else {
             *node = leaf_node{};
             auto& thisNode = std::get<leaf_node>(*node);
             thisNode.box = originalBox;
-            for (const auto& [box, value] : vPoints) {
-                base::m_emplaceFunc(thisNode.m_container, value);
+            if (pvValues) {
+                for (const auto& [box, value] : *pvValues) {
+                    base::m_emplaceFunc(thisNode.m_container, value);
+                }
             }
-            /*
-            auto& v = thisNode.vObjects;
-            std::ranges::transform(vPoints, std::back_inserter(v), [](const std::pair<AABB, T>& kvp) {
-                return kvp.second;
-            });
-            */
         }
     }
 
     template<typename LeafNodeContainerType, typename ValueType>
-    void Octree<LeafNodeContainerType, ValueType>::construct(const std::vector<std::pair<AABB, ValueType>>& vPoints, const AABB& originalBox) {
-        construct_impl(vPoints, m_root, originalBox, 0);
+    void Octree<LeafNodeContainerType, ValueType>::construct(const AABB& originalBox, const std::vector<std::pair<AABB, ValueType>>* pvValues) {
+        construct_impl(m_root, originalBox, pvValues, 0);
     }
 
     template<typename LeafNodeContainerType, typename ValueType>
@@ -525,34 +526,32 @@ namespace Ice
     }
 
     template<typename LeafNodeContainerType, typename ValueType>
-    void Octree<LeafNodeContainerType, ValueType>::emplace(const AABB& box, const ValueType& value) {
-        auto curNode = m_root.get();
-        bool bDone{};
-        while (!bDone) {
-           std::visit(visitor {
-                [&box,&value,&curNode](const branch_node& node) { 
-                    bool bFound{};
-                    for (const auto& pSubNode : node.arNodes) {
-                        const auto bIntersect = std::visit(
-                            [&box](const auto& n) {
-                                return n.box.contains(box);
-                            }
-                        , *pSubNode);
-                        if (bIntersect) {
-                            curNode = pSubNode.get();
-                            bFound = true;
+    void Octree<LeafNodeContainerType, ValueType>::emplace_impl(node_t* pCurNode, const AABB& box, const ValueType& value) {
+        std::visit(visitor {
+            [&box,&value,this](branch_node& node) { 
+                this->m_emplaceFunc(node.m_container, value);
+                for (const auto& pSubNode : node.arNodes) {
+                    const auto bIntersect = std::visit(
+                        [&box](const auto& n) {
+                            return n.box.contains(box);
                         }
+                    , *pSubNode);
+                    if (bIntersect) {
+                        emplace_impl(pSubNode.get(), box, value);
                     }
-                    if (!bFound)
-                        throw std::logic_error("No fitting box found!");
-                },
-                [this,&value,&bDone](leaf_node& leaf) {
-                    //leaf.vObjects.push_back(value); 
-                    this->m_emplaceFunc(leaf.m_container, value);
-                    bDone = true; 
                 }
-            }, *curNode);
-        }
+            },
+            [this,&value](leaf_node& leaf) {
+                //leaf.vObjects.push_back(value); 
+                this->m_emplaceFunc(leaf.m_container, value);
+            }
+        }, *pCurNode);
+    }
+
+    template<typename LeafNodeContainerType, typename ValueType>
+    void Octree<LeafNodeContainerType, ValueType>::emplace(const AABB& box, const ValueType& value) {
+        if (box.contains(std::get<branch_node>(*m_root).box))
+            emplace_impl(m_root.get(), box, value);
     }
 
 

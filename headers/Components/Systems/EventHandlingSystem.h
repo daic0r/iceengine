@@ -14,14 +14,12 @@
 
 namespace Ice {
 
-class ObjectRenderingSystem;
-class AnimatedModelRenderingSystem;
+class SceneGraphSystem;
 class Ray;
 struct CameraComponent;
 
 class EventHandlingSystem : public EntityComponentSystem<InputReceiverComponent> {
-	ObjectRenderingSystem* m_pObjRenderingSystem{ nullptr };
-	AnimatedModelRenderingSystem* m_pAnimObjRenderingSystem{ nullptr };
+	SceneGraphSystem* m_pSceneGraphSystem{};
 	std::vector<Entity> m_vEntBuffer;
 	Entity m_cameraEnt{};
 public:

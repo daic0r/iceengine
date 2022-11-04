@@ -48,7 +48,7 @@ namespace Ice
         iter->second.setEmplaceFunc([](std::vector<triangle_t>& vContainer, const triangle_t& triangle) {
             vContainer.push_back(triangle);
         });
-        iter->second.construct(vTriangles, outerBox);
+        iter->second.construct(outerBox, &vTriangles);
  #ifdef _DEBUG_OCTREE
         for (auto info = iter->second.startTraversal(); info.box != nullptr; info = iter->second.next()) {
             const auto &[nID, pBB, bIsLeaf] = info; 

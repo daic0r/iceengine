@@ -23,6 +23,7 @@
 #include <GUI/WidgetManager.h>
 #include <Components/Systems/ObjectRenderingSystem.h>
 #include <Components/Systems/AnimatedModelRenderingSystem.h>
+#include <Components/Systems/SceneGraphSystem.h>
 #include <Components/ModelInstanceTagComponent.h>
 #include <Components/CameraComponent.h>
 #include <GUI/MousePicker.h>
@@ -88,7 +89,7 @@ bool EventHandlingSystem::update(float fDeltaTime) {
             const Ray mouseRay{ camComp.m_camera.position(), pick.getMouseRay() };
 
             m_vEntBuffer.clear(); 
-            m_pObjRenderingSystem->tree().intersects(mouseRay, [this](const ObjectRenderingSystem::ModelRenderingTreeNodeContainer& container) {
+            m_pSceneGraphSystem->tree().intersects(mouseRay, [this](const SceneGraphSystem::TreeNodeContainer& container) {
                 this->m_vEntBuffer.insert(this->m_vEntBuffer.end(), container.m_vObjects.begin(), container.m_vObjects.end());
                 return SubdivisionIntersectionBehavior::ABORT_SUCCESS; 
             }); //, m_vEntBuffer);
@@ -172,8 +173,8 @@ bool EventHandlingSystem::update(float fDeltaTime) {
 }
 
 void EventHandlingSystem::onSystemsInitialized() noexcept {
-	m_pObjRenderingSystem = entityManager.getSystem<ObjectRenderingSystem, true>();
-	m_pAnimObjRenderingSystem = entityManager.getSystem<AnimatedModelRenderingSystem, true>();
+    m_pSceneGraphSystem = entityManager.getSystem<SceneGraphSystem, true>(); 
+    
     /*
     m_pObjRenderingSystem->kdTree().setIntersectsCollectionFunc([this](const Ray&, const ObjectRenderingSystem::ModelRenderingKdTreeNodeContainer& container) {
         this->m_vEntBuffer.insert(this->m_vEntBuffer.end(), container.m_vObjects.begin(), container.m_vObjects.end());
