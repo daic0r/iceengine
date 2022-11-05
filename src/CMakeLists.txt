@@ -120,6 +120,7 @@ Components/Systems/WaterRenderingSystem.cpp
 Components/Systems/BeeSystem.cpp
 Components/Systems/CharacterSystem.cpp
 Components/Systems/SceneGraphSystem.cpp
+Components/Systems/BaseModelRenderingSystem.cpp
 Components/TerrainComponent.cpp
 Engine.cpp
 Particles/Particle.cpp
@@ -236,8 +237,8 @@ if (UNIX)
 endif(UNIX)
 
 if (UNIX)
-	target_compile_options(${PROJECT_NAME} PRIVATE -O0 -g -fPIC -Wno-non-template-friend)
-	target_link_options(${PROJECT_NAME} PRIVATE -Wl,--no-as-needed)
+	target_compile_options(${PROJECT_NAME} PRIVATE -fPIC -Wno-non-template-friend)
+	target_link_options(${PROJECT_NAME} PRIVATE -Wl,--no-as-needed) # for profiler lib, so "uncalled" functions are not eliminated
 endif()
 target_compile_definitions(${PROJECT_NAME} PRIVATE RENDERER_OPEN_GL)
 target_include_directories(${PROJECT_NAME} PRIVATE ${RAPIDXML_INCLUDE_DIRS} PRIVATE ${TINYGLTF_INCLUDE_DIRS})

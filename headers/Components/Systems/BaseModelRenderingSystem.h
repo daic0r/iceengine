@@ -29,38 +29,41 @@ namespace Ice {
 struct MeshComponent;
 class IModelRenderer;
 
-template<typename ModelStructType, typename ModelInstanceType>
-class BaseModelRenderingSystem {
+class ABaseModelRenderingSystem {
 	friend class SceneGraphSystem;
 
-	static inline constexpr auto TREE_REFRESH_INTERVAL = 20;
 	static inline constexpr auto FRUSTUM_REFRESH_INTERVAL = 30;
-
-public:
 protected:
-	//std::vector<std::pair<Model, std::vector<ModelInstance*>>> m_vInstances;
 	std::unordered_map<Model, std::vector<ModelInstance*>> m_vInstances;
-	//std::vector<std::pair<Entity, std::pair<ModelStructType, ModelInstanceType>>> m_vEntity2ModelStruct;
-	std::unordered_map<Entity, std::pair<ModelStructType, ModelInstanceType>> m_vEntity2ModelStruct;
 	std::vector<Entity> m_vFrustumEnts;
-	CameraControllerSystem* m_pCameraControllerSystem{ nullptr };
 	IModelRenderer* m_pRenderer{ nullptr };
 	IModelRenderer* m_pShadowRenderer{ nullptr };
 	IGraphicsSystem* m_pGraphicsSystem{};
 	TerrainSystem* m_pTerrainSystem{};
 	SceneGraphSystem* m_pSceneGraphSystem{};
 
-	//tree_t m_tree{8};
-	//std::future<tree_t> m_futTree;
-	//bool m_bFirstRun{true};
-	//std::mutex daMut;
-
-	std::vector<Entity> m_vVisibleEnts{};
 	int m_nFramesSinceNoKdRefresh{}, m_nFramesSinceFrustumRefresh{};
 
-	virtual ModelStructType makeModelStruct(Entity) const = 0;
 	virtual bool isEntityEligibleForRendering(Entity e) const = 0;
 	virtual bool isEntityEligibleForFrustumCulling(Entity e) const = 0;
+
+	void onSystemsInitialized() noexcept;
+	void render(const RenderEnvironment& env) noexcept;
+	void willRemoveComponent(Entity e) noexcept;
+
+public:
+	const auto& entitiesInFrustum() const noexcept { return m_vFrustumEnts; }
+};
+
+template<typename ModelStructType, typename ModelInstanceType>
+class BaseModelRenderingSystem : public ABaseModelRenderingSystem {
+	static inline constexpr auto TREE_REFRESH_INTERVAL = 20;
+
+public:
+protected:
+	std::unordered_map<Entity, std::pair<ModelStructType, ModelInstanceType>> m_vEntity2ModelStruct;
+
+	virtual ModelStructType makeModelStruct(Entity) const = 0;
 
 	static constexpr RenderSystem renderSystem() noexcept {
 		if constexpr(std::is_same_v<ModelStructType, Model>)
@@ -69,14 +72,6 @@ protected:
 			return RenderSystem::ANIMATED;
 	}
 	
-	void onSystemsInitialized() noexcept {
-		m_pCameraControllerSystem = entityManager.getSystem<CameraControllerSystem, true>();
-		m_pTerrainSystem = entityManager.getSystem<TerrainSystem, false>();
-		m_pGraphicsSystem = systemServices.getGraphicsSystem();
-		m_pSceneGraphSystem = entityManager.getSystem<SceneGraphSystem, true>();
-//		m_pShadowRenderer = systemServices.getShadowMapRenderer();
-	}
-
 	void onEntityAdded(Entity e) noexcept {
 		auto& transf = entityManager.getSharedComponentOr<TransformComponent>(e);
 		auto [iter, _] = m_vEntity2ModelStruct.emplace(e, std::make_pair(makeModelStruct(e), ModelInstanceType{}));
@@ -97,77 +92,16 @@ protected:
 	}
 
 	void willRemoveComponent(Entity e) noexcept {
+		ABaseModelRenderingSystem::willRemoveComponent(e);
 		{
 			const auto iter = std::ranges::find_if(m_vEntity2ModelStruct, [e](const auto& kvp) { return e == kvp.first; });
 			m_vEntity2ModelStruct.erase(iter);
 		}
-		{
-			auto iter = std::ranges::find(m_vFrustumEnts, e);
-			if (iter != m_vFrustumEnts.end())
-				m_vFrustumEnts.erase(iter);
-		}
-	}
-
-	bool update(float fDeltaTime, const std::set<Entity>& ents) noexcept {
-		/*
-		using namespace std::chrono_literals;
-		const auto bFutReady = m_futTree.valid() && m_futTree.wait_for(0ns) == std::future_status::ready;
-		if ((m_nFramesSinceNoKdRefresh % TREE_REFRESH_INTERVAL == 0 && bFutReady) || m_bFirstRun) {
-		 	if (!m_bFirstRun && bFutReady) {
-				m_tree = m_futTree.get();
-			}
-			m_futTree = m_pool.async([this]() {
-				return buildTree();
-			});
-			m_nFramesSinceNoKdRefresh = 1;
-			std::cout << "Bauta\n";
-			m_bFirstRun = false;
-		} else {
-			++m_nFramesSinceNoKdRefresh;
-		}
-		*/
-		return true;
 	}
 
 	void render(const RenderEnvironment& env, const static_task<void(Entity, ModelInstanceType&)>& extendedUpdateInstanceFunc) noexcept {
-		/*
-		if (m_nFramesSinceFrustumRefresh % FRUSTUM_REFRESH_INTERVAL == 0) {
-			const auto& ents = entitiesInFrustum();
-		
-			// Clear all the contained vectors but don't destruct them to prevent
-			// having to reallocate memory
-			for (auto& kvp : m_vInstances) {
-				kvp.second.clear();
-			}
-			// This loop makes framerate drop from 500 to 200 fps
-			// #OPTIMIZE
-			for (auto e : ents) {
-				if (!isEntityEligibleForRendering(e))
-					continue;
-
-				auto& [model, inst] = m_vEntity2ModelStruct.find(e)->second;
-				extendedUpdateInstanceFunc(e, inst);
-				auto iter2 = std::ranges::find_if(m_vInstances, [&model](const auto& kvp) { return kvp.first.pMesh == model.pMesh; });
-				iter2->second.push_back(&inst);
-			}
-			m_nFramesSinceFrustumRefresh = 1;
-		} else {
-			++m_nFramesSinceFrustumRefresh;
-		}
-		*/
 		if (env.bMainRenderPass) {
-			if (m_nFramesSinceFrustumRefresh % FRUSTUM_REFRESH_INTERVAL == 0) {
-				m_vFrustumEnts.clear();
-				// PROFILING: SUPER FAST
-				// #DONOTOPTIMIZE
-				for (auto& kvp : m_vInstances) {
-					kvp.second.clear();
-				}
-				m_pSceneGraphSystem->tree().getVisibleObjects(env.frustum); //, m_vFrustumEnts, m_vInstances);
-				m_nFramesSinceFrustumRefresh = 1;
-			} else {
-				++m_nFramesSinceFrustumRefresh;
-			}
+			ABaseModelRenderingSystem::render(env);
 
 			if (extendedUpdateInstanceFunc) {
 				for (auto e : m_vFrustumEnts) {
@@ -179,44 +113,6 @@ protected:
 				m_pShadowRenderer->render(env, m_vInstances);
 		}
 	}
-
-public:
-	const auto& entitiesInFrustum() const noexcept { return m_vFrustumEnts; }
-	/*
-	auto buildTree() {
-		std::vector<glm::vec3> treeVertices;
-
-		std::scoped_lock l{ daMut };
-
-		std::vector<std::pair<AABB, ModelRenderingTreeEmplaceValue>> vValues;
-		vValues.reserve(m_vEntity2ModelStruct.size());
-
-		// Measured: WAY faster >without< multithreading the loop below
-		for (auto& [e, modelInstPair] : m_vEntity2ModelStruct) {
-			AABB boxLocal{ modelInstPair.first.pMesh->extents() };
-
-			const auto boxWorld = boxLocal.transform(modelInstPair.second.pTransform->m_transform);
-			vValues.emplace_back(boxWorld, ModelRenderingTreeEmplaceValue{ e, modelInstPair.first, &modelInstPair.second });
-
-		}
-
-		tree_t tree;
-		tree.setGetVisibleObjectCollectionFunc(m_tree.getVisibleObjectCollectionFunc());
-		tree.setEmplaceFunc(m_tree.emplaceFunc());
-		//tree.setIntersectsCollectionFunc(m_tree.intersectsCollectionFunc());
-		{
-		  	const auto& worldExt = m_pTerrainSystem->worldExtents();
-			const Extents3 ext3{ 
-				glm::vec3{ worldExt.minPoint[0], -std::numeric_limits<float>::max(), worldExt.minPoint[1] },
-				glm::vec3{ worldExt.maxPoint[0], std::numeric_limits<float>::max(), worldExt.maxPoint[1] }
-			};
-		 	AABB worldBox{ ext3 };
-			tree.construct(vValues, worldBox);
-		}
-
-		return tree;
-	}
-	*/
 };
 
 }

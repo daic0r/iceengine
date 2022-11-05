@@ -8,9 +8,9 @@
 namespace Ice
 {
     SceneGraphSystem::SceneGraphSystem() {
-        m_tree.setEmplaceFunc([](TreeNodeContainer& container, const TreeEmplaceValue& value) {
+        m_tree.setEmplaceFunc([this](TreeNodeContainer& container, const TreeEmplaceValue& value) {
             if (std::ranges::none_of(container.m_vObjects, [&value](auto&& v) { return v.second == value.m_ent; })) {
-                container.m_vObjects.emplace_back(value.m_system, value.m_ent);
+                container.m_vObjects.emplace_back(value.m_system == RenderSystem::STATIC ? static_cast<ABaseModelRenderingSystem*>(m_pObjectRenderingSystem) : static_cast<ABaseModelRenderingSystem*>(m_pAniModelRenderingSystem), value.m_ent);
                 container.m_mModels[value.m_model].push_back(value.m_pInst);
             }
         });
@@ -24,14 +24,7 @@ namespace Ice
         m_tree.setGetVisibleObjectCollectionFunc([this](const SceneGraphSystem::TreeNodeContainer& container) {
             //this->m_vFrustumEnts.insert(this->m_vFrustumEnts.end(), container.m_vObjects.begin(), container.m_vObjects.end());
             for (const auto& [sys, ent] : container.m_vObjects) {
-                switch (sys) {
-                    case RenderSystem::STATIC:
-                        m_pObjectRenderingSystem->m_vFrustumEnts.push_back(ent);
-                        break;
-                    case RenderSystem::ANIMATED:
-                        m_pAniModelRenderingSystem->m_vFrustumEnts.push_back(ent);
-                        break;
-                }
+                sys->m_vFrustumEnts.push_back(ent);
             }
             for (const auto& [model, vInst] : container.m_mModels) {
                 //auto pvInstances = std::holds_alternative<Model>(model) ? &m_pObjectRenderingSystem->m_vInstances : &m_pAniModelRenderingSystem->m_vInstances;

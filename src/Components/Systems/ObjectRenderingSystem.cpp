@@ -30,7 +30,8 @@ ObjectRenderingSystem::ObjectRenderingSystem() noexcept {
 }
 
 bool ObjectRenderingSystem::update(float fDeltaTime) noexcept {
-	return BaseClassType::update(fDeltaTime, entities(entityManager.currentScene()));
+	//return BaseClassType::update(fDeltaTime, entities(entityManager.currentScene()));
+	return true;
 }
 
 void ObjectRenderingSystem::render(const RenderEnvironment& env) noexcept {

@@ -76,7 +76,8 @@ bool AnimatedModelRenderingSystem::isEntityEligibleForFrustumCulling(Entity e) c
 
 
 bool AnimatedModelRenderingSystem::update(float fDeltaTime) noexcept {
-	return BaseClassType::update(fDeltaTime, entities(entityManager.currentScene()));
+	//return BaseClassType::update(fDeltaTime, entities(entityManager.currentScene()));
+	return true;
 }
 
 void AnimatedModelRenderingSystem::getJointTransforms(std::vector<glm::mat4>& vOut, const Joint& j) const noexcept {

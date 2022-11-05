@@ -12,6 +12,7 @@ namespace Ice
     class TerrainSystem;
     class ObjectRenderingSystem;
     class AnimatedModelRenderingSystem;
+    class ABaseModelRenderingSystem;
 
     enum class ComponentAccess {
         READ,
@@ -32,7 +33,7 @@ namespace Ice
         using modelstruct_t = std::variant<Model, AnimatedModel>;
         using modelinstance_t = std::variant<ModelInstance*, AnimatedModelInstance*>;
         struct TreeNodeContainer {
-            std::vector<std::pair<RenderSystem, Entity>> m_vObjects;
+            std::vector<std::pair<ABaseModelRenderingSystem*, Entity>> m_vObjects;
             std::unordered_map<modelstruct_t, std::vector<modelinstance_t>> m_mModels;
         };
 
