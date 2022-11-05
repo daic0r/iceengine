@@ -90,7 +90,9 @@ bool EventHandlingSystem::update(float fDeltaTime) {
 
             m_vEntBuffer.clear(); 
             m_pSceneGraphSystem->tree().intersects(mouseRay, [this](const SceneGraphSystem::TreeNodeContainer& container) {
-                this->m_vEntBuffer.insert(this->m_vEntBuffer.end(), container.m_vObjects.begin(), container.m_vObjects.end());
+                std::ranges::transform(container.m_vObjects, std::back_inserter(this->m_vEntBuffer), [](const auto& kvp) {
+                    return kvp.second;
+                });
                 return SubdivisionIntersectionBehavior::ABORT_SUCCESS; 
             }); //, m_vEntBuffer);
             std::ranges::sort(m_vEntBuffer);

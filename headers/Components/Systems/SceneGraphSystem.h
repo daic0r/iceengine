@@ -10,27 +10,35 @@
 namespace Ice
 {
     class TerrainSystem;
+    class ObjectRenderingSystem;
+    class AnimatedModelRenderingSystem;
 
     enum class ComponentAccess {
         READ,
         WRITE
+    };
+    
+    enum class RenderSystem {
+        STATIC,
+        ANIMATED
     };
 
     class SceneGraphSystem : public EntityComponentSystem<EntityHierarchyComponent> {
         
         Entity findRoot(Entity) const;
         void updateEntity(Entity, const glm::mat4& matParentWorldTransform, bool bDirtyByInheritance);
-
+ 
     public:
         using modelstruct_t = std::variant<Model, AnimatedModel>;
         using modelinstance_t = std::variant<ModelInstance*, AnimatedModelInstance*>;
         struct TreeNodeContainer {
-            std::vector<Entity> m_vObjects;
+            std::vector<std::pair<RenderSystem, Entity>> m_vObjects;
             std::unordered_map<modelstruct_t, std::vector<modelinstance_t>> m_mModels;
         };
 
         struct TreeEmplaceValue {
             Entity m_ent;
+            RenderSystem m_system;
             modelstruct_t m_model;
             modelinstance_t m_pInst;
         };
@@ -49,6 +57,8 @@ namespace Ice
         std::unordered_set<Entity> m_sDirtyRootEnts;
         tree_t m_tree{5};
         TerrainSystem* m_pTerrainSystem{};
+        ObjectRenderingSystem* m_pObjectRenderingSystem{};
+        AnimatedModelRenderingSystem* m_pAniModelRenderingSystem{};
     };
 } // namespace Ice
 

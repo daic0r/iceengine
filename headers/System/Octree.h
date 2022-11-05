@@ -550,7 +550,7 @@ namespace Ice
 
     template<typename LeafNodeContainerType, typename ValueType>
     void Octree<LeafNodeContainerType, ValueType>::emplace(const AABB& box, const ValueType& value) {
-        if (box.contains(std::get<branch_node>(*m_root).box))
+        if (box.intersects(std::get<branch_node>(*m_root).box))
             emplace_impl(m_root.get(), box, value);
     }
 

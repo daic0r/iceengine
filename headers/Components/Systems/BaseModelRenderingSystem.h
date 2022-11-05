@@ -31,6 +31,8 @@ class IModelRenderer;
 
 template<typename ModelStructType, typename ModelInstanceType>
 class BaseModelRenderingSystem {
+	friend class SceneGraphSystem;
+
 	static inline constexpr auto TREE_REFRESH_INTERVAL = 20;
 	static inline constexpr auto FRUSTUM_REFRESH_INTERVAL = 30;
 
@@ -59,6 +61,13 @@ protected:
 	virtual ModelStructType makeModelStruct(Entity) const = 0;
 	virtual bool isEntityEligibleForRendering(Entity e) const = 0;
 	virtual bool isEntityEligibleForFrustumCulling(Entity e) const = 0;
+
+	static constexpr RenderSystem renderSystem() noexcept {
+		if constexpr(std::is_same_v<ModelStructType, Model>)
+			return RenderSystem::STATIC;
+		else
+			return RenderSystem::ANIMATED;
+	}
 	
 	void onSystemsInitialized() noexcept {
 		m_pCameraControllerSystem = entityManager.getSystem<CameraControllerSystem, true>();
@@ -66,15 +75,6 @@ protected:
 		m_pGraphicsSystem = systemServices.getGraphicsSystem();
 		m_pSceneGraphSystem = entityManager.getSystem<SceneGraphSystem, true>();
 //		m_pShadowRenderer = systemServices.getShadowMapRenderer();
-		m_pSceneGraphSystem->tree().setGetVisibleObjectCollectionFunc([this](const SceneGraphSystem::TreeNodeContainer& container) {
-			this->m_vFrustumEnts.insert(this->m_vFrustumEnts.end(), container.m_vObjects.begin(), container.m_vObjects.end());
-			for (const auto& [model, vInst] : container.m_mModels) {
-				auto& v = this->m_vInstances[std::get<ModelStructType>(model)];
-				std::ranges::transform(vInst, std::back_inserter(v), [](const auto& inst) {
-					return std::get<ModelInstanceType*>(inst);
-				});
-			}
-		});
 	}
 
 	void onEntityAdded(Entity e) noexcept {
@@ -89,7 +89,7 @@ protected:
 
 		const AABB boxLocal{ iter->second.first.pMesh->extents() };
 		const auto boxWorld = boxLocal.transform(iter->second.second.pTransform->m_transform);
-		m_pSceneGraphSystem->tree().emplace(boxWorld, SceneGraphSystem::TreeEmplaceValue{ e, iter->second.first, &iter->second.second });
+		m_pSceneGraphSystem->tree().emplace(boxWorld, SceneGraphSystem::TreeEmplaceValue{ e, renderSystem(), iter->second.first, &iter->second.second });
 
 		if (m_pShadowRenderer == nullptr)
 			m_pShadowRenderer = systemServices.getShadowMapRenderer();

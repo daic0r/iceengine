@@ -1,14 +1,16 @@
 #include <Components/Systems/SceneGraphSystem.h>
 #include <Components/TransformComponent.h>
 #include <Components/Systems/TerrainSystem.h>
+#include <Components/Systems/ObjectRenderingSystem.h>
+#include <Components/Systems/AnimatedModelRenderingSystem.h>
 #include <ranges>
 
 namespace Ice
 {
     SceneGraphSystem::SceneGraphSystem() {
         m_tree.setEmplaceFunc([](TreeNodeContainer& container, const TreeEmplaceValue& value) {
-            if (std::ranges::none_of(container.m_vObjects, [&value](auto&& v) { return v == value.m_ent; })) {
-                container.m_vObjects.emplace_back(value.m_ent);
+            if (std::ranges::none_of(container.m_vObjects, [&value](auto&& v) { return v.second == value.m_ent; })) {
+                container.m_vObjects.emplace_back(value.m_system, value.m_ent);
                 container.m_mModels[value.m_model].push_back(value.m_pInst);
             }
         });
@@ -16,6 +18,39 @@ namespace Ice
 
     void SceneGraphSystem::onSystemsInitialized() noexcept {
 		m_pTerrainSystem = entityManager.getSystem<TerrainSystem, false>();
+        m_pObjectRenderingSystem = entityManager.getSystem<ObjectRenderingSystem, true>();
+        m_pAniModelRenderingSystem = entityManager.getSystem<AnimatedModelRenderingSystem, true>();
+
+        m_tree.setGetVisibleObjectCollectionFunc([this](const SceneGraphSystem::TreeNodeContainer& container) {
+            //this->m_vFrustumEnts.insert(this->m_vFrustumEnts.end(), container.m_vObjects.begin(), container.m_vObjects.end());
+            for (const auto& [sys, ent] : container.m_vObjects) {
+                switch (sys) {
+                    case RenderSystem::STATIC:
+                        m_pObjectRenderingSystem->m_vFrustumEnts.push_back(ent);
+                        break;
+                    case RenderSystem::ANIMATED:
+                        m_pAniModelRenderingSystem->m_vFrustumEnts.push_back(ent);
+                        break;
+                }
+            }
+            for (const auto& [model, vInst] : container.m_mModels) {
+                //auto pvInstances = std::holds_alternative<Model>(model) ? &m_pObjectRenderingSystem->m_vInstances : &m_pAniModelRenderingSystem->m_vInstances;
+                auto pvInstances = std::visit(visitor{ [this](const Model& m) {
+                    return &m_pObjectRenderingSystem->m_vInstances;
+                }, [this](const AnimatedModel& m) {
+                    return &m_pAniModelRenderingSystem->m_vInstances;
+                } }, model);
+                std::visit([&](auto&& m) -> decltype(auto) {
+                    auto& v = ((*pvInstances).at(m));
+                    std::ranges::transform(vInst, std::back_inserter(v), [](const modelinstance_t& inst) {
+                        return std::visit([](auto&& i) {
+                            return static_cast<ModelInstance*>(i);
+                        }, inst);
+                        //return sysInstPair.first == RenderSystem::STATIC ? std::get<ModelInstance>(sysInstPair.second) : std::get<AnimatedModelInstance>(sysInstPair.second);
+                    });
+                }, model);
+            }
+        });
     }
 
     void SceneGraphSystem::onEntityAdded(Entity e) noexcept {
