@@ -56,7 +56,7 @@ namespace Ice
 
     private:
         std::unordered_set<Entity> m_sDirtyRootEnts;
-        tree_t m_tree{5};
+        tree_t m_tree{4};
         TerrainSystem* m_pTerrainSystem{};
         ObjectRenderingSystem* m_pObjectRenderingSystem{};
         AnimatedModelRenderingSystem* m_pAniModelRenderingSystem{};

@@ -101,7 +101,7 @@ namespace Ice
         const branch_node& root() const noexcept { return std::get<branch_node>(*m_root); };
         const AABB& boundingBox() const noexcept { return root().box; }
     public:
-        Octree(std::size_t nMaxDepth = 6) : m_nMaxDepth{nMaxDepth} {}
+        Octree(std::size_t nMaxDepth = 4) : m_nMaxDepth{nMaxDepth} {}
         Octree(const std::vector<std::pair<AABB, ValueType>>& vBoxes, const AABB& outerBox, std::size_t nMaxDepth = 6);
         void construct(const AABB& originalBox, const std::vector<std::pair<AABB, ValueType>>* = nullptr);
         bool intersects(Ray, const base::onhitleafnodefunc_t& onHitLeafNode) const;
@@ -174,7 +174,7 @@ namespace Ice
         }
 
         node = std::make_unique<node_t>();
-        if (nLevel <= m_nMaxDepth && (!pvValues || (pvValues && pvValues->size() > 2))) {
+        if (nLevel < m_nMaxDepth && (!pvValues || (pvValues && pvValues->size() > 2))) {
             *node = branch_node{};
             auto& thisNode = std::get<branch_node>(*node);
             thisNode.box = originalBox;
@@ -184,7 +184,7 @@ namespace Ice
                 }
             }
             for (int i = 0; i < 8; ++i) {
-                construct_impl(thisNode.arNodes[i], arSubNodes[i].box, &arSubNodes[i].vNodeContents, nLevel + 1);
+                construct_impl(thisNode.arNodes[i], arSubNodes[i].box, pvValues ? &arSubNodes[i].vNodeContents : nullptr, nLevel + 1);
             }
         }
         else {
@@ -533,7 +533,7 @@ namespace Ice
                 for (const auto& pSubNode : node.arNodes) {
                     const auto bIntersect = std::visit(
                         [&box](const auto& n) {
-                            return n.box.contains(box);
+                            return n.box.intersects(box);
                         }
                     , *pSubNode);
                     if (bIntersect) {
