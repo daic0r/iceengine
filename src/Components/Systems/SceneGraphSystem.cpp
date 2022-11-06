@@ -47,12 +47,14 @@ namespace Ice
     }
 
     void SceneGraphSystem::onEntityAdded(Entity e) noexcept {
-        /*
-        const auto& comp = entityManager.getComponent<EntityHierarchyComponent>(e);
+        auto& comp = entityManager.getComponent<EntityHierarchyComponent>(e);
         if (comp.entRootEntity == INVALID_ENTITY_ID) {
             comp.entRootEntity = findRoot(e);
         }
-        */
+        if (comp.entParent != INVALID_ENTITY_ID) {
+            auto& parentComp = entityManager.getComponent<EntityHierarchyComponent>(comp.entParent);
+            parentComp.vChildren.push_back(e);
+        }
     }
 
     void SceneGraphSystem::buildTree() noexcept {

@@ -10,6 +10,7 @@ namespace Ice
 {
     class TerrainSystem;
     class BiomeSystem;
+    class SceneGraphSystem;
 
     class CharacterSystem : public EntityComponentSystem<CharacterComponent> {
 
@@ -23,6 +24,7 @@ namespace Ice
     private:
         TerrainSystem *m_pTerrainSystem{};
         BiomeSystem *m_pBiomeSystem{};
+        SceneGraphSystem* m_pSceneGraphSystem{};
     };
 } // namespace Ice
 

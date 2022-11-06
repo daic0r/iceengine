@@ -22,6 +22,7 @@
 #include <Importers/ModelImporterGlTF.h>
 #include <filesystem>
 #include <System/File.h>
+#include <Components/Systems/SceneGraphSystem.h>
 
 namespace Ice {
 
@@ -115,6 +116,7 @@ Entity ObjectRenderingSystem::loadBlueprintFromExternalFile(std::string_view str
 Entity ObjectRenderingSystem::createInstance(Entity blueprint, const glm::mat4& transform) {
 	auto ent = entityManager.createEntity();
 	entityManager.addComponent(ent, TransformComponent{ transform });
+	entityManager.addComponent(ent, EntityHierarchyComponent{ .matTransform = transform, .bDirty = false });
 	entityManager.addComponent(ent, ModelInstanceTagComponent{});
 	entityManager.addComponent(ent, ModelReferenceComponent{ blueprint });
 	return ent;

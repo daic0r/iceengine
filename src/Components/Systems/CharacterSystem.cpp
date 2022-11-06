@@ -8,13 +8,16 @@
 #include <Components/Systems/ModelAnimationSystem.h>
 #include <Components/ModelReferenceComponent.h>
 #include <Components/ModelAnimationComponent.h>
+#include <Components/EntityHierarchyComponent.h>
 #include <Algorithms/AStar.h>
+#include <Components/Systems/SceneGraphSystem.h>
 
 namespace Ice
 {
     void CharacterSystem::onSystemsInitialized() noexcept {
         m_pTerrainSystem = entityManager.getSystem<TerrainSystem, false>();
         m_pBiomeSystem = entityManager.getSystem<BiomeSystem, true>();
+        m_pSceneGraphSystem = entityManager.getSystem<SceneGraphSystem, true>();
     }
 
     bool CharacterSystem::doPlaceBiomeNode(Entity e) noexcept {
@@ -26,7 +29,7 @@ namespace Ice
             aniComp.pCurrent = &aniComp.animations.at("Idle");
             const auto& action = entityManager.getComponent<PlaceBiomeNodeActionComponent>(e);
             auto biomeEnt = entityManager.createEntity();
-            auto biomeTransform = entityManager.getComponent<TransformComponent>(e);
+            auto biomeTransform = entityManager.getComponent<EntityHierarchyComponent>(e);
             entityManager.addComponent(biomeEnt, biomeTransform);
             entityManager.addComponent(biomeEnt, BiomeNodeComponent{ .type = action.biomeType, .color = RGBA( 255, 255, 255 ), .power = 0.0_pct, .fRadius = 200.0f, .state = BiomeNodeComponent::State::EXPANDING });
             return true;
@@ -42,9 +45,9 @@ namespace Ice
             return false;
 
         auto& walk = entityManager.getComponent<WalkActionComponent>(e);
-        auto& trans = entityManager.getComponent<TransformComponent>(e);
+        auto& trans = m_pSceneGraphSystem->getTransform(e, ComponentAccess::WRITE);
 
-        glm::vec2 curPos{ trans.m_transform[3][0], trans.m_transform[3][2] };
+        glm::vec2 curPos{ trans[3][0], trans[3][2] };
 
         if (walk.vGridNodes.empty()) {
             walk.vGridNodes = m_pTerrainSystem->findPath(curPos.x, curPos.y, walk.target.x, walk.target.y);
@@ -74,12 +77,12 @@ namespace Ice
         trans.m_transform[3][0] += diff.x;
         trans.m_transform[3][2] += diff.y;
         */
-        m_pTerrainSystem->getHeight(curPos.x, curPos.y, &trans.m_transform);
+        m_pTerrainSystem->getHeight(curPos.x, curPos.y, &trans);
 
         if (bNext) {
             walk.vGridNodes.pop_back();
         }
-        trans.m_transform = trans.m_transform * glm::rotate(glm::mat4{1.0f}, fEntAngle, glm::vec3{0.0f, 1.0f, 0.0f}) * bindTransform;
+        trans = trans * glm::rotate(glm::mat4{1.0f}, fEntAngle, glm::vec3{0.0f, 1.0f, 0.0f}) * bindTransform;
 
         return walk.vGridNodes.empty();
     }

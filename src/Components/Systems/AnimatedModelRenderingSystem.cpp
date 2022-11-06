@@ -23,6 +23,7 @@
 #include <Importers/ModelImporterGlTF.h>
 #include <Importers/ModelImporterCollada.h>
 #include <System/File.h>
+#include <Components/EntityHierarchyComponent.h>
 
 namespace Ice {
 
@@ -155,6 +156,7 @@ Entity AnimatedModelRenderingSystem::loadBlueprintFromExternalFile(std::string_v
 Entity AnimatedModelRenderingSystem::createInstance(Entity blueprint, const glm::mat4& transform) {
 	auto manInst = entityManager.createEntity();
 	entityManager.addComponent(manInst, TransformComponent{ transform });
+	entityManager.addComponent(manInst, EntityHierarchyComponent{ .matTransform = transform, .bDirty = false });
 	entityManager.addComponent(manInst, ModelReferenceComponent{ blueprint });
 	entityManager.addComponent(manInst, AnimatedModelInstanceTagComponent{});
 	const auto& aniComp = entityManager.getComponent<ModelAnimationComponent>(blueprint);
